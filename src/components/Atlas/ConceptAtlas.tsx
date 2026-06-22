@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Plus, Maximize2, Minimize2, Search, Filter } from 'lucide-react';
+import { Plus, Maximize2, Minimize2, Search, Filter, Map as MapIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
