@@ -23,35 +23,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MEDIA_LABELS, MEDIA_TYPES, conceptKey, ensureConceptTerms, normalizeConceptTags, today } from '@/lib/readex';
+import { DEFAULT_ATLAS_NODE_SETTINGS, DEFAULT_ATLAS_VIEW_SETTINGS, DEFAULT_GOAL_SETTINGS, PROTOTYPE_USER_ID, readexRefs, readexSchemaDoc } from '@/lib/firestore-schema';
 import type { Concept, Draft, GoalSettings, Insight, Media, MediaType, Question, TimelineEvent, VaultEntry } from '@/lib/types';
-import { addDoc, collection, deleteDoc, doc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
-
-const PROTOTYPE_USER_ID = 'anonymous-scholar';
-
-const defaultGoal: GoalSettings = {
-  label: '2026 Source Goals',
-  types: ['book', 'movie', 'video', 'documentary', 'article', 'podcast', 'audiobook'],
-  targets: { book: 12, movie: 12, video: 12, documentary: 12, article: 12, podcast: 12, audiobook: 12 },
-};
+import { addDoc, deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch, type DocumentData, type DocumentReference } from 'firebase/firestore';
 
 function ReadexApp() {
   const { user } = useUser();
   const { db } = useFirebase();
   const [view, setView] = useState('atlas');
   const [goalOpen, setGoalOpen] = useState(false);
-  const [goalDraft, setGoalDraft] = useState<GoalSettings>(defaultGoal);
+  const [goalDraft, setGoalDraft] = useState<GoalSettings>(DEFAULT_GOAL_SETTINGS);
   const effectiveUid = user?.uid || PROTOTYPE_USER_ID;
 
-  const refs = useMemo(() => ({
-    media: collection(db, 'users', effectiveUid, 'media'),
-    vault: collection(db, 'users', effectiveUid, 'vault'),
-    insights: collection(db, 'users', effectiveUid, 'insights'),
-    concepts: collection(db, 'users', effectiveUid, 'concepts'),
-    questions: collection(db, 'users', effectiveUid, 'questions'),
-    timeline: collection(db, 'users', effectiveUid, 'timeline'),
-    drafts: collection(db, 'users', effectiveUid, 'drafts'),
-    settingsGoal: doc(db, 'users', effectiveUid, 'settings', 'goal'),
-  }), [db, effectiveUid]);
+  const refs = useMemo(() => readexRefs(db, effectiveUid), [db, effectiveUid]);
 
   const { data: media = [] } = useCollection<Media>(refs.media as any);
   const { data: vault = [] } = useCollection<VaultEntry>(refs.vault as any);
@@ -61,9 +45,28 @@ function ReadexApp() {
   const { data: timeline = [] } = useCollection<TimelineEvent>(refs.timeline as any);
   const { data: drafts = [] } = useCollection<Draft>(refs.drafts as any);
   const { data: goalDoc } = useDoc<GoalSettings>(refs.settingsGoal as any);
-  const goal = { ...defaultGoal, ...(goalDoc || {}) };
+  const goal = { ...DEFAULT_GOAL_SETTINGS, ...(goalDoc || {}) };
 
   useEffect(() => setGoalDraft(goal), [goalDoc]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const setDefaultIfMissing = async (ref: DocumentReference<DocumentData>, data: DocumentData) => {
+      const snapshot = await getDoc(ref);
+      if (!snapshot.exists()) await setDoc(ref, data);
+    };
+
+    const scaffoldFirestore = async () => {
+      await setDoc(refs.user, { uid: effectiveUid, app: 'readex', updatedAt: today() }, { merge: true });
+      await setDefaultIfMissing(refs.settingsGoal, DEFAULT_GOAL_SETTINGS);
+      await setDefaultIfMissing(refs.settingsAtlasView, DEFAULT_ATLAS_VIEW_SETTINGS);
+      await setDefaultIfMissing(refs.settingsAtlasNodes, DEFAULT_ATLAS_NODE_SETTINGS);
+      await setDoc(refs.settingsSchema, readexSchemaDoc(effectiveUid), { merge: true });
+    };
+
+    scaffoldFirestore().catch((error) => {
+      console.warn('Unable to scaffold Readex Firestore settings', error);
+    });
+  }, [effectiveUid, refs.settingsAtlasNodes, refs.settingsAtlasView, refs.settingsGoal, refs.settingsSchema, refs.user]);
 
   const createTimelineEvent = (event: Partial<TimelineEvent>) => addDoc(refs.timeline, {
     entityId: event.entityId || '',
