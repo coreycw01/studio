@@ -4,6 +4,7 @@ export type MediaType = 'book' | 'video' | 'podcast' | 'article' | 'course' | 'p
 export type AnnotationType = 'highlight' | 'thought' | 'question' | 'connection';
 export type VaultType = 'belief' | 'principle' | 'mental_model' | 'life_rule' | 'worldview';
 export type EventType = 'created' | 'refined' | 'challenged' | 'revised' | 'expanded' | 'abandoned';
+export type QuestionStatus = 'open' | 'investigating' | 'answered' | 'archived';
 
 export interface Annotation {
   id: string;
@@ -11,7 +12,6 @@ export interface Annotation {
   type: AnnotationType;
   context?: string;
   date: string;
-  answer?: string;
 }
 
 export interface SessionLog {
@@ -27,8 +27,6 @@ export interface Media {
   type: MediaType;
   status: MediaStatus;
   year?: string;
-  genre?: string;
-  description?: string;
   thumbnailUrl?: string;
   tags: string[];
   annotations: Annotation[];
@@ -57,38 +55,42 @@ export interface VaultEntry {
   type: VaultType;
   statement: string;
   description: string;
-  confidence: number; // 1-5
+  confidence: number;
   status: 'active' | 'questioning' | 'revised' | 'abandoned';
   tags: string[];
   sourceIds: string[];
-  evidenceFor: string[];
-  evidenceAgainst: string[];
-  versionHistory: Array<{
-    statement: string;
-    reason: string;
-    date: string;
-  }>;
   dateCreated: string;
   dateUpdated: string;
-}
-
-export interface Insight {
-  id: string;
-  title: string;
-  body: string;
-  sourceIds: string[];
-  tags: string[];
-  dateCreated: string;
 }
 
 export interface Concept {
   id: string;
   name: string;
   description: string;
-  links: string[]; // names of other concepts
+  links: string[];
   dateCreated: string;
-  x?: number; // relative positions for atlas
-  y?: number;
+  x: number;
+  y: number;
+}
+
+export interface Question {
+  id: string;
+  text: string;
+  status: QuestionStatus;
+  answer?: string;
+  evidenceIds: string[];
+  conceptIds: string[];
+  dateCreated: string;
+}
+
+export interface TimelineEvent {
+  id: string;
+  entityId: string;
+  entityType: string;
+  entityTitle: string;
+  eventType: EventType;
+  reason: string;
+  date: string;
 }
 
 export interface Draft {
@@ -99,20 +101,6 @@ export interface Draft {
   status: 'seed' | 'drafting' | 'revised' | 'final';
   conceptTags: string[];
   sourceIds: string[];
-  questionIds: string[];
-  beliefIds: string[];
   dateCreated: string;
   dateUpdated: string;
-}
-
-export interface TimelineEvent {
-  id: string;
-  entityId: string;
-  entityType: 'vault' | 'media' | 'draft';
-  entityTitle: string;
-  eventType: EventType;
-  reason: string;
-  influencedBy: string[];
-  date: string;
-  timestamp: number;
 }

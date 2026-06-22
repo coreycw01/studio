@@ -7,15 +7,16 @@ import {
   Map as MapIcon, 
   BookOpen, 
   HelpCircle, 
-  Infinity as InfinityIcon, 
   PenTool, 
   History, 
   Settings,
   ShieldCheck,
-  Target
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 interface ShellProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ interface ShellProps {
 }
 
 export function Shell({ children, activeView, onViewChange, mediaCount }: ShellProps) {
+  const { auth } = useAuth();
   const goalTarget = 12;
   const progress = (mediaCount / goalTarget) * 100;
 
@@ -38,9 +40,12 @@ export function Shell({ children, activeView, onViewChange, mediaCount }: ShellP
     { id: 'evolution', label: 'Evolution', icon: History, section: 'Outputs' },
   ];
 
+  const handleLogout = () => {
+    if (auth) signOut(auth);
+  };
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
-      {/* Sidebar */}
       <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border shadow-2xl z-20">
         <div className="p-6 border-b border-sidebar-border">
           <div className="flex items-center gap-2 mb-1">
@@ -86,21 +91,23 @@ export function Shell({ children, activeView, onViewChange, mediaCount }: ShellP
           ))}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/30">
-          <div className="bg-amber-900/20 border border-amber-900/30 rounded p-3 mb-4">
-             <p className="font-code text-[9px] uppercase tracking-wider text-amber-500 mb-1">System Notice</p>
-             <p className="text-[11px] text-sidebar-foreground/60 leading-relaxed">Storage linked to Local Vault. Scholastic engine active.</p>
-          </div>
+        <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/30 space-y-2">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-sidebar-foreground/40 hover:text-white transition-colors"
+          >
+            <LogOut className="size-4" />
+            <span>Sign Out</span>
+          </button>
           <div className="flex items-center justify-between">
             <button className="text-sidebar-foreground/40 hover:text-white transition-colors">
               <Settings className="size-4" />
             </button>
-            <span className="text-[10px] font-code text-sidebar-foreground/20">v1.2.0.sch</span>
+            <span className="text-[10px] font-code text-sidebar-foreground/20">v1.2.0.cloud</span>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col relative overflow-hidden">
         {children}
       </main>

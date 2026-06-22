@@ -1,28 +1,37 @@
 
 "use client";
 
-import React, { useState } from 'react';
-import { Plus, Maximize2, Minimize2, Search, Filter, Map as MapIcon } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, Maximize2, Minimize2, Search, Filter, Map as MapIcon, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import type { Concept } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface ConceptAtlasProps {
   concepts: Concept[];
   onAddConcept: () => void;
+  onSelectConcept?: (c: Concept) => void;
 }
 
-export function ConceptAtlas({ concepts, onAddConcept }: ConceptAtlasProps) {
+export function ConceptAtlas({ concepts, onAddConcept, onSelectConcept }: ConceptAtlasProps) {
   const [zoom, setZoom] = useState(1);
   const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filteredConcepts = concepts.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const selectedConcept = useMemo(() => 
+    concepts.find(c => c.id === selectedId),
+    [concepts, selectedId]
+  );
+
   return (
-    <div className="relative w-full h-full bg-[#F0EFED] flex flex-col">
+    <div className="relative w-full h-full bg-[#F0EFED] flex overflow-hidden">
       {/* Toolbars */}
       <div className="absolute top-6 left-6 right-6 flex justify-between items-start pointer-events-none z-10">
         <div className="flex gap-2 pointer-events-auto">
@@ -35,14 +44,10 @@ export function ConceptAtlas({ concepts, onAddConcept }: ConceptAtlasProps) {
               className="w-64 pl-9 bg-white/80 backdrop-blur border-border/50 font-body italic"
             />
           </div>
-          <Button variant="outline" className="bg-white/80 backdrop-blur border-border/50">
-            <Filter className="size-4 mr-2" />
-            Filter
-          </Button>
         </div>
 
         <div className="flex flex-col gap-2 pointer-events-auto items-end">
-          <div className="flex bg-white/80 backdrop-blur rounded-md border border-border/50 p-1">
+          <div className="flex bg-white/80 backdrop-blur rounded-md border border-border/50 p-1 shadow-sm">
             <Button variant="ghost" size="icon" onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}><Minimize2 className="size-4" /></Button>
             <div className="w-12 flex items-center justify-center font-code text-[11px] font-bold text-primary/60">{Math.round(zoom * 100)}%</div>
             <Button variant="ghost" size="icon" onClick={() => setZoom(z => Math.min(2, z + 0.1))}><Maximize2 className="size-4" /></Button>
@@ -64,24 +69,31 @@ export function ConceptAtlas({ concepts, onAddConcept }: ConceptAtlasProps) {
             backgroundSize: '32px 32px'
           }}
         >
-          {filteredConcepts.map((concept, idx) => (
+          {filteredConcepts.map((concept) => (
             <div
               key={concept.id}
-              className="absolute p-4 min-w-[120px] text-center"
+              className="absolute p-4 min-w-[140px] text-center"
               style={{
-                left: `${(concept.x || 20 + (idx * 15))}%`,
-                top: `${(concept.y || 20 + (idx * 10))}%`,
+                left: `${concept.x}%`,
+                top: `${concept.y}%`,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedId(concept.id);
               }}
             >
-              <Card className="p-3 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all border-accent/20 cursor-pointer group">
+              <Card className={cn(
+                "p-3 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all border-accent/20 cursor-pointer group relative overflow-hidden",
+                selectedId === concept.id ? "ring-2 ring-accent border-accent" : ""
+              )}>
                 <h3 className="font-headline font-semibold text-primary group-hover:text-accent transition-colors">{concept.name}</h3>
                 <div className="mt-2 flex justify-center gap-1">
-                  <div className="size-1 rounded-full bg-accent" />
-                  <div className="size-1 rounded-full bg-accent opacity-50" />
+                   {concept.links.length > 0 && <div className="size-1 rounded-full bg-accent" />}
+                   {concept.links.length > 3 && <div className="size-1 rounded-full bg-accent opacity-50" />}
                 </div>
               </Card>
               <div className="mt-2 font-code text-[10px] text-muted-foreground uppercase tracking-widest">
-                {concept.links.length} Links
+                {concept.links.length} Explicit Links
               </div>
             </div>
           ))}
@@ -101,10 +113,61 @@ export function ConceptAtlas({ concepts, onAddConcept }: ConceptAtlasProps) {
         </div>
       </div>
 
-      <div className="p-4 bg-white/50 backdrop-blur border-t border-border/50 flex justify-between items-center text-[11px] font-code text-muted-foreground uppercase tracking-widest">
-        <div>Cartographic Layer: Scholastic Core v1</div>
-        <div className="flex gap-4">
-          <span>Active Nodes: {filteredConcepts.length}</span>
+      {/* Selected Node Panel */}
+      {selectedConcept && (
+        <div className="w-80 bg-white border-l border-border/50 shadow-2xl z-20 animate-in slide-in-from-right duration-300">
+           <div className="p-6 border-b border-border/50 flex justify-between items-start">
+             <div>
+                <Badge variant="outline" className="mb-2 font-code text-[9px] uppercase tracking-widest">Concept Node</Badge>
+                <h2 className="text-2xl font-headline font-bold italic">{selectedConcept.name}</h2>
+             </div>
+             <Button variant="ghost" size="icon" onClick={() => setSelectedId(null)}><X className="size-4" /></Button>
+           </div>
+           
+           <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-120px)]">
+             <section>
+                <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Philosophical Scope</h4>
+                <p className="font-body text-sm leading-relaxed italic text-primary/80">
+                  {selectedConcept.description || "Description pending cognitive refinement."}
+                </p>
+             </section>
+
+             <section>
+                <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Branches ({selectedConcept.links.length})</h4>
+                <div className="space-y-2">
+                   {selectedConcept.links.map(link => (
+                     <div key={link} className="flex items-center justify-between p-2 bg-muted/30 rounded border border-border/20 text-xs font-body group cursor-pointer hover:bg-accent/5 transition-colors">
+                        <span>{link}</span>
+                        <ChevronRight className="size-3 text-muted-foreground group-hover:text-accent transition-colors" />
+                     </div>
+                   ))}
+                   <Button variant="outline" size="sm" className="w-full text-[10px] font-code uppercase tracking-tighter mt-2">
+                     <Plus className="size-3 mr-2" /> Branch Concept
+                   </Button>
+                </div>
+             </section>
+
+             <section>
+                <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Cartography</h4>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="p-3 bg-muted/20 rounded border border-border/10">
+                      <span className="block text-[10px] text-muted-foreground uppercase">Lat/X</span>
+                      <span className="font-code text-sm">{selectedConcept.x.toFixed(1)}°</span>
+                   </div>
+                   <div className="p-3 bg-muted/20 rounded border border-border/10">
+                      <span className="block text-[10px] text-muted-foreground uppercase">Long/Y</span>
+                      <span className="font-code text-sm">{selectedConcept.y.toFixed(1)}°</span>
+                   </div>
+                </div>
+             </section>
+           </div>
+        </div>
+      )}
+
+      <div className="absolute bottom-4 left-4 p-3 bg-white/50 backdrop-blur border border-border/50 rounded-md shadow-sm pointer-events-none text-[11px] font-code text-muted-foreground uppercase tracking-widest z-10">
+        Cartographic Layer: Scholastic Core v1.2
+        <div className="flex gap-4 mt-1">
+          <span>Nodes: {filteredConcepts.length}</span>
           <span>Explicit Branches: {concepts.reduce((acc, c) => acc + c.links.length, 0)}</span>
         </div>
       </div>

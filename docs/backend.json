@@ -1,0 +1,114 @@
+
+{
+  "entities": {
+    "Media": {
+      "title": "Media Source",
+      "description": "Information regarding a captured source of knowledge.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "creator": { "type": "string" },
+        "type": { "type": "string", "enum": ["book", "video", "podcast", "article", "course", "paper", "other"] },
+        "status": { "type": "string", "enum": ["Want to Read", "Consuming", "Finished", "Paused", "Abandoned"] },
+        "thumbnailUrl": { "type": "string" },
+        "annotations": { "type": "array", "items": { "$ref": "#/backend/entities/Annotation" } },
+        "capture": { "type": "object" },
+        "dateAdded": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "type", "status"]
+    },
+    "Annotation": {
+      "title": "Annotation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "type": { "type": "string", "enum": ["highlight", "thought", "question", "connection"] },
+        "date": { "type": "string", "format": "date-time" }
+      }
+    },
+    "VaultEntry": {
+      "title": "Belief/Principle",
+      "description": "An explicit claim or mental model in the user's philosophy.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["belief", "principle", "mental_model", "life_rule", "worldview"] },
+        "statement": { "type": "string" },
+        "description": { "type": "string" },
+        "confidence": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "questioning", "revised", "abandoned"] },
+        "sourceIds": { "type": "array", "items": { "type": "string" } },
+        "dateCreated": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Concept": {
+      "title": "Concept Node",
+      "description": "A node in the mental atlas representing an idea or theme.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "links": { "type": "array", "items": { "type": "string" } },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "dateCreated": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Question": {
+      "title": "Inquiry",
+      "description": "An active philosophical question the user is exploring.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "investigating", "answered", "archived"] },
+        "answer": { "type": "string" },
+        "evidenceIds": { "type": "array", "items": { "type": "string" } },
+        "conceptIds": { "type": "array", "items": { "type": "string" } },
+        "dateCreated": { "type": "string", "format": "date-time" }
+      }
+    },
+    "TimelineEvent": {
+      "title": "Evolution Event",
+      "description": "A record of how a belief or concept changed over time.",
+      "type": "object",
+      "properties": {
+        "entityId": { "type": "string" },
+        "entityType": { "type": "string" },
+        "entityTitle": { "type": "string" },
+        "eventType": { "type": "string" },
+        "reason": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["google", "password"]
+  },
+  "firestore": {
+    "/users/{userId}/media/{mediaId}": {
+      "schema": "Media",
+      "description": "Library of captured sources."
+    },
+    "/users/{userId}/vault/{vaultId}": {
+      "schema": "VaultEntry",
+      "description": "Repository of beliefs and principles."
+    },
+    "/users/{userId}/concepts/{conceptId}": {
+      "schema": "Concept",
+      "description": "Nodes in the mental atlas."
+    },
+    "/users/{userId}/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Active philosophical inquiries."
+    },
+    "/users/{userId}/timeline/{eventId}": {
+      "schema": "TimelineEvent",
+      "description": "Log of cognitive evolution."
+    },
+    "/users/{userId}/drafts/{draftId}": {
+      "schema": "object",
+      "description": "Writing manuscripts."
+    }
+  }
+}
