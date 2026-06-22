@@ -1,10 +1,11 @@
-
 export type MediaStatus = 'Want to Read' | 'Consuming' | 'Finished' | 'Paused' | 'Abandoned';
-export type MediaType = 'book' | 'video' | 'podcast' | 'article' | 'course' | 'paper' | 'other';
+export type MediaType = 'book' | 'audiobook' | 'podcast' | 'video' | 'movie' | 'article' | 'course' | 'lecture' | 'documentary' | 'interview' | 'conversation' | 'paper' | 'other';
 export type AnnotationType = 'highlight' | 'thought' | 'question' | 'connection';
 export type VaultType = 'belief' | 'principle' | 'mental_model' | 'life_rule' | 'worldview';
 export type EventType = 'created' | 'refined' | 'challenged' | 'revised' | 'expanded' | 'abandoned';
 export type QuestionStatus = 'open' | 'investigating' | 'answered' | 'archived';
+export type DraftType = 'essay' | 'script' | 'field_note';
+export type DraftStatus = 'seed' | 'drafting' | 'revised' | 'final';
 
 export interface Annotation {
   id: string;
@@ -12,12 +13,32 @@ export interface Annotation {
   type: AnnotationType;
   context?: string;
   date: string;
+  answer?: string;
+  conceptTags?: string[];
 }
 
 export interface SessionLog {
   id: string;
   date: string;
   notes: string;
+}
+
+export interface MediaCapture {
+  before?: {
+    priorBeliefs?: string;
+    expectation?: string;
+    openQuestion?: string;
+    openAnswer?: string;
+  };
+  after?: {
+    coreArgument?: string;
+    heldUp?: string;
+    didntHold?: string;
+    lasting?: string;
+    beliefChange?: string;
+    crossRefs?: string;
+  };
+  sessions: SessionLog[];
 }
 
 export interface Media {
@@ -27,26 +48,22 @@ export interface Media {
   type: MediaType;
   status: MediaStatus;
   year?: string;
+  genre?: string;
+  description?: string;
+  url?: string;
   thumbnailUrl?: string;
   tags: string[];
   annotations: Annotation[];
-  capture: {
-    before?: {
-      priorBeliefs?: string;
-      expectation?: string;
-      openQuestion?: string;
-    };
-    after?: {
-      coreArgument?: string;
-      heldUp?: string;
-      didntHold?: string;
-      lasting?: string;
-      beliefChange?: string;
-      crossRefs?: string;
-    };
-    sessions: SessionLog[];
-  };
+  capture: MediaCapture;
   dateAdded: string;
+  dateUpdated?: string;
+}
+
+export interface VaultVersion {
+  description: string;
+  reason?: string;
+  eventType?: EventType;
+  date: string;
 }
 
 export interface VaultEntry {
@@ -59,6 +76,24 @@ export interface VaultEntry {
   status: 'active' | 'questioning' | 'revised' | 'abandoned';
   tags: string[];
   sourceIds: string[];
+  insightIds?: string[];
+  evidenceFor?: string[];
+  evidenceAgainst?: string[];
+  versionHistory?: VaultVersion[];
+  createdFrom?: 'manual' | 'idea';
+  dateCreated: string;
+  dateUpdated: string;
+}
+
+export interface Insight {
+  id: string;
+  title: string;
+  body: string;
+  sourceIds: string[];
+  tags: string[];
+  categories?: string[];
+  connections?: string[];
+  beliefId?: string;
   dateCreated: string;
   dateUpdated: string;
 }
@@ -69,8 +104,10 @@ export interface Concept {
   description: string;
   links: string[];
   dateCreated: string;
+  dateUpdated?: string;
   x: number;
   y: number;
+  createdFrom?: 'manual' | 'tag' | 'idea' | 'fallback';
 }
 
 export interface Question {
@@ -80,16 +117,22 @@ export interface Question {
   answer?: string;
   evidenceIds: string[];
   conceptIds: string[];
+  sourceIds?: string[];
+  beliefIds?: string[];
+  draftIds?: string[];
+  type?: 'open' | 'annotation' | 'manual';
   dateCreated: string;
+  dateUpdated?: string;
 }
 
 export interface TimelineEvent {
   id: string;
   entityId: string;
-  entityType: string;
+  entityType: 'media' | 'vault' | 'concept' | 'question' | 'draft' | 'insight' | string;
   entityTitle: string;
   eventType: EventType;
   reason: string;
+  influencedBy?: string[];
   date: string;
 }
 
@@ -97,10 +140,33 @@ export interface Draft {
   id: string;
   title: string;
   body: string;
-  type: 'essay' | 'script' | 'field_note';
-  status: 'seed' | 'drafting' | 'revised' | 'final';
+  type: DraftType;
+  status: DraftStatus;
   conceptTags: string[];
   sourceIds: string[];
+  questionIds: string[];
+  beliefIds: string[];
   dateCreated: string;
   dateUpdated: string;
+}
+
+export interface GoalSettings {
+  id?: string;
+  label: string;
+  types: MediaType[];
+  targets: Partial<Record<MediaType, number>>;
+}
+
+export interface AtlasViewSettings {
+  id?: string;
+  x: number;
+  y: number;
+  scale: number;
+}
+
+export interface AtlasNodePosition {
+  id?: string;
+  name: string;
+  x: number;
+  y: number;
 }
