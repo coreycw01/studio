@@ -2,11 +2,17 @@
 "use client";
 
 import React, { useState } from 'react';
-import { PenTool, Library, HelpCircle, ShieldCheck, ChevronRight, Save, Send } from 'lucide-react';
+import { PenTool, Library, HelpCircle, ShieldCheck, ChevronRight, Save, Send, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useFirebase } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import type { Draft, Media, VaultEntry, Annotation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -14,11 +20,32 @@ interface AtelierProps {
   drafts: Draft[];
   media: Media[];
   vault: VaultEntry[];
-  onAddDraft: () => void;
+  onAddDraft: (data: Partial<Draft>) => void;
 }
 
 export function Atelier({ drafts, media, vault, onAddDraft }: AtelierProps) {
+  const { db } = useFirebase();
   const [activeDraft, setActiveDraft] = useState<Draft | null>(drafts[0] || null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newDraft, setNewDraft] = useState({ title: '', type: 'essay' as Draft['type'] });
+
+  const handleSave = async () => {
+    if (!activeDraft || !db) return;
+    const draftRef = doc(db, 'users', 'anonymous-scholar', 'drafts', activeDraft.id);
+    await updateDoc(draftRef, {
+      body: activeDraft.body,
+      title: activeDraft.title,
+      dateUpdated: new Date().toISOString()
+    });
+  };
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDraft.title) return;
+    onAddDraft(newDraft);
+    setIsAddOpen(false);
+    setNewDraft({ title: '', type: 'essay' });
+  };
 
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -26,7 +53,7 @@ export function Atelier({ drafts, media, vault, onAddDraft }: AtelierProps) {
       <div className="w-72 border-r border-border/50 flex flex-col bg-white/30 backdrop-blur-sm">
         <div className="p-6 border-b border-border/50 flex justify-between items-center">
           <h2 className="font-headline font-bold text-xl italic">Manuscripts</h2>
-          <Button size="icon" variant="ghost" onClick={onAddDraft}><PenTool className="size-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => setIsAddOpen(true)}><Plus className="size-4" /></Button>
         </div>
         <ScrollArea className="flex-1">
           <div className="p-3 space-y-1">
@@ -47,7 +74,7 @@ export function Atelier({ drafts, media, vault, onAddDraft }: AtelierProps) {
                    )}>{d.status}</span>
                 </div>
                 <h3 className="font-headline font-semibold text-sm group-hover:text-accent transition-colors line-clamp-1">{d.title}</h3>
-                <p className="text-[11px] text-muted-foreground line-clamp-1 font-body mt-1">Updated {d.dateUpdated}</p>
+                <p className="text-[11px] text-muted-foreground line-clamp-1 font-body mt-1">Updated {new Date(d.dateUpdated).toLocaleDateString()}</p>
               </button>
             ))}
           </div>
@@ -63,11 +90,12 @@ export function Atelier({ drafts, media, vault, onAddDraft }: AtelierProps) {
                 <input 
                   className="w-full bg-transparent border-none text-3xl font-headline font-bold focus:outline-none placeholder:text-muted-foreground/30 italic"
                   value={activeDraft.title}
+                  onChange={e => setActiveDraft(p => p ? { ...p, title: e.target.value } : null)}
                   placeholder="Untitled Manuscript..."
                 />
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="font-code text-[10px] uppercase tracking-wider"><Save className="size-3 mr-2" /> Commit</Button>
+                <Button variant="outline" size="sm" onClick={handleSave} className="font-code text-[10px] uppercase tracking-wider"><Save className="size-3 mr-2" /> Commit</Button>
                 <Button size="sm" className="font-code text-[10px] uppercase tracking-wider"><Send className="size-3 mr-2" /> Publish</Button>
               </div>
             </div>
@@ -75,7 +103,8 @@ export function Atelier({ drafts, media, vault, onAddDraft }: AtelierProps) {
               <Textarea 
                 className="w-full h-full min-h-[70vh] border-none shadow-none text-xl leading-relaxed font-body focus-visible:ring-0 placeholder:text-muted-foreground/20 italic resize-none"
                 placeholder="Begin your inquiry..."
-                defaultValue={activeDraft.body}
+                value={activeDraft.body}
+                onChange={e => setActiveDraft(p => p ? { ...p, body: e.target.value } : null)}
               />
             </div>
           </>
@@ -87,7 +116,7 @@ export function Atelier({ drafts, media, vault, onAddDraft }: AtelierProps) {
               </div>
               <h2 className="text-2xl font-headline italic mb-2">No Active Inquiry</h2>
               <p className="text-muted-foreground font-body">Select a manuscript or create a new draft to begin weaving your philosophy.</p>
-              <Button variant="outline" className="mt-6" onClick={onAddDraft}>New Draft</Button>
+              <Button variant="outline" className="mt-6" onClick={() => setIsAddOpen(true)}>New Draft</Button>
             </div>
           </div>
         )}
@@ -147,10 +176,10 @@ export function Atelier({ drafts, media, vault, onAddDraft }: AtelierProps) {
             </TabsContent>
 
             <TabsContent value="quotes" className="p-4 m-0">
-               {media.flatMap(m => m.annotations.filter(a => a.type === 'highlight')).length > 0 ? (
+               {media.flatMap(m => m.annotations?.filter(a => a.type === 'highlight') || []).length > 0 ? (
                  <div className="space-y-4">
-                   {media.flatMap(m => m.annotations.filter(a => a.type === 'highlight').map(a => ({ ...a, source: m.title }))).map(q => (
-                     <div key={q.id} className="p-4 bg-white border border-border/20 rounded shadow-sm italic text-sm font-body text-primary/80">
+                   {media.flatMap(m => (m.annotations?.filter(a => a.type === 'highlight') || []).map(a => ({ ...a, source: m.title }))).map((q, i) => (
+                     <div key={i} className="p-4 bg-white border border-border/20 rounded shadow-sm italic text-sm font-body text-primary/80">
                         "{q.text}"
                         <div className="mt-2 flex items-center justify-between opacity-50">
                           <span className="font-code text-[9px] uppercase tracking-tighter">Source: {q.source}</span>
@@ -165,6 +194,36 @@ export function Atelier({ drafts, media, vault, onAddDraft }: AtelierProps) {
           </ScrollArea>
         </Tabs>
       </div>
+
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="sm:max-w-[425px] font-body">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl italic">Seed Manuscript</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="font-code text-[10px] uppercase tracking-widest">Draft Title</Label>
+              <Input id="title" placeholder="Working Title..." value={newDraft.title} onChange={e => setNewDraft(p => ({ ...p, title: e.target.value }))} className="font-body italic" />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-code text-[10px] uppercase tracking-widest">Draft Type</Label>
+              <Select value={newDraft.type} onValueChange={v => setNewDraft(p => ({ ...p, type: v as Draft['type'] }))}>
+                <SelectTrigger className="font-body italic">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="essay">Essay</SelectItem>
+                  <SelectItem value="script">Script</SelectItem>
+                  <SelectItem value="field_note">Field Note</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" className="w-full font-code uppercase tracking-widest text-xs">Initialize Draft</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

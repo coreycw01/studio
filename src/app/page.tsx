@@ -16,16 +16,20 @@ import { BeliefVault } from '@/components/Vault/BeliefVault';
 import { Atelier } from '@/components/Writing/Atelier';
 import { QuestionsWorkspace } from '@/components/Questions/QuestionsWorkspace';
 import { EvolutionTimeline } from '@/components/Evolution/EvolutionTimeline';
-import { collection } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, setDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { Toaster } from '@/components/ui/toaster';
+import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const PROTOTYPE_USER_ID = "anonymous-scholar";
 
 function ReadexApp() {
   const { user } = useUser();
   const { db } = useFirebase();
+  const { toast } = useToast();
   const [view, setView] = useState('atlas');
 
-  // Use the authenticated user's ID if available, otherwise fall back to a prototype ID
   const effectiveUid = user?.uid || PROTOTYPE_USER_ID;
 
   // Firebase Queries
@@ -43,20 +47,83 @@ function ReadexApp() {
   const { data: timeline = [] } = useCollection(timelineRef);
   const { data: drafts = [] } = useCollection(draftsRef);
 
+  const handleAddMedia = (data: any) => {
+    if (!mediaRef) return;
+    addDoc(mediaRef, {
+      ...data,
+      annotations: [],
+      tags: [],
+      status: 'Want to Read',
+      capture: { sessions: [] },
+      dateAdded: new Date().toISOString()
+    }).catch(async (err) => {
+      const permsError = new FirestorePermissionError({ path: mediaRef.path, operation: 'create', requestResourceData: data });
+      errorEmitter.emit('permission-error', permsError);
+    });
+  };
+
+  const handleAddVaultEntry = (data: any) => {
+    if (!vaultRef) return;
+    addDoc(vaultRef, {
+      ...data,
+      status: 'active',
+      confidence: 3,
+      tags: [],
+      sourceIds: [],
+      dateCreated: new Date().toISOString(),
+      dateUpdated: new Date().toISOString()
+    });
+  };
+
+  const handleAddConcept = (data: any) => {
+    if (!conceptsRef) return;
+    addDoc(conceptsRef, {
+      ...data,
+      links: [],
+      dateCreated: new Date().toISOString(),
+      x: Math.random() * 80 + 10,
+      y: Math.random() * 80 + 10
+    });
+  };
+
+  const handleAddQuestion = (data: any) => {
+    if (!questionsRef) return;
+    addDoc(questionsRef, {
+      ...data,
+      status: 'open',
+      evidenceIds: [],
+      conceptIds: [],
+      dateCreated: new Date().toISOString()
+    });
+  };
+
+  const handleAddDraft = (data: any) => {
+    if (!draftsRef) return;
+    addDoc(draftsRef, {
+      ...data,
+      body: '',
+      status: 'seed',
+      conceptTags: [],
+      sourceIds: [],
+      dateCreated: new Date().toISOString(),
+      dateUpdated: new Date().toISOString()
+    });
+  };
+
   const renderContent = () => {
     switch (view) {
       case 'atlas':
-        return <ConceptAtlas concepts={concepts as any} onAddConcept={() => {}} />;
+        return <ConceptAtlas concepts={concepts as any} onAddConcept={handleAddConcept} />;
       case 'library':
-        return <MediaLibrary media={media as any} onAddMedia={() => {}} onSelectMedia={() => {}} />;
+        return <MediaLibrary media={media as any} onAddMedia={handleAddMedia} onSelectMedia={() => {}} />;
       case 'vault':
-        return <BeliefVault entries={vault as any} onAddEntry={() => {}} onSelectEntry={() => {}} />;
+        return <BeliefVault entries={vault as any} onAddEntry={handleAddVaultEntry} onSelectEntry={() => {}} />;
       case 'questions':
-        return <QuestionsWorkspace questions={questions as any} onAddQuestion={() => {}} onSelectQuestion={() => {}} />;
+        return <QuestionsWorkspace questions={questions as any} onAddQuestion={handleAddQuestion} onSelectQuestion={() => {}} />;
       case 'evolution':
         return <EvolutionTimeline events={timeline as any} />;
       case 'writing':
-        return <Atelier drafts={drafts as any} media={media as any} vault={vault as any} onAddDraft={() => {}} />;
+        return <Atelier drafts={drafts as any} media={media as any} vault={vault as any} onAddDraft={handleAddDraft} />;
       default:
         return <div className="p-20 text-center font-headline italic text-2xl">Restoring archival section...</div>;
     }
@@ -69,6 +136,7 @@ function ReadexApp() {
       mediaCount={media.filter(m => (m as any).status === 'Finished').length}
     >
       {renderContent()}
+      <Toaster />
     </Shell>
   );
 }

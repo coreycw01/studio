@@ -2,24 +2,37 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Plus, HelpCircle, Search, Filter, BookOpen, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Plus, HelpCircle, Search, Filter, BookOpen, ShieldCheck, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import type { Question } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface QuestionsWorkspaceProps {
   questions: Question[];
-  onAddQuestion: () => void;
+  onAddQuestion: (data: Partial<Question>) => void;
   onSelectQuestion: (q: Question) => void;
 }
 
 export function QuestionsWorkspace({ questions, onAddQuestion, onSelectQuestion }: QuestionsWorkspaceProps) {
   const [search, setSearch] = useState("");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newQuestion, setNewQuestion] = useState({ text: '' });
 
   const filtered = questions.filter(q => q.text.toLowerCase().includes(search.toLowerCase()));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newQuestion.text) return;
+    onAddQuestion(newQuestion);
+    setIsAddOpen(false);
+    setNewQuestion({ text: '' });
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full">
@@ -28,7 +41,7 @@ export function QuestionsWorkspace({ questions, onAddQuestion, onSelectQuestion 
           <h1 className="text-4xl font-headline font-bold mb-2 italic">Inquiry Workspace</h1>
           <p className="text-muted-foreground font-body text-lg">Active threads of curiosity and evolving answers.</p>
         </div>
-        <Button onClick={onAddQuestion} className="bg-primary hover:bg-primary/90 shadow-xl">
+        <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90 shadow-xl">
           <Plus className="size-4 mr-2" /> New Question
         </Button>
       </header>
@@ -81,11 +94,11 @@ export function QuestionsWorkspace({ questions, onAddQuestion, onSelectQuestion 
               <div className="flex items-center gap-6 pt-4 border-t border-border/50 mt-auto">
                  <div className="flex items-center gap-2 text-muted-foreground">
                     <ShieldCheck className="size-3.5" />
-                    <span className="text-[10px] font-code uppercase tracking-widest">{q.evidenceIds.length} Evidence</span>
+                    <span className="text-[10px] font-code uppercase tracking-widest">{q.evidenceIds?.length || 0} Evidence</span>
                  </div>
                  <div className="flex items-center gap-2 text-muted-foreground">
                     <BookOpen className="size-3.5" />
-                    <span className="text-[10px] font-code uppercase tracking-widest">{q.conceptIds.length} Concepts</span>
+                    <span className="text-[10px] font-code uppercase tracking-widest">{q.conceptIds?.length || 0} Concepts</span>
                  </div>
                  <div className="ml-auto text-[10px] font-code text-muted-foreground/40 uppercase">
                     Captured: {new Date(q.dateCreated).toLocaleDateString()}
@@ -103,6 +116,29 @@ export function QuestionsWorkspace({ questions, onAddQuestion, onSelectQuestion 
           </div>
         )}
       </div>
+
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="sm:max-w-[500px] font-body">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl italic">Formulate Inquiry</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="question" className="font-code text-[10px] uppercase tracking-widest">Investigation Question</Label>
+              <Textarea 
+                id="question" 
+                placeholder="What is the nature of...?" 
+                value={newQuestion.text} 
+                onChange={e => setNewQuestion(p => ({ ...p, text: e.target.value }))} 
+                className="font-body italic min-h-[100px]" 
+              />
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" className="w-full font-code uppercase tracking-widest text-xs">Open Investigation</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

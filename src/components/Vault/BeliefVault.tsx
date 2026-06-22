@@ -1,17 +1,22 @@
 
 "use client";
 
-import React from 'react';
-import { Plus, ShieldCheck, Filter, ArrowUpRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, ShieldCheck, Filter, ArrowUpRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import type { VaultEntry, VaultType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface BeliefVaultProps {
   entries: VaultEntry[];
-  onAddEntry: () => void;
+  onAddEntry: (data: Partial<VaultEntry>) => void;
   onSelectEntry: (entry: VaultEntry) => void;
 }
 
@@ -24,6 +29,17 @@ const typeStyles: Record<VaultType, { bg: string, text: string, icon: string }> 
 };
 
 export function BeliefVault({ entries, onAddEntry, onSelectEntry }: BeliefVaultProps) {
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newEntry, setNewEntry] = useState({ title: '', statement: '', type: 'belief' as VaultType, description: '' });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEntry.title || !newEntry.statement) return;
+    onAddEntry(newEntry);
+    setIsAddOpen(false);
+    setNewEntry({ title: '', statement: '', type: 'belief', description: '' });
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full">
       <header className="flex justify-between items-end mb-12 animate-fade-in-up">
@@ -33,7 +49,7 @@ export function BeliefVault({ entries, onAddEntry, onSelectEntry }: BeliefVaultP
         </div>
         <div className="flex gap-3">
           <Button variant="outline"><Filter className="size-4 mr-2" /> Sort & Filter</Button>
-          <Button onClick={onAddEntry} className="bg-primary hover:bg-primary/90">
+          <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90">
             <Plus className="size-4 mr-2" /> Distill Entry
           </Button>
         </div>
@@ -98,6 +114,42 @@ export function BeliefVault({ entries, onAddEntry, onSelectEntry }: BeliefVaultP
           </div>
         )}
       </div>
+
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="sm:max-w-[500px] font-body">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl italic">Distill Philosophical Claim</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="font-code text-[10px] uppercase tracking-widest">Entry Label</Label>
+              <Input id="title" placeholder="e.g. Memento Mori" value={newEntry.title} onChange={e => setNewEntry(p => ({ ...p, title: e.target.value }))} className="font-body italic" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="statement" className="font-code text-[10px] uppercase tracking-widest">Core Statement</Label>
+              <Textarea id="statement" placeholder="The declarative truth of this belief..." value={newEntry.statement} onChange={e => setNewEntry(p => ({ ...p, statement: e.target.value }))} className="font-body italic" />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-code text-[10px] uppercase tracking-widest">Epistemological Category</Label>
+              <Select value={newEntry.type} onValueChange={v => setNewEntry(p => ({ ...p, type: v as VaultType }))}>
+                <SelectTrigger className="font-body italic">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="belief">Belief</SelectItem>
+                  <SelectItem value="principle">Principle</SelectItem>
+                  <SelectItem value="mental_model">Mental Model</SelectItem>
+                  <SelectItem value="life_rule">Life Rule</SelectItem>
+                  <SelectItem value="worldview">Worldview</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" className="w-full font-code uppercase tracking-widest text-xs">Vault Principle</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

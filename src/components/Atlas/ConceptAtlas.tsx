@@ -7,12 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import type { Concept } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface ConceptAtlasProps {
   concepts: Concept[];
-  onAddConcept: () => void;
+  onAddConcept: (data: Partial<Concept>) => void;
   onSelectConcept?: (c: Concept) => void;
 }
 
@@ -20,6 +23,8 @@ export function ConceptAtlas({ concepts, onAddConcept, onSelectConcept }: Concep
   const [zoom, setZoom] = useState(1);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newConcept, setNewConcept] = useState({ name: '', description: '' });
 
   const filteredConcepts = concepts.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase())
@@ -29,6 +34,14 @@ export function ConceptAtlas({ concepts, onAddConcept, onSelectConcept }: Concep
     concepts.find(c => c.id === selectedId),
     [concepts, selectedId]
   );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newConcept.name) return;
+    onAddConcept(newConcept);
+    setIsAddOpen(false);
+    setNewConcept({ name: '', description: '' });
+  };
 
   return (
     <div className="relative w-full h-full bg-[#F0EFED] flex overflow-hidden">
@@ -52,7 +65,7 @@ export function ConceptAtlas({ concepts, onAddConcept, onSelectConcept }: Concep
             <div className="w-12 flex items-center justify-center font-code text-[11px] font-bold text-primary/60">{Math.round(zoom * 100)}%</div>
             <Button variant="ghost" size="icon" onClick={() => setZoom(z => Math.min(2, z + 0.1))}><Maximize2 className="size-4" /></Button>
           </div>
-          <Button onClick={onAddConcept} className="shadow-lg">
+          <Button onClick={() => setIsAddOpen(true)} className="shadow-lg">
             <Plus className="size-4 mr-2" />
             Plot Concept
           </Button>
@@ -88,12 +101,12 @@ export function ConceptAtlas({ concepts, onAddConcept, onSelectConcept }: Concep
               )}>
                 <h3 className="font-headline font-semibold text-primary group-hover:text-accent transition-colors">{concept.name}</h3>
                 <div className="mt-2 flex justify-center gap-1">
-                   {concept.links.length > 0 && <div className="size-1 rounded-full bg-accent" />}
-                   {concept.links.length > 3 && <div className="size-1 rounded-full bg-accent opacity-50" />}
+                   {concept.links?.length > 0 && <div className="size-1 rounded-full bg-accent" />}
+                   {concept.links?.length > 3 && <div className="size-1 rounded-full bg-accent opacity-50" />}
                 </div>
               </Card>
               <div className="mt-2 font-code text-[10px] text-muted-foreground uppercase tracking-widest">
-                {concept.links.length} Explicit Links
+                {concept.links?.length || 0} Explicit Links
               </div>
             </div>
           ))}
@@ -106,7 +119,7 @@ export function ConceptAtlas({ concepts, onAddConcept, onSelectConcept }: Concep
                 </div>
                 <h2 className="text-xl font-headline italic mb-2">Uncharted Mental Territory</h2>
                 <p className="text-muted-foreground text-sm">Plot your first philosophical concept to begin mapping your internal landscape.</p>
-                <Button variant="outline" className="mt-4" onClick={onAddConcept}>Create Concept</Button>
+                <Button variant="outline" className="mt-4" onClick={() => setIsAddOpen(true)}>Create Concept</Button>
               </div>
             </div>
           )}
@@ -133,9 +146,9 @@ export function ConceptAtlas({ concepts, onAddConcept, onSelectConcept }: Concep
              </section>
 
              <section>
-                <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Branches ({selectedConcept.links.length})</h4>
+                <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Branches ({selectedConcept.links?.length || 0})</h4>
                 <div className="space-y-2">
-                   {selectedConcept.links.map(link => (
+                   {selectedConcept.links?.map(link => (
                      <div key={link} className="flex items-center justify-between p-2 bg-muted/30 rounded border border-border/20 text-xs font-body group cursor-pointer hover:bg-accent/5 transition-colors">
                         <span>{link}</span>
                         <ChevronRight className="size-3 text-muted-foreground group-hover:text-accent transition-colors" />
@@ -146,31 +159,30 @@ export function ConceptAtlas({ concepts, onAddConcept, onSelectConcept }: Concep
                    </Button>
                 </div>
              </section>
-
-             <section>
-                <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Cartography</h4>
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="p-3 bg-muted/20 rounded border border-border/10">
-                      <span className="block text-[10px] text-muted-foreground uppercase">Lat/X</span>
-                      <span className="font-code text-sm">{selectedConcept.x.toFixed(1)}°</span>
-                   </div>
-                   <div className="p-3 bg-muted/20 rounded border border-border/10">
-                      <span className="block text-[10px] text-muted-foreground uppercase">Long/Y</span>
-                      <span className="font-code text-sm">{selectedConcept.y.toFixed(1)}°</span>
-                   </div>
-                </div>
-             </section>
            </div>
         </div>
       )}
 
-      <div className="absolute bottom-4 left-4 p-3 bg-white/50 backdrop-blur border border-border/50 rounded-md shadow-sm pointer-events-none text-[11px] font-code text-muted-foreground uppercase tracking-widest z-10">
-        Cartographic Layer: Scholastic Core v1.2
-        <div className="flex gap-4 mt-1">
-          <span>Nodes: {filteredConcepts.length}</span>
-          <span>Explicit Branches: {concepts.reduce((acc, c) => acc + c.links.length, 0)}</span>
-        </div>
-      </div>
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="sm:max-w-[425px] font-body">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl italic">Plot New Concept</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="font-code text-[10px] uppercase tracking-widest">Concept Name</Label>
+              <Input id="name" placeholder="e.g. Stoicism" value={newConcept.name} onChange={e => setNewConcept(p => ({ ...p, name: e.target.value }))} className="font-body italic" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="desc" className="font-code text-[10px] uppercase tracking-widest">Brief Description</Label>
+              <Textarea id="desc" placeholder="Initial cognitive framing..." value={newConcept.description} onChange={e => setNewConcept(p => ({ ...p, description: e.target.value }))} className="font-body italic" />
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" className="w-full font-code uppercase tracking-widest text-xs">Anchor Node</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

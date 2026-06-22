@@ -1,19 +1,22 @@
 
 "use client";
 
-import React from 'react';
-import { Plus, Search, Book, Video, Mic, FileText, MoreHorizontal } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Search, Book, Video, Mic, FileText, MoreHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import type { Media, MediaType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
 interface MediaLibraryProps {
   media: Media[];
-  onAddMedia: () => void;
+  onAddMedia: (data: Partial<Media>) => void;
   onSelectMedia: (m: Media) => void;
 }
 
@@ -28,9 +31,19 @@ const mediaIcons: Record<MediaType, any> = {
 };
 
 export function MediaLibrary({ media, onAddMedia, onSelectMedia }: MediaLibraryProps) {
-  const [filter, setFilter] = React.useState<MediaType | 'all'>('all');
+  const [filter, setFilter] = useState<MediaType | 'all'>('all');
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newMedia, setNewMedia] = useState({ title: '', creator: '', type: 'book' as MediaType });
 
   const filtered = filter === 'all' ? media : media.filter(m => m.type === filter);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMedia.title) return;
+    onAddMedia(newMedia);
+    setIsAddOpen(false);
+    setNewMedia({ title: '', creator: '', type: 'book' });
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full">
@@ -39,7 +52,7 @@ export function MediaLibrary({ media, onAddMedia, onSelectMedia }: MediaLibraryP
           <h1 className="text-4xl font-headline font-bold mb-2 italic">Scholastic Library</h1>
           <p className="text-muted-foreground font-body text-lg">A chronicle of intellectual consumption and captured annotations.</p>
         </div>
-        <Button onClick={onAddMedia} className="bg-primary hover:bg-primary/90 shadow-xl">
+        <Button onClick={() => setIsAddOpen(true)} className="bg-primary hover:bg-primary/90 shadow-xl">
           <Plus className="size-4 mr-2" /> Add Media
         </Button>
       </header>
@@ -71,7 +84,7 @@ export function MediaLibrary({ media, onAddMedia, onSelectMedia }: MediaLibraryP
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {filtered.map((item, idx) => {
+        {filtered.map((item) => {
           const Icon = mediaIcons[item.type];
           return (
             <Card 
@@ -100,23 +113,55 @@ export function MediaLibrary({ media, onAddMedia, onSelectMedia }: MediaLibraryP
               <div className="space-y-1">
                 <h3 className="font-headline text-base leading-tight group-hover:text-accent transition-colors line-clamp-2">{item.title}</h3>
                 <p className="font-code text-[10px] text-muted-foreground uppercase tracking-widest">{item.creator}</p>
-                <div className="flex items-center gap-2 pt-1 opacity-60">
-                  <span className="text-[10px] font-code">📝 {item.annotations.length}</span>
-                  <span className="text-[10px] font-code">🏷️ {item.tags.length}</span>
-                </div>
               </div>
             </Card>
           );
         })}
 
         <div 
-          onClick={onAddMedia}
+          onClick={() => setIsAddOpen(true)}
           className="aspect-[2/3] w-full rounded-sm border-2 border-dashed border-border/50 flex flex-col items-center justify-center cursor-pointer hover:border-accent hover:bg-accent/5 transition-all text-muted-foreground/40 hover:text-accent group"
         >
           <Plus className="size-10 mb-2 transition-transform group-hover:rotate-90" />
           <span className="font-code text-[10px] uppercase tracking-[0.2em]">New Source</span>
         </div>
       </div>
+
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="sm:max-w-[425px] font-body">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl italic">Catalog New Source</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="font-code text-[10px] uppercase tracking-widest">Media Title</Label>
+              <Input id="title" value={newMedia.title} onChange={e => setNewMedia(p => ({ ...p, title: e.target.value }))} className="font-body italic" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="creator" className="font-code text-[10px] uppercase tracking-widest">Creator / Author</Label>
+              <Input id="creator" value={newMedia.creator} onChange={e => setNewMedia(p => ({ ...p, creator: e.target.value }))} className="font-body italic" />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-code text-[10px] uppercase tracking-widest">Type</Label>
+              <Select value={newMedia.type} onValueChange={v => setNewMedia(p => ({ ...p, type: v as MediaType }))}>
+                <SelectTrigger className="font-body italic">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="book">Book</SelectItem>
+                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="podcast">Podcast</SelectItem>
+                  <SelectItem value="article">Article</SelectItem>
+                  <SelectItem value="paper">Academic Paper</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" className="w-full font-code uppercase tracking-widest text-xs">Commit to Library</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
