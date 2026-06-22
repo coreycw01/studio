@@ -10,13 +10,10 @@ import {
   PenTool, 
   History, 
   Settings,
-  ShieldCheck,
-  LogOut
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/firebase';
-import { signOut } from 'firebase/auth';
 
 interface ShellProps {
   children: React.ReactNode;
@@ -26,7 +23,6 @@ interface ShellProps {
 }
 
 export function Shell({ children, activeView, onViewChange, mediaCount }: ShellProps) {
-  const { auth } = useAuth();
   const goalTarget = 12;
   const progress = (mediaCount / goalTarget) * 100;
 
@@ -39,10 +35,6 @@ export function Shell({ children, activeView, onViewChange, mediaCount }: ShellP
     { id: 'writing', label: 'Writing', icon: PenTool, section: 'Outputs' },
     { id: 'evolution', label: 'Evolution', icon: History, section: 'Outputs' },
   ];
-
-  const handleLogout = () => {
-    if (auth) signOut(auth);
-  };
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
@@ -91,20 +83,11 @@ export function Shell({ children, activeView, onViewChange, mediaCount }: ShellP
           ))}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/30 space-y-2">
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-sidebar-foreground/40 hover:text-white transition-colors"
-          >
-            <LogOut className="size-4" />
-            <span>Sign Out</span>
+        <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/30 flex items-center justify-between">
+          <button className="text-sidebar-foreground/40 hover:text-white transition-colors">
+            <Settings className="size-4" />
           </button>
-          <div className="flex items-center justify-between">
-            <button className="text-sidebar-foreground/40 hover:text-white transition-colors">
-              <Settings className="size-4" />
-            </button>
-            <span className="text-[10px] font-code text-sidebar-foreground/20">v1.2.0.cloud</span>
-          </div>
+          <span className="text-[10px] font-code text-sidebar-foreground/20">v1.2.0.cloud</span>
         </div>
       </aside>
 
