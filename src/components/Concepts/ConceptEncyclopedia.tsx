@@ -64,16 +64,16 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full">
-      <header className="flex flex-col gap-4 mb-8 md:flex-row md:items-end md:justify-between">
+    <div className="flex-1 overflow-y-auto p-7 max-w-7xl mx-auto w-full">
+      <header className="flex flex-col gap-4 mb-7 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-4xl font-headline font-bold mb-2 italic">Concepts</h1>
-          <p className="text-muted-foreground font-body text-lg">The encyclopedia of recurring ideas, with inputs and outputs gathered in one place.</p>
+          <h1 className="text-[28px] font-headline font-semibold mb-2 italic">Concepts</h1>
+          <p className="text-muted-foreground font-body text-[15px]">The encyclopedia of recurring ideas, with inputs and outputs gathered in one place.</p>
         </div>
         <div className="flex gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search concepts..." className="w-72 pl-9 bg-white/70" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search concepts..." className="w-72 pl-9 bg-muted font-code text-[11px]" />
           </div>
           <Button onClick={() => openEditor()}><Plus className="size-4 mr-2" /> New Concept</Button>
         </div>
@@ -98,7 +98,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
           const related = conceptRelated(name, { media, insights, vault, drafts, questions, timeline });
           const concept = concepts.find((item) => conceptKey(item.name) === conceptKey(name));
           return (
-            <Card key={name} className="p-5 cursor-pointer hover:shadow-lg transition-all" onClick={() => setSelectedName(name)}>
+            <Card key={name} className="rounded-lg p-4 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all" onClick={() => setSelectedName(name)}>
               <div className="flex items-start gap-3">
                 <div className="size-9 rounded-md bg-accent/10 text-accent flex items-center justify-center">
                   <BookOpen className="size-4" />
@@ -112,7 +112,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
                       </Button>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground font-body mt-1 line-clamp-2">{concept?.description || 'No description yet. Open this concept to inspect linked sources, beliefs, writing, questions, and evolution.'}</p>
+                  <p className="text-[13px] leading-6 text-muted-foreground font-body mt-1 line-clamp-2">{concept?.description || 'No description yet. Open this concept to inspect linked sources, beliefs, writing, questions, and evolution.'}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
@@ -181,7 +181,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
 
 function Stat({ value, label, sub }: { value: number; label: string; sub: string }) {
   return (
-    <Card className="p-4 min-h-28">
+    <Card className="readex-header-card">
       <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground">{label}</div>
       <div className="mt-2 text-3xl font-headline font-bold text-accent">{value}</div>
       <div className="mt-1 text-xs text-muted-foreground">{sub}</div>

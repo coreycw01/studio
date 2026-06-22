@@ -59,12 +59,12 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="p-6 border-b border-border/50 bg-[#F0EFED]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-background">
+      <div className="p-7 border-b border-border/50 bg-background">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between mb-4">
           <div>
-            <h1 className="text-4xl font-headline font-bold italic">Writing Studio</h1>
-            <p className="mt-1 text-muted-foreground font-body">Draft essays, scripts, and field notes while keeping evidence and concept links beside the editor.</p>
+            <h1 className="text-[28px] font-headline font-semibold italic">Writing Studio</h1>
+            <p className="mt-1 text-muted-foreground font-body text-[15px]">Draft essays, scripts, and field notes while keeping evidence and concept links beside the editor.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => { setNewDraft({ title: '', type: 'field_note' }); setIsAddOpen(true); }}>+ Field Note</Button>
@@ -80,10 +80,10 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-      <div className="w-72 border-r border-border/50 flex flex-col bg-white/30">
-        <div className="p-6 border-b border-border/50 flex justify-between items-center">
-          <h2 className="font-headline font-bold text-xl italic">Writing</h2>
+      <div className="flex-1 flex overflow-hidden px-7 pb-7 gap-4">
+      <div className="w-72 border border-border flex flex-col bg-white rounded-lg overflow-hidden">
+        <div className="p-4 border-b border-border/50 flex justify-between items-center">
+          <h2 className="font-headline font-semibold text-xl italic">Drafts</h2>
           <Button size="icon" variant="ghost" onClick={() => setIsAddOpen(true)}><Plus className="size-4" /></Button>
         </div>
         <div className="p-3 flex flex-wrap gap-2 border-b">
@@ -102,18 +102,18 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
         </ScrollArea>
       </div>
 
-      <div className="flex-1 flex flex-col bg-white">
+      <div className="flex-1 flex flex-col bg-white rounded-lg border border-border overflow-hidden">
         {active ? (
           <>
-            <div className="p-6 border-b border-border/50 flex gap-3 items-center bg-[#FAFAF9]">
-              <Input className="flex-1 bg-transparent border-none text-3xl font-headline font-bold focus-visible:ring-0 italic" value={active.title} onChange={(event) => updateActive({ title: event.target.value })} />
+            <div className="p-4 border-b border-border/50 flex gap-3 items-center bg-muted">
+              <Input className="flex-1 bg-transparent border-none text-2xl font-headline font-semibold focus-visible:ring-0 italic" value={active.title} onChange={(event) => updateActive({ title: event.target.value })} />
               <Select value={active.type} onValueChange={(value) => updateActive({ type: value as DraftType })}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="essay">Essay</SelectItem><SelectItem value="script">Script</SelectItem><SelectItem value="field_note">Field Note</SelectItem></SelectContent></Select>
               <Select value={active.status} onValueChange={(value) => updateActive({ status: value as DraftStatus })}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent>{statuses.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
               <Button variant="outline" onClick={() => onUpdateDraft(active)}><Save className="size-3 mr-2" /> Save</Button>
               <Button variant="destructive" onClick={() => { onDeleteDraft(active.id); setActiveId(null); }}><Trash2 className="size-3" /></Button>
             </div>
-            <div className="flex-1 p-12 max-w-4xl mx-auto w-full overflow-y-auto font-body">
-              <Textarea className="w-full h-full min-h-[70vh] border-none shadow-none text-xl leading-relaxed font-body focus-visible:ring-0 resize-none" placeholder="Write here..." value={active.body} onChange={(event) => updateActive({ body: event.target.value })} />
+            <div className="flex-1 p-8 max-w-4xl mx-auto w-full overflow-y-auto font-body">
+              <Textarea className="w-full h-full min-h-[64vh] border-none shadow-none text-[17px] leading-8 font-body focus-visible:ring-0 resize-none" placeholder="Write here..." value={active.body} onChange={(event) => updateActive({ body: event.target.value })} />
             </div>
           </>
         ) : (
@@ -121,7 +121,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
         )}
       </div>
 
-      <div className="w-80 border-l border-border/50 bg-[#FAFAF9] overflow-y-auto p-5 space-y-4">
+      <div className="w-80 border border-border bg-white rounded-lg overflow-y-auto p-4 space-y-4">
         {active && (
           <>
             <Card className="p-4"><h3 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Concepts</h3><ConceptTagPicker concepts={concepts} value={active.conceptTags || []} onChange={(tags) => updateActive({ conceptTags: normalizeConceptTags(tags) })} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} compact /></Card>
@@ -149,7 +149,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
 
 function StudioStat({ label, value, sub }: { label: string; value: string | number; sub: string }) {
   return (
-    <Card className="p-4 bg-white/85 border-border/60 min-h-28">
+    <Card className="readex-header-card">
       <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground">{label}</div>
       <div className="mt-2 font-headline text-2xl font-bold italic truncate">{value}</div>
       <p className="mt-1 text-xs text-muted-foreground">{sub}</p>

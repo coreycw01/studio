@@ -46,14 +46,14 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
-      <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border shadow-2xl z-20">
-        <div className="p-6 border-b border-sidebar-border">
+      <aside className="w-[252px] bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border shadow-2xl z-20">
+        <div className="p-5 border-b border-sidebar-border">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl font-headline font-bold text-white tracking-tight">Readex<span className="text-accent">.</span></span>
+            <span className="text-[22px] font-headline font-bold text-white tracking-tight">Readex<span className="text-accent">.</span></span>
           </div>
-          <p className="font-code text-[10px] uppercase tracking-widest text-sidebar-foreground/40 font-medium">Personal Philosophy OS</p>
+          <p className="font-code text-[9px] uppercase tracking-[0.14em] text-sidebar-foreground/30 font-medium">Personal Philosophy OS</p>
 
-          <button onClick={onEditGoal} className="mt-8 w-full rounded-md border border-white/10 bg-white/5 p-3 text-left transition-colors hover:bg-white/10">
+          <button onClick={onEditGoal} className="mt-4 w-full rounded border border-white/10 bg-white/[0.05] p-3 text-left transition-colors hover:border-white/20 hover:bg-white/[0.075]">
             <div className="flex justify-between items-end mb-2">
               <span className="font-code text-[10px] uppercase tracking-wider text-sidebar-foreground/60">Goal</span>
               <span className="font-code text-[10px] text-white/70">By Type</span>
@@ -74,26 +74,26 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-6 px-3 scrollbar-hide">
+        <nav className="flex-1 overflow-y-auto py-4 scrollbar-hide">
           {['Mind', 'Inputs', 'Outputs'].map((section) => (
-            <div key={section} className="mb-6">
-              <h4 className="px-3 mb-2 font-code text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/30 font-bold">{section}</h4>
+            <div key={section} className="mb-5">
+              <h4 className="px-5 mb-1 font-code text-[9px] uppercase tracking-[0.14em] text-sidebar-foreground/20 font-bold">{section}</h4>
               <ul className="space-y-1">
                 {navItems.filter((item) => item.section === section).map((item) => (
                   <li key={item.id}>
                     <button
                       onClick={() => onViewChange(item.id)}
                       className={cn(
-                        'w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-all group',
+                        'w-full flex items-center gap-2.5 border-l-2 px-5 py-2.5 transition-all group',
                         activeView === item.id
-                          ? 'bg-accent text-accent-foreground shadow-lg'
-                          : 'text-sidebar-foreground/60 hover:text-white hover:bg-white/5'
+                          ? 'border-accent bg-accent/10 text-white'
+                          : 'border-transparent text-sidebar-foreground/50 hover:text-white hover:bg-white/[0.04]'
                       )}
                     >
                       <item.icon className={cn('size-4', activeView === item.id ? 'text-white' : 'group-hover:text-accent')} />
-                      <span className="text-sm font-medium tracking-wide flex-1 text-left">{item.label}</span>
+                      <span className="text-[13px] font-body font-medium tracking-wide flex-1 text-left">{item.label}</span>
                       {typeof item.count === 'number' && (
-                        <span className="rounded-full bg-white/10 px-2 py-0.5 font-code text-[9px] text-white/60">{item.count}</span>
+                        <span className="rounded-full bg-white/[0.06] px-2 py-0.5 font-code text-[9px] text-white/35">{item.count}</span>
                       )}
                     </button>
                   </li>
@@ -103,15 +103,15 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
           ))}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/30 flex items-center justify-between">
+        <div className="p-4 border-t border-sidebar-border bg-transparent flex items-center justify-between">
           <button className="text-sidebar-foreground/40 hover:text-white transition-colors" onClick={onEditGoal}>
             <Settings className="size-4" />
           </button>
-          <span className="text-[10px] font-code text-sidebar-foreground/20">v1.3.0.cloud</span>
+          <span className="text-[9px] font-code text-sidebar-foreground/20">v1.3.0 cloud</span>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col relative overflow-hidden">
+      <main className="flex-1 flex flex-col relative overflow-hidden bg-background">
         {children}
       </main>
     </div>

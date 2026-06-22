@@ -130,11 +130,11 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
   ];
 
   return (
-    <div className="relative w-full h-full bg-[#F0EFED] flex flex-col overflow-hidden">
+    <div className="relative w-full h-full bg-background flex flex-col overflow-hidden">
       <div className="px-6 pt-6 pb-4">
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-3">
           {atlasCards.map((card) => (
-            <Card key={card.label} className="p-4 bg-white/85 border-border/60">
+            <Card key={card.label} className="readex-header-card">
               <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground">{card.label}</div>
               <div className="mt-2 font-headline text-2xl font-bold italic truncate">{card.value}</div>
               <p className="mt-1 text-xs text-muted-foreground">{card.sub}</p>
@@ -164,14 +164,14 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden flex">
+      <div className="flex-1 overflow-hidden flex px-6 pb-6 gap-4">
       <div className="flex-1 overflow-hidden">
         <div
           ref={mapRef}
-          className="w-full h-full relative transition-transform duration-200"
+          className="w-full h-full relative transition-transform duration-200 rounded-lg border border-border overflow-hidden"
           style={{
             transform: `scale(${zoom})`,
-            backgroundImage: 'radial-gradient(circle at 20% 10%, hsl(var(--accent) / .08), transparent 25%), radial-gradient(circle at 82% 18%, hsl(var(--primary) / .08), transparent 24%), radial-gradient(hsl(var(--muted-foreground) / 0.12) 1px, transparent 0)',
+            backgroundImage: 'radial-gradient(circle at 20% 10%, hsl(var(--accent) / .08), transparent 25%), radial-gradient(circle at 82% 18%, hsl(160 87% 20% / .08), transparent 24%), radial-gradient(hsl(var(--muted-foreground) / 0.12) 1px, transparent 0)',
             backgroundSize: '32px 32px',
           }}
         >
@@ -213,7 +213,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
               onPointerUp={() => persistNode(node.name)}
               onPointerCancel={() => setDraggingName(null)}
             >
-              <Card className={cn('p-3 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all border-accent/20 bg-white/95', selected?.name === node.name && 'ring-2 ring-accent border-accent shadow-2xl')}>
+              <Card className={cn('rounded-lg p-3 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all border-accent/20 bg-white/95', selected?.name === node.name && 'ring-2 ring-accent border-accent shadow-2xl')}>
                 <h3 className="font-headline font-semibold text-primary">{node.name}</h3>
                 <div className="mt-1 font-code text-[9px] uppercase text-muted-foreground">{node.count} linked</div>
               </Card>
@@ -233,8 +233,8 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
       </div>
 
       {selected && related && (
-        <aside className="w-80 bg-white border-l border-border/50 shadow-2xl z-20">
-          <div className="p-6 border-b border-border/50 flex justify-between items-start">
+        <aside className="w-80 bg-white border border-border rounded-lg shadow-sm z-20 overflow-hidden">
+          <div className="p-5 border-b border-border/50 flex justify-between items-start">
             <div>
               <Badge variant="outline" className="mb-2 font-code text-[9px] uppercase tracking-widest">Map Node</Badge>
               <h2 className="text-2xl font-headline font-bold italic">{selected.name}</h2>
@@ -242,7 +242,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
             </div>
             <Button variant="ghost" size="icon" onClick={() => setSelectedName(null)}><X className="size-4" /></Button>
           </div>
-          <div className="p-6 space-y-5 overflow-y-auto max-h-[calc(100vh-120px)]">
+          <div className="p-5 space-y-5 overflow-y-auto max-h-[calc(100vh-220px)]">
             <section>
               <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Branch This Concept</h4>
               <div className="flex gap-2">

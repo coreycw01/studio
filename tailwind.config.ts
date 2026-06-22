@@ -11,9 +11,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Alegreya', 'serif'],
+        body: ['Spectral', 'Georgia', 'serif'],
         headline: ['Playfair Display', 'serif'],
-        code: ['Source Code Pro', 'monospace'],
+        code: ['JetBrains Mono', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
