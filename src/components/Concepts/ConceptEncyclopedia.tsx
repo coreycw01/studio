@@ -121,7 +121,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
 
   const toggleIdeaSource = (id: string) => {
     setIdeaDraft(prev => {
-      const current = prev.sourceIds;
+      const current = ideaDraft.sourceIds;
       const next = current.includes(id) ? current.filter(s => s !== id) : [...current, id];
       return { ...prev, sourceIds: next };
     });
@@ -147,7 +147,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Stat value={allTerms.length} label="Total Terms" sub="Knowledge index size" />
         <Stat value={media.length} label="Sources" sub="Input library" />
         <Stat value={allAnnotations(media).length} label="Annotations" sub="Tagged excerpts" />
@@ -309,12 +309,12 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
   );
 }
 
-function Stat({ value, label, sub }: { value: number; label: string; sub: string }) {
+function Stat({ value, label, sub }: { value: number | string; label: string; sub: string }) {
   return (
-    <Card className="readex-header-card min-h-24 bg-white">
-      <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="mt-2 text-2xl font-headline font-bold text-accent">{value}</div>
-      <div className="mt-1 text-[10px] text-muted-foreground">{sub}</div>
+    <Card className="bg-white border-border/40 shadow-sm p-4 h-20 flex flex-col justify-center">
+      <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground/60">{label}</div>
+      <div className="mt-1 text-2xl font-headline font-bold text-accent leading-none">{value}</div>
+      <div className="mt-1 text-[10px] text-muted-foreground/40 truncate">{sub}</div>
     </Card>
   );
 }

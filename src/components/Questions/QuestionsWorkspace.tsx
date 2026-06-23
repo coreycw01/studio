@@ -99,10 +99,10 @@ export function QuestionsWorkspace({ questions, media, vault, drafts, concepts, 
         </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-        <Stat label="Questions" value={all.length} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <Stat label="Total Questions" value={all.length} />
         <Stat label="Answered" value={answered} />
-        <Stat label="Open" value={all.length - answered} />
+        <Stat label="Open Inquiries" value={all.length - answered} />
         <Stat label="Linked Drafts" value={linkedDraftCount} />
       </div>
 
@@ -232,11 +232,11 @@ function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, 
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <Card className="p-6 text-center bg-white border-border/30 shadow-sm flex flex-col items-center justify-center">
-      <div className="text-3xl font-headline font-bold text-accent mb-1">{value}</div>
-      <div className="font-code text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60">{label}</div>
+    <Card className="bg-white border-border/40 shadow-sm p-4 h-20 flex flex-col justify-center">
+      <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground/60">{label}</div>
+      <div className="mt-1 text-2xl font-headline font-bold text-accent leading-none">{value}</div>
     </Card>
   );
 }
