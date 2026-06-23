@@ -48,13 +48,15 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
     { id: 'evolution', label: 'Evolution', icon: History, section: 'Outputs', count: counts.timeline },
   ];
 
-  const goalRows = goal.types.map((type) => {
+  const sortedActiveGoals = goal.types.map((type) => {
     const done = goalProgress[type] || 0;
     const target = goal.targets[type] || 12;
-    return { type, done, target };
-  });
-  const doneTotal = goalRows.reduce((sum, row) => sum + row.done, 0);
-  const targetTotal = goalRows.reduce((sum, row) => sum + row.target, 0);
+    const percent = (done / Math.max(1, target)) * 100;
+    return { type, done, target, percent };
+  }).sort((a, b) => b.percent - a.percent);
+
+  const doneTotal = sortedActiveGoals.reduce((sum, row) => sum + row.done, 0);
+  const targetTotal = sortedActiveGoals.reduce((sum, row) => sum + row.target, 0);
   const totalProgress = targetTotal ? (doneTotal / targetTotal) * 100 : 0;
 
   return (
@@ -70,21 +72,27 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
             onClick={onEditGoal}
             className="mt-6 w-full rounded border border-white/10 bg-white/[0.05] p-3 transition-all hover:border-white/20 hover:bg-white/[0.075] group/goals relative cursor-pointer"
           >
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex justify-between items-center mb-3">
               <span className="font-code text-[9px] uppercase tracking-wider text-sidebar-foreground/60 font-bold">Source Goals</span>
               <Edit2 className="size-3 text-sidebar-foreground/40 opacity-0 group-hover/goals:opacity-100 transition-opacity" />
             </div>
             
-            <div className="space-y-2">
-              <div className="flex justify-between items-end">
-                <span className="font-code text-[8px] uppercase tracking-widest text-sidebar-foreground/40 font-bold">Overall</span>
-                <span className="font-code text-[9px] text-white/70 font-bold">{doneTotal}/{targetTotal}</span>
+            <ScrollArea className="h-[110px] pr-2">
+              <div className="space-y-4">
+                {sortedActiveGoals.map((row) => (
+                  <div key={row.type} className="space-y-1.5">
+                    <div className="flex justify-between items-end">
+                      <span className="font-code text-[7px] uppercase tracking-widest text-sidebar-foreground/40 font-bold">{MEDIA_LABELS[row.type]}</span>
+                      <span className="font-code text-[9px] text-white/70 font-bold">{row.done}/{row.target}</span>
+                    </div>
+                    <Progress value={row.percent} className="h-1 bg-white/10" />
+                  </div>
+                ))}
               </div>
-              <Progress value={totalProgress} className="h-1 bg-white/10" />
-            </div>
+            </ScrollArea>
 
-            <div className="mt-3 flex items-center justify-between font-code text-[8px] uppercase tracking-widest text-sidebar-foreground/30 font-bold group-hover/goals:text-sidebar-foreground/60 transition-colors">
-              <span>View Details</span>
+            <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between font-code text-[8px] uppercase tracking-widest text-sidebar-foreground/30 font-bold group-hover/goals:text-sidebar-foreground/60 transition-colors">
+              <span>View All Details</span>
               <ChevronRight className="size-2.5" />
             </div>
           </div>
