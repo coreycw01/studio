@@ -178,7 +178,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
         </div>
       </div>
 
-      <div className="px-6 pb-4 flex justify-between items-start z-10">
+      <div className="px-6 pb-4 flex justify-end items-start gap-4 z-10">
         <div className="relative pointer-events-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input placeholder="Search map..." value={search} onChange={(event) => setSearch(event.target.value)} className="w-64 pl-9 bg-white/80 backdrop-blur border-border/50 font-body italic" />

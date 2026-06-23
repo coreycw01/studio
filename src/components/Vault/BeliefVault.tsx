@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, ShieldCheck, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,9 +33,15 @@ const vaultTypes: VaultType[] = ['belief', 'principle', 'mental_model', 'life_ru
 export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUpdateEntry, onDeleteEntry, onAddConcept }: BeliefVaultProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const [draftEntry, setDraftEntry] = useState<Partial<VaultEntry>>({ type: 'belief', title: '', statement: '', description: '', confidence: 3, status: 'active', tags: [] });
 
   const selected = entries.find((entry) => entry.id === selectedId) || null;
+  const filteredEntries = entries.filter(e => 
+    !search || 
+    e.title.toLowerCase().includes(search.toLowerCase()) || 
+    e.statement.toLowerCase().includes(search.toLowerCase())
+  );
 
   const openEditor = (entry?: VaultEntry) => {
     setDraftEntry(entry ? { ...entry } : { type: 'belief', title: '', statement: '', description: '', confidence: 3, status: 'active', tags: [] });
@@ -82,18 +89,24 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
 
   return (
     <div className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full">
-      <header className="flex justify-between items-end mb-10">
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
         <div>
           <h1 className="text-4xl font-headline font-bold mb-2 italic">Claims</h1>
           <p className="text-muted-foreground italic font-body text-lg">Ideas become explicit claims, principles, mental models, and worldview statements here.</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => openEditor()}><Plus className="size-4 mr-2" /> Form Claim</Button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search claims..." className="w-64 pl-9 bg-muted/40 font-code text-[11px] h-9" />
+          </div>
+          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90">
+            <Plus className="size-4 mr-1.5" /> FORM CLAIM
+          </Button>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {entries.map((entry) => (
+        {filteredEntries.map((entry) => (
           <Card key={entry.id} className="group cursor-pointer hover:shadow-xl transition-all border-border/50" onClick={() => setSelectedId(entry.id)}>
             <CardHeader>
               <Badge variant="secondary" className="w-fit font-code text-[10px] uppercase">{entry.type.replace('_', ' ')}</Badge>
@@ -108,11 +121,11 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
             </CardContent>
           </Card>
         ))}
-        {entries.length === 0 && (
+        {filteredEntries.length === 0 && (
           <div className="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-40">
             <ShieldCheck className="size-24 mb-6 text-muted-foreground" />
-            <h2 className="text-2xl font-headline italic mb-2">No claims formed yet</h2>
-            <p className="max-w-md font-body">Turn an idea into something you are willing to examine.</p>
+            <h2 className="text-2xl font-headline italic mb-2">No claims found</h2>
+            <p className="max-w-md font-body">Refine your search or turn an idea into something you are willing to examine.</p>
           </div>
         )}
       </div>

@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { Plus, Save, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,11 +33,17 @@ const statuses: DraftStatus[] = ['seed', 'drafting', 'revised', 'final'];
 export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft, onUpdateDraft, onDeleteDraft, onAddConcept }: AtelierProps) {
   const [activeId, setActiveId] = useState<string | null>(drafts[0]?.id || null);
   const [filter, setFilter] = useState<'all' | DraftType | DraftStatus>('all');
+  const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newDraft, setNewDraft] = useState({ title: '', type: 'essay' as DraftType });
+  
   const active = drafts.find((draft) => draft.id === activeId) || null;
   const questionList = allQuestions(media, questions);
-  const visibleDrafts = drafts.filter((draft) => filter === 'all' || draft.type === filter || draft.status === filter);
+  
+  const visibleDrafts = drafts
+    .filter((draft) => filter === 'all' || draft.type === filter || draft.status === filter)
+    .filter(draft => !search || draft.title.toLowerCase().includes(search.toLowerCase()));
+
   const linkedSourceCount = active?.sourceIds?.length || 0;
   const linkedQuestionCount = active?.questionIds?.length || 0;
   const linkedBeliefCount = active?.beliefIds?.length || 0;
@@ -61,17 +68,23 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-background">
       <div className="p-7 border-b border-border/50 bg-background">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between mb-4">
+        <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
           <div>
             <h1 className="text-[28px] font-headline font-semibold italic">Writing Studio</h1>
             <p className="mt-1 text-muted-foreground font-body text-[15px]">Write from the evidence beside you, shaping essays, scripts, and field notes from sources, inquiries, and claims.</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => { setNewDraft({ title: '', type: 'field_note' }); setIsAddOpen(true); }}>+ Field Note</Button>
-            <Button variant="outline" onClick={() => { setNewDraft({ title: '', type: 'script' }); setIsAddOpen(true); }}>+ Script</Button>
-            <Button onClick={() => { setNewDraft({ title: '', type: 'essay' }); setIsAddOpen(true); }}>+ Essay</Button>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search drafts..." className="w-64 pl-9 bg-muted/40 font-code text-[11px] h-9" />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setNewDraft({ title: '', type: 'field_note' }); setIsAddOpen(true); }} size="sm">FIELD NOTE</Button>
+              <Button variant="outline" onClick={() => { setNewDraft({ title: '', type: 'script' }); setIsAddOpen(true); }} size="sm">SCRIPT</Button>
+              <Button onClick={() => { setNewDraft({ title: '', type: 'essay' }); setIsAddOpen(true); }} size="sm" className="bg-accent hover:bg-accent/90">ESSAY</Button>
+            </div>
           </div>
-        </div>
+        </header>
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
           <StudioStat label="Drafts" value={drafts.length} sub="All writing outputs" />
           <StudioStat label="Concept Tags" value={conceptCount} sub="Grouping this draft" />
@@ -87,7 +100,20 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
           <Button size="icon" variant="ghost" onClick={() => setIsAddOpen(true)}><Plus className="size-4" /></Button>
         </div>
         <div className="p-3 flex flex-wrap gap-2 border-b">
-          {(['all','essay','script','field_note','drafting','final'] as const).map((value) => <Button key={value} size="sm" variant={filter === value ? 'default' : 'outline'} onClick={() => setFilter(value)}>{value.replace('_',' ')}</Button>)}
+          {(['all','essay','script','field_note','drafting','final'] as const).map((value) => (
+            <button
+              key={value}
+              onClick={() => setFilter(value)}
+              className={cn(
+                "px-2 py-1 rounded text-[9px] font-code font-bold uppercase tracking-widest transition-all",
+                filter === value 
+                  ? "bg-accent text-white" 
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {value.replace('_',' ')}
+            </button>
+          ))}
         </div>
         <ScrollArea className="flex-1">
           <div className="p-3 space-y-1">
@@ -107,17 +133,23 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
           <>
             <div className="p-4 border-b border-border/50 flex gap-3 items-center bg-muted">
               <Input className="flex-1 bg-transparent border-none text-2xl font-headline font-semibold focus-visible:ring-0 italic" value={active.title} onChange={(event) => updateActive({ title: event.target.value })} />
-              <Select value={active.type} onValueChange={(value) => updateActive({ type: value as DraftType })}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="essay">Essay</SelectItem><SelectItem value="script">Script</SelectItem><SelectItem value="field_note">Field Note</SelectItem></SelectContent></Select>
-              <Select value={active.status} onValueChange={(value) => updateActive({ status: value as DraftStatus })}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent>{statuses.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
-              <Button variant="outline" onClick={() => onUpdateDraft(active)}><Save className="size-3 mr-2" /> Save</Button>
-              <Button variant="destructive" onClick={() => { onDeleteDraft(active.id); setActiveId(null); }}><Trash2 className="size-3" /></Button>
+              <Select value={active.type} onValueChange={(value) => updateActive({ type: value as DraftType })}><SelectTrigger className="w-36 h-8 text-[10px] font-code uppercase tracking-wider"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="essay">Essay</SelectItem><SelectItem value="script">Script</SelectItem><SelectItem value="field_note">Field Note</SelectItem></SelectContent></Select>
+              <Select value={active.status} onValueChange={(value) => updateActive({ status: value as DraftStatus })}><SelectTrigger className="w-36 h-8 text-[10px] font-code uppercase tracking-wider"><SelectValue /></SelectTrigger><SelectContent>{statuses.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>
+              <Button variant="outline" onClick={() => onUpdateDraft(active)} size="sm"><Save className="size-3 mr-2" /> Save</Button>
+              <Button variant="destructive" onClick={() => { onDeleteDraft(active.id); setActiveId(null); }} size="sm"><Trash2 className="size-3" /></Button>
             </div>
             <div className="flex-1 p-8 max-w-4xl mx-auto w-full overflow-y-auto font-body">
               <Textarea className="w-full h-full min-h-[64vh] border-none shadow-none text-[17px] leading-8 font-body focus-visible:ring-0 resize-none" placeholder="Write here..." value={active.body} onChange={(event) => updateActive({ body: event.target.value })} />
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-center p-12"><Button variant="outline" onClick={() => setIsAddOpen(true)}>New Draft</Button></div>
+          <div className="flex-1 flex items-center justify-center text-center p-12 opacity-40">
+            <div className="space-y-4">
+              <Search className="size-12 mx-auto mb-4" />
+              <h3 className="font-headline text-xl italic">Ready for Synthesis</h3>
+              <p className="font-body text-sm max-w-xs">Select a draft or create a new one to begin your philosophical writing.</p>
+            </div>
+          </div>
         )}
       </div>
 
@@ -163,9 +195,9 @@ function LinkPanel({ title, items, selected, onChange }: { title: string; items:
       <h3 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">{title}</h3>
       <div className="space-y-2 max-h-48 overflow-y-auto">
         {items.length ? items.map((item) => (
-          <label key={item.id} className="flex gap-2 text-sm">
-            <input type="checkbox" checked={selected.includes(item.id)} onChange={(event) => onChange(event.target.checked ? [...selected, item.id] : selected.filter((id) => id !== item.id))} />
-            <span className="line-clamp-1">{item.label}</span>
+          <label key={item.id} className="flex gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked={selected.includes(item.id)} onChange={(event) => onChange(event.target.checked ? [...selected, item.id] : selected.filter((id) => id !== item.id))} className="accent-accent" />
+            <span className="line-clamp-1 hover:text-accent transition-colors">{item.label}</span>
           </label>
         )) : <p className="text-sm text-muted-foreground italic">Nothing available yet.</p>}
       </div>

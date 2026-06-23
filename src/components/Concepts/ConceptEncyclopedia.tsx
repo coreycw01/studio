@@ -129,18 +129,22 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
 
   return (
     <div className="flex-1 overflow-y-auto p-7 max-w-7xl mx-auto w-full font-body">
-      <header className="flex flex-col gap-4 mb-7 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-7">
         <div>
           <h1 className="text-[28px] font-headline font-semibold mb-2 italic">Encyclopedia</h1>
           <p className="text-muted-foreground font-body text-[15px]">The index of recurring mental nodes, claims, and inquiries gathered in one place.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search..." className="w-72 pl-9 bg-muted font-code text-[11px]" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search..." className="w-72 pl-9 bg-muted font-code text-[11px] h-9" />
           </div>
-          <Button variant="outline" onClick={() => setIdeaOpen(true)}><Plus className="size-4 mr-2" /> New Idea</Button>
-          <Button onClick={() => openEditor()}><Plus className="size-4 mr-2" /> New Concept</Button>
+          <Button variant="outline" onClick={() => setIdeaOpen(true)} size="sm">
+            <Plus className="size-4 mr-1.5" /> NEW IDEA
+          </Button>
+          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90">
+            <Plus className="size-4 mr-1.5" /> NEW CONCEPT
+          </Button>
         </div>
       </header>
 
