@@ -89,10 +89,10 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
 
   return (
     <div className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
+      <header className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-4xl font-headline font-bold mb-2 italic">Claims</h1>
-          <p className="text-muted-foreground italic font-body text-lg">Ideas become explicit claims, principles, mental models, and worldview statements here.</p>
+          <p className="text-muted-foreground italic font-body text-lg">Explicit claims, principles, and worldview statements.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">

@@ -68,10 +68,10 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-background">
       <div className="p-7 border-b border-border/50 bg-background">
-        <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
+        <header className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-[28px] font-headline font-semibold italic">Writing Studio</h1>
-            <p className="mt-1 text-muted-foreground font-body text-[15px]">Write from the evidence beside you, shaping essays, scripts, and field notes from sources, inquiries, and claims.</p>
+            <p className="mt-1 text-muted-foreground font-body text-[15px]">Shape essays, scripts, and field notes from evidence.</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">

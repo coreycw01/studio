@@ -129,15 +129,15 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
 
   return (
     <div className="flex-1 overflow-y-auto p-7 max-w-7xl mx-auto w-full font-body">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-7">
+      <header className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-[28px] font-headline font-semibold mb-2 italic">Encyclopedia</h1>
-          <p className="text-muted-foreground font-body text-[15px]">The index of recurring mental nodes, claims, and inquiries gathered in one place.</p>
+          <p className="text-muted-foreground font-body text-[15px]">The index of recurring mental nodes, claims, and inquiries.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search..." className="w-72 pl-9 bg-muted font-code text-[11px] h-9" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search..." className="w-64 pl-9 bg-muted/40 font-code text-[11px] h-9" />
           </div>
           <Button variant="outline" onClick={() => setIdeaOpen(true)} size="sm">
             <Plus className="size-4 mr-1.5" /> NEW IDEA
