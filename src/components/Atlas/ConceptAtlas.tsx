@@ -188,11 +188,14 @@ export function ConceptAtlas({
     return result;
   }, [activeMap, concepts, drafts, insights, media, mode, nodes, practices, questions, timeline, vault]);
 
-  const selectedMapLinks = selectedName && activeMap
-    ? (activeMap.manualLinks || []).filter((link) => conceptKey(link.from) === conceptKey(selectedName) || conceptKey(link.to) === conceptKey(selectedName))
-    : [];
-  const availableNodeTerms = terms.filter((name) => !(activeMap?.nodeNames || []).some((existing) => conceptKey(existing) === conceptKey(name)));
-  const linkTargets = (mode === 'custom' && activeMap ? activeMap.nodeNames : terms).filter((name) => conceptKey(name) !== conceptKey(selectedName || ''));
+  const uniqueFamilies = useMemo(() => {
+    const families = new Set();
+    edges.forEach(edge => {
+      const pair = [conceptKey(edge.from), conceptKey(edge.to)].sort().join('::');
+      families.add(pair);
+    });
+    return families.size;
+  }, [edges]);
 
   const addConcept = () => {
     if (!newConcept.name?.trim()) return;
@@ -370,9 +373,9 @@ export function ConceptAtlas({
         <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search map..." value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 w-64 bg-muted/40 pl-9 font-code text-[11px]" />
+            <Input placeholder="Search map..." value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 w-64 pl-9" />
           </div>
-          <Button onClick={() => setIsAddOpen(true)} size="sm" className="bg-accent hover:bg-accent/90">
+          <Button onClick={() => setIsAddOpen(true)} size="sm" className="bg-accent hover:bg-accent/90 rounded-full">
             <Plus className="mr-1.5 size-4" /> New Concept
           </Button>
         </div>
@@ -380,9 +383,9 @@ export function ConceptAtlas({
 
       <div className="z-10 space-y-3 px-8 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 rounded-md border border-border bg-white p-1 shadow-sm">
-            <Button variant={mode === 'auto' ? 'default' : 'ghost'} size="sm" onClick={() => setMode('auto')} className="h-8">Auto Map</Button>
-            <Button variant={mode === 'custom' ? 'default' : 'ghost'} size="sm" onClick={() => setMode('custom')} className="h-8">Custom Maps</Button>
+          <div className="flex items-center gap-2 rounded-full border border-border bg-white p-1 shadow-sm">
+            <Button variant={mode === 'auto' ? 'default' : 'ghost'} size="sm" onClick={() => setMode('auto')} className="h-8 rounded-full">Auto Map</Button>
+            <Button variant={mode === 'custom' ? 'default' : 'ghost'} size="sm" onClick={() => setMode('custom')} className="h-8 rounded-full">Custom Maps</Button>
           </div>
 
           {mode === 'custom' && (
@@ -390,39 +393,24 @@ export function ConceptAtlas({
               <select
                 value={activeMap?.id || ''}
                 onChange={(event) => setActiveMapId(event.target.value)}
-                className="h-9 rounded-md border border-input bg-background px-3 font-code text-[11px] uppercase tracking-wider"
+                className="h-9 rounded-full border border-input bg-background px-4 font-code text-[11px] uppercase tracking-wider shadow-sm appearance-none cursor-pointer"
               >
                 {!atlasMaps.length && <option value="">No custom maps</option>}
                 {atlasMaps.map((map) => <option key={map.id} value={map.id}>{map.title}</option>)}
               </select>
-              <Button variant="outline" size="sm" onClick={() => setIsMapOpen(true)}><Plus className="mr-1.5 size-4" /> Custom Map</Button>
-              <Button variant="outline" size="sm" onClick={() => setIsNodeOpen(true)} disabled={!activeMap}><Plus className="mr-1.5 size-4" /> Add Node</Button>
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => setIsMapOpen(true)}><Plus className="mr-1.5 size-4" /> Custom Map</Button>
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => setIsNodeOpen(true)} disabled={!activeMap}><Plus className="mr-1.5 size-4" /> Add Node</Button>
               {activeMap && (
-                <Button variant="ghost" size="sm" onClick={() => onDeleteAtlasMap(activeMap.id)} className="text-destructive hover:text-destructive">Delete Map</Button>
+                <Button variant="ghost" size="sm" onClick={() => onDeleteAtlasMap(activeMap.id)} className="text-destructive hover:text-destructive rounded-full">Delete Map</Button>
               )}
             </div>
           )}
         </div>
 
-        {mode === 'custom' && activeMap && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="bg-muted/30">{activeMap.description || 'Build a saved map with your own nodes and links.'}</Badge>
-            {Object.entries(activeMap.autoLinkFilters || defaultAutoLinkFilters).map(([key, value]) => (
-              <button
-                key={key}
-                onClick={() => toggleFilter(key as keyof AtlasAutoLinkFilters)}
-                className={cn('rounded-full border px-2.5 py-1 font-code text-[9px] uppercase tracking-widest transition-colors', value ? 'border-accent/30 bg-accent/10 text-accent' : 'border-border bg-white text-muted-foreground')}
-              >
-                <SlidersHorizontal className="mr-1 inline size-3" /> {key.replace(/([A-Z])/g, ' $1')}
-              </button>
-            ))}
-          </div>
-        )}
-
         <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
           <Stat value={nodes.length} label="Nodes" />
-          <Stat value={edges.filter((edge) => edge.type === 'user').length} label="User Links" />
-          <Stat value={edges.filter((edge) => edge.type === 'shared').length} label="Auto Links" />
+          <Stat value={edges.length} label="Connections" />
+          <Stat value={uniqueFamilies} label="Link Families" />
           <Stat value={selectedName || 'None'} label="Active" />
         </div>
       </div>
@@ -430,28 +418,28 @@ export function ConceptAtlas({
       <div className="flex flex-1 gap-4 overflow-hidden px-8 pb-8">
         <div
           ref={mapRef}
-          className="relative flex-1 cursor-grab overflow-hidden rounded-lg border border-border bg-muted/5 active:cursor-grabbing"
+          className="relative flex-1 cursor-grab overflow-hidden rounded-xl border border-border bg-muted/5 active:cursor-grabbing shadow-inner"
           onMouseDown={startPanning}
           onMouseMove={handleMouseMove}
           onMouseUp={() => setIsPanning(false)}
           onMouseLeave={() => setIsPanning(false)}
         >
-          <div className="absolute right-4 top-4 z-30 flex h-9 rounded-md border border-border/50 bg-white/90 p-1 shadow-md backdrop-blur">
-            <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setZoom((z) => Math.max(0.5, z - 0.1)); }} className="h-7 w-7 font-bold">-</Button>
+          <div className="absolute right-4 top-4 z-30 flex h-9 rounded-full border border-border/50 bg-white/90 p-1 shadow-md backdrop-blur">
+            <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setZoom((z) => Math.max(0.5, z - 0.1)); }} className="h-7 w-7 rounded-full font-bold">-</Button>
             <div className="flex w-10 items-center justify-center font-code text-[10px] font-bold text-primary/60">{Math.round(zoom * 100)}%</div>
-            <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setZoom((z) => Math.min(2, z + 0.1)); }} className="h-7 w-7 font-bold">+</Button>
+            <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setZoom((z) => Math.min(2, z + 0.1)); }} className="h-7 w-7 rounded-full font-bold">+</Button>
             <div className="mx-1 my-1 w-px bg-border" />
-            <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setIsFullScreen(!isFullScreen); }} className="h-7 w-7">
+            <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); setIsFullScreen(!isFullScreen); }} className="h-7 w-7 rounded-full">
               {isFullScreen ? <Minimize className="size-3.5" /> : <Maximize className="size-3.5" />}
             </Button>
           </div>
 
           {mode === 'custom' && !activeMap && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70">
-              <Card className="max-w-sm rounded-lg p-6 text-center shadow-lg">
-                <h3 className="font-headline text-xl font-semibold italic">Create Your First Custom Map</h3>
-                <p className="mt-2 text-sm text-muted-foreground">Custom maps let you choose the nodes, draw your own links, then layer auto-connections with filters.</p>
-                <Button onClick={() => setIsMapOpen(true)} className="mt-4"><Plus className="mr-1.5 size-4" /> Custom Map</Button>
+              <Card className="max-w-sm rounded-2xl p-8 text-center shadow-2xl border-none">
+                <h3 className="font-headline text-2xl font-semibold italic">Create Your First Custom Map</h3>
+                <p className="mt-2 text-sm text-muted-foreground font-body">Custom maps let you choose the nodes, draw your own links, then layer auto-connections with filters.</p>
+                <Button onClick={() => setIsMapOpen(true)} className="mt-6 rounded-full px-8"><Plus className="mr-1.5 size-4" /> Custom Map</Button>
               </Card>
             </div>
           )}
@@ -507,7 +495,7 @@ export function ConceptAtlas({
                 onPointerUp={() => persistNode(node.name)}
                 onPointerCancel={() => setDraggingName(null)}
               >
-                <Card className={cn('rounded-lg border-accent/20 bg-white/95 p-3 shadow-md transition-all hover:-translate-y-1 hover:shadow-xl', selectedName === node.name && 'border-accent shadow-2xl ring-2 ring-accent')}>
+                <Card className={cn('rounded-xl border-accent/20 bg-white/95 p-3 shadow-md transition-all hover:-translate-y-1 hover:shadow-xl', selectedName === node.name && 'border-accent shadow-2xl ring-2 ring-accent')}>
                   <h3 className="font-headline font-semibold text-primary">{node.name}</h3>
                   <div className="font-code text-[9px] uppercase text-muted-foreground">{node.count} linked</div>
                 </Card>
@@ -517,29 +505,29 @@ export function ConceptAtlas({
         </div>
 
         {!isFullScreen && (
-          <aside className="z-20 flex w-80 shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-white shadow-sm">
+          <aside className="z-20 flex w-80 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-white shadow-sm">
             {selectedName ? (
               <>
                 <div className="flex items-start justify-between border-b border-border/50 p-5">
                   <div>
-                    <Badge variant="outline" className="mb-2 font-code text-[9px] uppercase tracking-widest text-accent">Map Node</Badge>
+                    <Badge variant="outline" className="mb-2 font-code text-[9px] uppercase tracking-widest text-accent rounded-full">Map Node</Badge>
                     <h2 className="font-headline text-2xl font-bold italic">{selectedName}</h2>
-                    {selectedConcept?.description && <p className="mt-2 text-sm text-muted-foreground">{selectedConcept.description}</p>}
+                    {selectedConcept?.description && <p className="mt-2 text-sm text-muted-foreground font-body">{selectedConcept.description}</p>}
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => setSelectedName(null)}><X className="size-4" /></Button>
+                  <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setSelectedName(null)}><X className="size-4" /></Button>
                 </div>
                 <div className="flex-1 space-y-6 overflow-y-auto p-5">
                   <section>
                     <div className="mb-3 flex items-center justify-between gap-2">
                       <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground">Links</h4>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setIsLinkOpen(true)}>
+                      <Button size="sm" variant="outline" className="h-7 text-xs rounded-full" onClick={() => setIsLinkOpen(true)}>
                         <Link2 className="mr-1 size-3.5" /> Link This Idea
                       </Button>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                       {selectedMapLinks.map((link) => (
-                        <Badge key={link.id} variant="secondary" className="flex items-center gap-1 border-accent/20 bg-accent/10 pr-1 font-code text-[9px] uppercase tracking-widest text-accent">
+                        <Badge key={link.id} variant="secondary" className="flex items-center gap-1 border-accent/20 bg-accent/10 pr-1 font-code text-[9px] uppercase tracking-widest text-accent rounded-full">
                           {conceptKey(link.from) === conceptKey(selectedName) ? link.to : link.from} · {link.label || link.type}
                           <button onClick={() => removeUserLink(link.id)} className="ml-1 transition-colors hover:text-destructive">
                             <X className="size-2.5" />
@@ -548,7 +536,7 @@ export function ConceptAtlas({
                       ))}
 
                       {(selectedConcept?.links || []).map((link) => (
-                        <Badge key={link} variant="outline" className="flex items-center gap-1 pr-1 font-code text-[9px] uppercase tracking-widest">
+                        <Badge key={link} variant="outline" className="flex items-center gap-1 pr-1 font-code text-[9px] uppercase tracking-widest rounded-full">
                           {link}
                           <button onClick={() => removeConceptLink(link)} className="ml-1 transition-colors hover:text-destructive">
                             <X className="size-2.5" />
@@ -556,13 +544,13 @@ export function ConceptAtlas({
                         </Badge>
                       ))}
 
-                      {!selectedMapLinks.length && !(selectedConcept?.links?.length) && <p className="text-[10px] italic text-muted-foreground">No links yet.</p>}
+                      {!selectedMapLinks.length && !(selectedConcept?.links?.length) && <p className="text-[10px] italic text-muted-foreground font-body">No links yet.</p>}
                     </div>
                   </section>
 
                   {mode === 'custom' && activeMap && (
                     <section>
-                      <Button variant="ghost" size="sm" onClick={() => removeNodeFromMap(selectedName)} className="h-8 px-0 text-destructive hover:text-destructive">
+                      <Button variant="ghost" size="sm" onClick={() => removeNodeFromMap(selectedName)} className="h-8 px-0 text-destructive hover:text-destructive rounded-none">
                         Remove from this map
                       </Button>
                     </section>
@@ -572,14 +560,14 @@ export function ConceptAtlas({
                     <h4 className="mb-3 font-code text-[10px] uppercase tracking-widest text-muted-foreground">Evidence And Outputs</h4>
                     {related ? (
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline" className="bg-muted/30">{related.sources.length} sources</Badge>
-                        <Badge variant="outline" className="bg-muted/30">{related.beliefs.length} positions</Badge>
-                        <Badge variant="outline" className="bg-muted/30">{related.drafts.length} works</Badge>
-                        <Badge variant="outline" className="bg-muted/30">{related.practices.length} practices</Badge>
-                        <Badge variant="outline" className="bg-muted/30">{related.questions.length} inquiries</Badge>
+                        <Badge variant="outline" className="bg-muted/30 rounded-full">{related.sources.length} sources</Badge>
+                        <Badge variant="outline" className="bg-muted/30 rounded-full">{related.beliefs.length} positions</Badge>
+                        <Badge variant="outline" className="bg-muted/30 rounded-full">{related.drafts.length} works</Badge>
+                        <Badge variant="outline" className="bg-muted/30 rounded-full">{related.practices.length} practices</Badge>
+                        <Badge variant="outline" className="bg-muted/30 rounded-full">{related.questions.length} inquiries</Badge>
                       </div>
                     ) : (
-                      <p className="text-xs italic text-muted-foreground">Gathering links...</p>
+                      <p className="text-xs italic text-muted-foreground font-body">Gathering links...</p>
                     )}
                   </section>
                 </div>
@@ -588,7 +576,7 @@ export function ConceptAtlas({
               <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-muted-foreground">
                 <MapIcon className="mb-4 size-12 opacity-10" />
                 <h3 className="mb-2 font-headline text-lg italic">Mental Atlas</h3>
-                <p className="text-sm">Select a concept node to inspect its links, evidence, and outputs.</p>
+                <p className="text-sm font-body">Select a concept node to inspect its links, evidence, and outputs.</p>
               </div>
             )}
           </aside>
@@ -596,73 +584,73 @@ export function ConceptAtlas({
       </div>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-xl border-none shadow-2xl rounded-2xl">
           <DialogHeader><DialogTitle className="font-headline text-2xl italic">Plot New Concept</DialogTitle></DialogHeader>
           <div className="space-y-6 pt-2">
             <div className="space-y-2">
-              <Label>Concept Name</Label>
+              <Label className="readex-kicker">Concept Name</Label>
               <Input value={newConcept.name} onChange={(event) => setNewConcept((prev) => ({ ...prev, name: event.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>Description</Label>
+              <Label className="readex-kicker">Description</Label>
               <Textarea value={newConcept.description} onChange={(event) => setNewConcept((prev) => ({ ...prev, description: event.target.value }))} className="min-h-[100px]" />
             </div>
             <SourceLinker media={media} selectedIds={newConcept.sourceIds || []} onToggle={toggleNewConceptSource} label="Root Evidence (Sources)" />
           </div>
-          <DialogFooter className="pt-4"><Button onClick={addConcept}>Anchor Node</Button></DialogFooter>
+          <DialogFooter className="pt-4"><Button onClick={addConcept} className="rounded-full px-8">Anchor Node</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg border-none shadow-2xl rounded-2xl">
           <DialogHeader><DialogTitle className="font-headline text-2xl italic">New Custom Map</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label>Map Name</Label>
+              <Label className="readex-kicker">Map Name</Label>
               <Input value={newMap.title} onChange={(event) => setNewMap((prev) => ({ ...prev, title: event.target.value }))} placeholder="Discipline and Avoidance" />
             </div>
             <div className="space-y-2">
-              <Label>Purpose</Label>
+              <Label className="readex-kicker">Purpose</Label>
               <Textarea value={newMap.description} onChange={(event) => setNewMap((prev) => ({ ...prev, description: event.target.value }))} placeholder="What this map is trying to understand..." />
             </div>
           </div>
-          <DialogFooter className="pt-4"><Button onClick={createCustomMap}>Create Map</Button></DialogFooter>
+          <DialogFooter className="pt-4"><Button onClick={createCustomMap} className="rounded-full px-8">Create Map</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isNodeOpen} onOpenChange={setIsNodeOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg border-none shadow-2xl rounded-2xl">
           <DialogHeader><DialogTitle className="font-headline text-2xl italic">Add Node To Map</DialogTitle></DialogHeader>
           <div className="space-y-3 pt-2">
             <Input value={linkSearch} onChange={(event) => setLinkSearch(event.target.value)} placeholder="Search concepts..." />
-            <div className="max-h-80 space-y-1 overflow-y-auto rounded-md border p-1">
+            <div className="max-h-80 space-y-1 overflow-y-auto rounded-xl border border-border/60 p-2">
               {availableNodeTerms
                 .filter((name) => !linkSearch || name.toLowerCase().includes(linkSearch.toLowerCase()))
                 .map((name) => (
-                  <button key={name} onClick={() => addNodeToMap(name)} className="w-full rounded-sm p-2 text-left font-code text-[10px] uppercase tracking-wider hover:bg-muted">
+                  <button key={name} onClick={() => addNodeToMap(name)} className="w-full rounded-lg p-3 text-left font-code text-[10px] uppercase tracking-wider hover:bg-muted transition-colors">
                     {name}
                   </button>
                 ))}
-              {!availableNodeTerms.length && <p className="p-3 text-sm text-muted-foreground">Every concept is already on this custom map.</p>}
+              {!availableNodeTerms.length && <p className="p-4 text-sm text-muted-foreground italic font-body">Every concept is already on this custom map.</p>}
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isLinkOpen} onOpenChange={setIsLinkOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg border-none shadow-2xl rounded-2xl">
           <DialogHeader><DialogTitle className="font-headline text-2xl italic">Link This Idea</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label>From</Label>
+              <Label className="readex-kicker">From</Label>
               <Input value={selectedName || ''} disabled />
             </div>
             <div className="space-y-2">
-              <Label>To</Label>
+              <Label className="readex-kicker">To</Label>
               <select
                 value={linkDraft.to}
                 onChange={(event) => setLinkDraft((prev) => ({ ...prev, to: event.target.value }))}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 w-full rounded-full border border-border/60 bg-white px-4 text-sm font-body shadow-sm appearance-none"
               >
                 <option value="">Choose a concept...</option>
                 {linkTargets.map((name) => <option key={name} value={name}>{name}</option>)}
@@ -670,26 +658,26 @@ export function ConceptAtlas({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Link Type</Label>
+                <Label className="readex-kicker">Link Type</Label>
                 <select
                   value={linkDraft.type}
                   onChange={(event) => setLinkDraft((prev) => ({ ...prev, type: event.target.value as AtlasMapLinkType }))}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-10 w-full rounded-full border border-border/60 bg-white px-4 text-sm font-body shadow-sm appearance-none"
                 >
                   {linkTypes.map((type) => <option key={type} value={type}>{type}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
-                <Label>Label</Label>
+                <Label className="readex-kicker">Label</Label>
                 <Input value={linkDraft.label} onChange={(event) => setLinkDraft((prev) => ({ ...prev, label: event.target.value }))} placeholder="tests, explains, challenges..." />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Note</Label>
+              <Label className="readex-kicker">Note</Label>
               <Textarea value={linkDraft.note} onChange={(event) => setLinkDraft((prev) => ({ ...prev, note: event.target.value }))} placeholder="Why do these belong together?" />
             </div>
           </div>
-          <DialogFooter className="pt-4"><Button onClick={createLink} disabled={!linkDraft.to}>Save Link</Button></DialogFooter>
+          <DialogFooter className="pt-4"><Button onClick={createLink} disabled={!linkDraft.to} className="rounded-full px-8">Save Link</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -698,8 +686,8 @@ export function ConceptAtlas({
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex items-center gap-3 whitespace-nowrap rounded-md border border-border bg-white px-3 py-1.5 shadow-sm">
-      <div className="font-code text-[8px] uppercase tracking-widest text-muted-foreground/60">{label}</div>
+    <div className="flex items-center gap-3 whitespace-nowrap rounded-full border border-border bg-white px-5 py-2 shadow-sm">
+      <div className="font-code text-[8px] uppercase tracking-widest text-muted-foreground/60 font-bold">{label}</div>
       <div className="max-w-[120px] truncate font-headline text-lg font-bold italic text-primary">{value}</div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo, useState } from 'react';
@@ -170,17 +169,17 @@ export function MediaLibrary({
       <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-7xl mx-auto w-full font-body">
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSelectedId(null)} className="font-code text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center">
+            <button onClick={() => setSelectedId(null)} className="font-code text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center transition-colors">
               &lt; LIBRARY
             </button>
             <span className="font-code text-[11px] uppercase tracking-widest text-primary/30">/</span>
-            <span className="font-code text-[11px] uppercase tracking-widest text-primary/80">
+            <span className="font-code text-[11px] uppercase tracking-widest text-primary/80 font-bold">
               {MEDIA_LABELS[selected.type]}
             </span>
           </div>
           <div className="flex items-center gap-3">
             <Select value={selected.status} onValueChange={(value) => updateSelected({ status: value as MediaStatus })}>
-              <SelectTrigger className="w-40 font-code text-[10px] uppercase h-9 bg-white shadow-sm border-border/60 rounded-full"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-44 font-code text-[10px] uppercase h-9 bg-white shadow-sm border-border/60 rounded-full"><SelectValue /></SelectTrigger>
               <SelectContent>{statuses.map((status) => <SelectItem key={status} value={status} className="font-code text-[10px] uppercase">{status}</SelectItem>)}</SelectContent>
             </Select>
             <Button variant="outline" size="sm" onClick={() => openEditor(selected)} className="h-9 px-6 font-code text-[10px] tracking-widest uppercase border-border/60 shadow-sm bg-white rounded-full">EDIT</Button>
@@ -188,36 +187,36 @@ export function MediaLibrary({
           </div>
         </header>
 
-        <div className="bg-white border border-border/50 rounded-lg p-8 mb-10 flex gap-8 shadow-sm">
-          <div className="size-48 bg-accent/5 rounded shrink-0 flex items-center justify-center border border-border/30 overflow-hidden">
+        <div className="bg-white border border-border/50 rounded-xl p-8 mb-10 flex gap-10 shadow-sm">
+          <div className="size-56 bg-accent/5 rounded-lg shrink-0 flex items-center justify-center border border-border/30 overflow-hidden shadow-inner">
             {selected.thumbnailUrl ? (
               <img src={selected.thumbnailUrl} alt={selected.title} className="w-full h-full object-cover" />
             ) : (
-              <div className="size-16 rounded bg-accent/10 flex items-center justify-center">
-                {React.createElement(MEDIA_ICONS_COMP[selected.type], { className: "size-8 text-accent/40" })}
+              <div className="size-20 rounded bg-accent/10 flex items-center justify-center">
+                {React.createElement(MEDIA_ICONS_COMP[selected.type], { className: "size-10 text-accent/40" })}
               </div>
             )}
           </div>
           <div className="flex-1">
-            <h1 className="font-headline text-4xl font-bold mb-2">{selected.title}</h1>
-            <div className="flex items-center gap-3 mb-4">
-              <span className="font-body text-lg italic text-muted-foreground">{selected.creator}</span>
-              {selected.year && <span className="font-code text-xs text-muted-foreground/40">{selected.year}</span>}
+            <h1 className="font-headline text-4xl font-bold mb-3 leading-tight">{selected.title}</h1>
+            <div className="flex items-center gap-4 mb-5">
+              <span className="font-body text-xl italic text-muted-foreground">{selected.creator}</span>
+              {selected.year && <span className="font-code text-xs text-muted-foreground/40 font-bold tracking-widest">{selected.year}</span>}
             </div>
-            <p className="font-body text-base italic text-primary/80 mb-6 max-w-2xl leading-relaxed">
+            <p className="font-body text-lg italic text-primary/80 mb-8 max-w-3xl leading-relaxed">
               {selected.description || "A placeholder for the central thesis or importance of this scholarly source."}
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {(selected.tags || []).map(tag => (
                 <button
                   key={tag}
                   onClick={() => setConceptPopupName(tag)}
-                  className="inline-flex items-center rounded-full border px-3 py-1 font-code text-[9px] uppercase tracking-[0.15em] bg-white text-muted-foreground border-border/60 shadow-sm hover:bg-accent/10 hover:text-accent hover:border-accent/20 transition-all"
+                  className="inline-flex items-center rounded-full border px-4 py-1.5 font-code text-[9px] uppercase tracking-[0.18em] font-bold bg-white text-muted-foreground border-border/60 shadow-sm hover:bg-accent/10 hover:text-accent hover:border-accent/20 transition-all"
                 >
                   {tag}
                 </button>
               ))}
-              <Badge variant="outline" className="font-code text-[9px] uppercase tracking-[0.15em] px-3 py-1 bg-white border-border/60 shadow-sm rounded-full">
+              <Badge variant="outline" className="font-code text-[9px] uppercase tracking-[0.18em] px-4 py-1.5 bg-white border-border/60 shadow-sm rounded-full font-bold">
                 {selected.annotations?.length || 0} NOTES
               </Badge>
             </div>
@@ -225,58 +224,58 @@ export function MediaLibrary({
         </div>
 
         <Tabs defaultValue="capture" className="w-full">
-          <TabsList className="bg-transparent border-b border-border/50 rounded-none h-12 w-full justify-start gap-8 p-0 mb-8">
-            <TabsTrigger value="capture" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full">CAPTURE</TabsTrigger>
-            <TabsTrigger value="annotations" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full">ANNOTATIONS</TabsTrigger>
-            <TabsTrigger value="insights" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full">INSIGHTS</TabsTrigger>
-            <TabsTrigger value="connections" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full">CONNECTIONS</TabsTrigger>
+          <TabsList className="bg-transparent border-b border-border/50 rounded-none h-14 w-full justify-start gap-10 p-0 mb-10">
+            <TabsTrigger value="capture" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full text-[11px] font-bold">CAPTURE</TabsTrigger>
+            <TabsTrigger value="annotations" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full text-[11px] font-bold">ANNOTATIONS</TabsTrigger>
+            <TabsTrigger value="insights" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full text-[11px] font-bold">INSIGHTS</TabsTrigger>
+            <TabsTrigger value="connections" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full text-[11px] font-bold">CONNECTIONS</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="capture" className="space-y-12">
-            <p className="font-body text-xs text-muted-foreground italic mb-8">
+          <TabsContent value="capture" className="space-y-16">
+            <p className="font-body text-sm text-muted-foreground italic mb-10">
               All capture is saved automatically. This stays attached to this {selected.type} permanently.
             </p>
 
             <section>
-              <h3 className="readex-kicker flex items-center gap-2 mb-4 opacity-40">
-                <Plus className="size-2" /> BEFORE YOU START
+              <h3 className="readex-kicker flex items-center gap-3 mb-6 opacity-40 font-bold">
+                <Plus className="size-2.5" /> BEFORE YOU START
               </h3>
-              <div className="bg-muted/5 border border-border/30 rounded-lg overflow-hidden shadow-sm">
+              <div className="bg-muted/5 border border-border/30 rounded-xl overflow-hidden shadow-sm">
                 <CaptureRow label="PRIOR BELIEFS" value={selected.capture?.before?.priorBeliefs} placeholder="What do I already believe about this topic?" onChange={(val) => updateSelected({ capture: { ...selected.capture, before: { ...selected.capture?.before, priorBeliefs: val }, sessions: selected.capture?.sessions || [] } })} />
                 <CaptureRow label="EXPECTATION" value={selected.capture?.before?.expectation} placeholder="What am I hoping this challenges or confirms?" onChange={(val) => updateSelected({ capture: { ...selected.capture, before: { ...selected.capture?.before, expectation: val }, sessions: selected.capture?.sessions || [] } })} />
-                <CaptureRow label="OPEN QUESTION" value={selected.capture?.before?.openQuestion} placeholder="What does success cost when I define it too narrowly?" onChange={(val) => updateSelected({ capture: { ...selected.capture, before: { ...selected.capture?.before, openQuestion: val }, sessions: selected.capture?.sessions || [] } })} />
+                <CaptureRow label="OPEN QUESTION" value={selected.capture?.before?.openQuestion} placeholder="What core problem am I exploring here?" onChange={(val) => updateSelected({ capture: { ...selected.capture, before: { ...selected.capture?.before, openQuestion: val }, sessions: selected.capture?.sessions || [] } })} />
               </div>
             </section>
 
             <section>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="readex-kicker flex items-center gap-2 opacity-40">
-                  <Plus className="size-2" /> SESSIONS
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="readex-kicker flex items-center gap-3 opacity-40 font-bold">
+                  <Plus className="size-2.5" /> SESSIONS
                 </h3>
-                <Button variant="outline" size="sm" className="h-7 px-3 font-code text-[9px] tracking-widest uppercase border-border/60 shadow-sm bg-white rounded-full">+ ADD SESSION</Button>
+                <Button variant="outline" size="sm" className="h-8 px-5 font-code text-[10px] tracking-widest uppercase border-border/60 shadow-sm bg-white rounded-full font-bold">+ ADD SESSION</Button>
               </div>
-              <div className="bg-white border border-border/30 rounded-lg p-6 shadow-sm">
-                <p className="font-body text-sm text-muted-foreground italic">Log each reading or listening session.</p>
+              <div className="bg-white border border-border/30 rounded-xl p-8 shadow-sm text-center">
+                <p className="font-body text-base text-muted-foreground italic">Log each session to trace your progress through the material.</p>
               </div>
             </section>
 
             <section>
-              <h3 className="readex-kicker flex items-center gap-2 mb-4 opacity-40">
-                <Plus className="size-2" /> AFTER COMPLETING
+              <h3 className="readex-kicker flex items-center gap-3 mb-6 opacity-40 font-bold">
+                <Plus className="size-2.5" /> AFTER COMPLETING
               </h3>
-              <div className="bg-muted/5 border border-border/30 rounded-lg overflow-hidden shadow-sm">
+              <div className="bg-muted/5 border border-border/30 rounded-xl overflow-hidden shadow-sm">
                 <CaptureRow label="CORE ARGUMENT" value={selected.capture?.after?.coreArgument} placeholder="The central thesis as understood post-consumption..." onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, coreArgument: val }, sessions: selected.capture?.sessions || [] } })} />
                 <CaptureRow label="WHAT HELD UP" value={selected.capture?.after?.heldUp} placeholder="Ideas that survived your skepticism" onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, heldUp: val }, sessions: selected.capture?.sessions || [] } })} />
                 <CaptureRow label="WHAT DIDN'T" value={selected.capture?.after?.didntHold} placeholder="Where it was wrong or incomplete" onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, didntHold: val }, sessions: selected.capture?.sessions || [] } })} />
-                <CaptureRow label="LASTING IDEA" value={selected.capture?.after?.lasting} placeholder="Design life around games that expand agency and relationship." onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, lasting: val }, sessions: selected.capture?.sessions || [] } })} />
-                <CaptureRow label="BELIEF CHANGE" value={selected.capture?.after?.beliefChange} placeholder="I trust renewable commitments more than final victories." onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, beliefChange: val }, sessions: selected.capture?.sessions || [] } })} />
+                <CaptureRow label="LASTING IDEA" value={selected.capture?.after?.lasting} placeholder="What is the one thing you'll take with you?" onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, lasting: val }, sessions: selected.capture?.sessions || [] } })} />
+                <CaptureRow label="BELIEF CHANGE" value={selected.capture?.after?.beliefChange} placeholder="How has your perspective shifted?" onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, beliefChange: val }, sessions: selected.capture?.sessions || [] } })} />
                 <CaptureRow label="CROSS-REFERENCES" value={selected.capture?.after?.crossRefs} placeholder="Other sources this connects to" onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, crossRefs: val }, sessions: selected.capture?.sessions || [] } })} />
               </div>
             </section>
 
-            <div className="flex gap-4 pt-8 border-t border-border/30">
-              <Button className="bg-accent px-8 h-10 font-code text-[10px] tracking-widest uppercase shadow-md shadow-accent/20 rounded-full">SAVE CAPTURE</Button>
-              <Button variant="outline" onClick={handleDistill} disabled={isDistilling} className="h-10 px-8 font-code text-[10px] tracking-widest uppercase text-accent border-accent/20 shadow-sm bg-white rounded-full">
+            <div className="flex gap-4 pt-10 border-t border-border/30">
+              <Button className="bg-accent px-10 h-11 font-code text-[11px] tracking-widest uppercase shadow-lg shadow-accent/20 rounded-full font-bold">SAVE CAPTURE</Button>
+              <Button variant="outline" onClick={handleDistill} disabled={isDistilling} className="h-11 px-10 font-code text-[11px] tracking-widest uppercase text-accent border-accent/20 shadow-sm bg-white rounded-full font-bold">
                 {isDistilling ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Sparkles className="size-4 mr-2" />}
                 DISTILL → INSIGHT
               </Button>
@@ -284,11 +283,11 @@ export function MediaLibrary({
           </TabsContent>
 
           <TabsContent value="annotations">
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-8">
-              <div className="space-y-6">
-                <div className="flex gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-10">
+              <div className="space-y-8">
+                <div className="flex gap-3">
                   <Select value={annotationDraft.type} onValueChange={(value) => setAnnotationDraft((prev) => ({ ...prev, type: value as Annotation['type'] }))}>
-                    <SelectTrigger className="w-40 font-code text-[10px] uppercase h-10 border-border/60 bg-white shadow-sm rounded-full"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-48 font-code text-[10px] uppercase h-11 border-border/60 bg-white shadow-sm rounded-full font-bold"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="highlight" className="font-code text-[10px] uppercase">Highlight</SelectItem>
                       <SelectItem value="thought" className="font-code text-[10px] uppercase">Thought</SelectItem>
@@ -296,62 +295,66 @@ export function MediaLibrary({
                       <SelectItem value="connection" className="font-code text-[10px] uppercase">Connection</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input value={annotationDraft.text} onChange={(event) => setAnnotationDraft((prev) => ({ ...prev, text: event.target.value }))} placeholder="Extract highlight, thought, or connection..." className="font-body italic text-sm" />
-                  <Button onClick={addAnnotation} size="sm" className="h-10 px-6 rounded-full">ADD</Button>
+                  <Input value={annotationDraft.text} onChange={(event) => setAnnotationDraft((prev) => ({ ...prev, text: event.target.value }))} placeholder="Extract highlight, thought, or connection..." className="font-body italic text-base h-11" />
+                  <Button onClick={addAnnotation} size="sm" className="h-11 px-8 rounded-full font-bold">ADD</Button>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {(selected.annotations || []).map((annotation) => (
-                    <div key={annotation.id} className="rounded-lg border border-border/30 bg-white p-6 shadow-sm">
-                      <div className="flex justify-between items-start mb-3">
-                        <Badge variant="outline" className="font-code text-[9px] uppercase tracking-widest bg-muted/5 border-border/40 rounded-full">
+                    <div key={annotation.id} className="rounded-xl border border-border/30 bg-white p-8 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-4">
+                        <Badge variant="outline" className="font-code text-[9px] uppercase tracking-widest bg-muted/5 border-border/40 rounded-full font-bold">
                           {annotation.type}
                         </Badge>
-                        <time className="font-code text-[8px] text-muted-foreground">{new Date(annotation.date).toLocaleDateString()}</time>
+                        <time className="font-code text-[9px] text-muted-foreground/50 font-bold uppercase">{new Date(annotation.date).toLocaleDateString()}</time>
                       </div>
-                      <p className="font-body italic leading-relaxed text-[16px] text-primary/80">"{annotation.text}"</p>
+                      <p className="font-body italic leading-relaxed text-[17px] text-primary/90">"{annotation.text}"</p>
                     </div>
                   ))}
                 </div>
               </div>
               <aside className="space-y-6">
-                <Button variant="outline" onClick={handleGenerateQuestions} disabled={isGeneratingQuestions} className="w-full h-10 font-code text-[10px] uppercase tracking-widest text-accent border-accent/20 bg-white shadow-sm rounded-full">
+                <Button variant="outline" onClick={handleGenerateQuestions} disabled={isGeneratingQuestions} className="w-full h-12 font-code text-[11px] uppercase tracking-widest text-accent border-accent/20 bg-white shadow-sm rounded-full font-bold">
                   {isGeneratingQuestions ? <Loader2 className="size-4 mr-2 animate-spin" /> : <HelpCircle className="size-4 mr-2" />}
                   GENERATE REFLECTIONS
                 </Button>
+                <Card className="p-6 bg-muted/5 border-dashed border-border/60 rounded-xl">
+                  <h4 className="readex-kicker mb-3 opacity-50 font-bold">Extraction Tips</h4>
+                  <p className="text-sm font-body italic text-muted-foreground leading-relaxed">Focus on claims that challenge your current understanding. Label them clearly to aid later synthesis.</p>
+                </Card>
               </aside>
             </div>
           </TabsContent>
 
-          <TabsContent value="insights" className="space-y-8">
+          <TabsContent value="insights" className="space-y-10">
             <div className="flex justify-between items-center">
-              <h3 className="readex-kicker opacity-50 uppercase">{linkedInsights.length} INSIGHTS FROM THIS SOURCE</h3>
-              <Button onClick={() => setInsightOpen(true)} size="sm" className="bg-accent h-8 px-4 font-code text-[10px] tracking-widest uppercase shadow-md shadow-accent/20 rounded-full">+ NEW INSIGHT</Button>
+              <h3 className="readex-kicker opacity-50 uppercase font-bold text-[11px]">{linkedInsights.length} BREAKTHROUGHS ANCHORED HERE</h3>
+              <Button onClick={() => setInsightOpen(true)} size="sm" className="bg-accent h-10 px-6 font-code text-[11px] tracking-widest uppercase shadow-lg shadow-accent/20 rounded-full font-bold">+ NEW INSIGHT</Button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               {linkedInsights.map((insight) => (
-                <Card key={insight.id} className="p-6 border-border/40 bg-white group relative shadow-sm">
-                  <h4 className="font-headline text-xl font-bold italic mb-2 leading-tight">{insight.title}</h4>
-                  <p className="font-body text-base italic text-primary/70 mb-6 leading-relaxed">
+                <Card key={insight.id} className="p-8 border-border/40 bg-white group relative shadow-sm hover:shadow-md transition-shadow rounded-xl">
+                  <h4 className="font-headline text-2xl font-bold italic mb-3 leading-tight text-primary">{insight.title}</h4>
+                  <p className="font-body text-[17px] italic text-primary/80 mb-8 leading-relaxed">
                     {insight.description || insight.statement}
                   </p>
                   <div className="flex justify-between items-center">
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0.5 bg-muted/20 border-transparent text-muted-foreground rounded-full">
-                        <BookOpen className="size-2.5 mr-1 opacity-40" />
+                    <div className="flex flex-wrap gap-3">
+                      <Badge variant="secondary" className="font-code text-[9px] uppercase tracking-widest px-3 py-1 bg-muted/20 border-transparent text-muted-foreground rounded-full font-bold">
+                        <BookOpen className="size-3 mr-2 opacity-40" />
                         {selected.title}
                       </Badge>
-                      {(insight.tags || []).slice(0, 2).map(tag => (
-                        <Badge key={tag} variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0.5 bg-muted/10 border-transparent text-muted-foreground/60 rounded-full">
+                      {(insight.tags || []).slice(0, 3).map(tag => (
+                        <Badge key={tag} variant="secondary" className="font-code text-[9px] uppercase tracking-widest px-3 py-1 bg-muted/10 border-transparent text-muted-foreground/60 rounded-full font-bold">
                           {tag}
                         </Badge>
                       ))}
                     </div>
-                    <div className="flex items-center gap-4">
-                      <time className="font-code text-[10px] text-muted-foreground/40">{new Date(insight.dateCreated).toLocaleDateString()}</time>
+                    <div className="flex items-center gap-6">
+                      <time className="font-code text-[10px] text-muted-foreground/40 font-bold">{new Date(insight.dateCreated).toLocaleDateString()}</time>
                       <button 
                         onClick={() => onDeleteVaultEntry(insight.id)}
-                        className="font-code text-[10px] uppercase tracking-widest text-muted-foreground/40 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                        className="font-code text-[10px] uppercase tracking-widest text-muted-foreground/40 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 font-bold"
                       >
                         DELETE
                       </button>
@@ -361,48 +364,48 @@ export function MediaLibrary({
               ))}
 
               {linkedInsights.length === 0 && (
-                <div className="py-20 text-center opacity-30 bg-white rounded-lg border border-dashed border-border/50 shadow-sm">
-                  <p className="font-headline text-xl italic mb-2">No breakthroughs archived yet.</p>
-                  <p className="font-body text-sm">Turn your annotations into explicit claims using the "New Insight" action.</p>
+                <div className="py-24 text-center opacity-30 bg-white rounded-xl border border-dashed border-border/50 shadow-sm">
+                  <p className="font-headline text-2xl italic mb-3">No breakthroughs archived yet.</p>
+                  <p className="font-body text-base">Turn your annotations into explicit claims using the "New Insight" action.</p>
                 </div>
               )}
             </div>
           </TabsContent>
 
-          <TabsContent value="connections" className="space-y-8">
-            <h3 className="readex-kicker opacity-50 uppercase">VAULT ENTRIES LINKED TO THIS SOURCE</h3>
-            <div className="space-y-4">
+          <TabsContent value="connections" className="space-y-10">
+            <h3 className="readex-kicker opacity-50 uppercase font-bold text-[11px]">VAULT ENTRIES LINKED TO THIS SOURCE</h3>
+            <div className="space-y-5">
               {linkedInsights.map((entry) => (
                 <Card 
                   key={entry.id} 
-                  className="group cursor-pointer hover:shadow-lg transition-all border-border/50 bg-white p-4 flex gap-4 shadow-sm"
+                  className="group cursor-pointer hover:shadow-xl transition-all border-border/50 bg-white p-6 flex gap-6 shadow-sm rounded-xl"
                 >
-                  <div className="size-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/50">
-                    <Triangle className="size-4 fill-current rotate-180" />
+                  <div className="size-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/50 shadow-sm">
+                    <Triangle className="size-5 fill-current rotate-180" />
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="readex-kicker opacity-50 mb-1">{entry.type?.toUpperCase() || 'BELIEF'}</div>
-                    <h3 className="font-headline text-lg font-bold italic leading-tight group-hover:text-accent transition-colors truncate">
+                    <div className="readex-kicker opacity-50 mb-1.5 font-bold">{entry.type?.toUpperCase() || 'BELIEF'}</div>
+                    <h3 className="font-headline text-2xl font-bold italic leading-tight group-hover:text-accent transition-colors truncate text-primary">
                       {entry.title}
                     </h3>
                     
-                    <div className="flex items-center gap-3 mt-4">
-                      <div className="flex gap-1">
+                    <div className="flex items-center gap-5 mt-6">
+                      <div className="flex gap-1.5">
                         {[1, 2, 3, 4, 5].map((n) => (
                           <div 
                             key={n} 
                             className={cn(
-                              'size-1.5 rounded-full', 
+                              'size-2 rounded-full shadow-sm', 
                               n <= (entry.confidence || 3) ? 'bg-accent' : 'bg-muted'
                             )} 
                           />
                         ))}
                       </div>
-                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full">
+                      <Badge variant="secondary" className="font-code text-[9px] uppercase tracking-widest px-3 py-1 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full font-bold">
                         {entry.status || 'active'}
                       </Badge>
-                      <div className="font-code text-[9px] text-muted-foreground/60">
+                      <div className="font-code text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest">
                         {(entry.sourceIds || []).length} source{(entry.sourceIds || []).length !== 1 && 's'}
                       </div>
                     </div>
@@ -411,9 +414,9 @@ export function MediaLibrary({
               ))}
 
               {linkedInsights.length === 0 && (
-                <div className="py-20 text-center opacity-30 bg-white rounded-lg border border-dashed border-border/50 shadow-sm">
-                  <p className="font-headline text-xl italic mb-2">No vault connections established.</p>
-                  <p className="font-body text-sm">Create an insight or anchor a belief to this source to see it here.</p>
+                <div className="py-24 text-center opacity-30 bg-white rounded-xl border border-dashed border-border/50 shadow-sm">
+                  <p className="font-headline text-2xl italic mb-3">No vault connections established.</p>
+                  <p className="font-body text-base">Create an insight or anchor a belief to this source to see it here.</p>
                 </div>
               )}
             </div>
@@ -431,6 +434,27 @@ export function MediaLibrary({
           questions={questions}
           timeline={timeline}
         />
+
+        <Dialog open={insightOpen} onOpenChange={setInsightOpen}>
+          <DialogContent className="max-w-xl border-none shadow-2xl rounded-2xl">
+            <DialogHeader><DialogTitle className="font-headline text-3xl italic">New Insight</DialogTitle></DialogHeader>
+            <div className="space-y-6 pt-4">
+              <div className="space-y-2">
+                <Label className="readex-kicker">Insight Title</Label>
+                <Input value={insightDraft.title} onChange={(e) => setInsightDraft(prev => ({ ...prev, title: e.target.value }))} placeholder="Brief synthesis of the breakthrough..." />
+              </div>
+              <div className="space-y-2">
+                <Label className="readex-kicker">Reasoning / Statement</Label>
+                <Textarea value={insightDraft.body} onChange={(e) => setInsightDraft(prev => ({ ...prev, body: e.target.value }))} className="min-h-[140px]" placeholder="Elaborate on the discovery..." />
+              </div>
+              <div className="space-y-2">
+                <Label className="readex-kicker">Concepts</Label>
+                <ConceptTagPicker concepts={concepts} value={insightDraft.tags} onChange={(tags) => setInsightDraft(prev => ({ ...prev, tags }))} />
+              </div>
+            </div>
+            <DialogFooter className="pt-6"><Button onClick={saveInsight} className="rounded-full px-10 h-11 font-bold">Archive Insight</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -440,27 +464,27 @@ export function MediaLibrary({
       <header className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Library</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Capture books, films, articles, lectures, conversations, and other sources before they become understanding.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground font-body">Capture books, films, articles, lectures, conversations, and other sources before they become understanding.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search title, author, tags..." className="w-72 pl-9 h-9" />
           </div>
-          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 h-9 shadow-md shadow-accent/20 rounded-full">
+          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 h-9 px-6 shadow-md shadow-accent/20 rounded-full font-bold">
             <Plus className="size-4 mr-1.5" /> ADD MEDIA
           </Button>
         </div>
       </header>
 
-      <div className="flex flex-wrap gap-2 mb-10 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex flex-wrap gap-2.5 mb-12 overflow-x-auto pb-2 scrollbar-hide">
         <button
           onClick={() => setFilter('all')}
           className={cn(
-            "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
+            "px-5 py-2 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.16em] transition-all shadow-sm",
             filter === 'all' 
-              ? "bg-accent text-white shadow-sm" 
-              : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
+              ? "bg-accent text-white border-accent" 
+              : "bg-white text-muted-foreground border border-border/60 hover:text-foreground hover:bg-muted/5"
           )}
         >
           ALL
@@ -470,10 +494,10 @@ export function MediaLibrary({
             key={type}
             onClick={() => setFilter(type)}
             className={cn(
-              "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
+              "px-5 py-2 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.16em] transition-all whitespace-nowrap shadow-sm",
               filter === type 
-                ? "bg-accent text-white shadow-sm" 
-                : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
+                ? "bg-accent text-white border-accent" 
+                : "bg-white text-muted-foreground border border-border/60 hover:text-foreground hover:bg-muted/5"
             )}
           >
             {MEDIA_LABELS[type] === 'Book' ? 'BOOKS' : MEDIA_LABELS[type].toUpperCase() + 'S'}
@@ -481,28 +505,28 @@ export function MediaLibrary({
         ))}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-8 gap-y-12">
         {filtered.map((item) => (
           <Card key={item.id} className="cursor-pointer border-none shadow-none bg-transparent group" onClick={() => setSelectedId(item.id)}>
-            <div className="aspect-[2/3] rounded-md overflow-hidden shadow-sm mb-4 bg-white flex items-center justify-center p-6 text-center border border-border/30 group-hover:shadow-xl group-hover:-translate-y-1 transition-all">
-              <div className="size-10 bg-muted/20 rounded-md flex items-center justify-center mb-4">
-                {React.createElement(MEDIA_ICONS_COMP[item.type], { className: "size-6 text-accent/40" })}
+            <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-sm mb-5 bg-white flex items-center justify-center p-8 text-center border border-border/30 group-hover:shadow-2xl group-hover:-translate-y-2 transition-all">
+              <div className="size-12 bg-muted/20 rounded-lg flex items-center justify-center mb-4 shadow-inner">
+                {React.createElement(MEDIA_ICONS_COMP[item.type], { className: "size-7 text-accent/40" })}
               </div>
             </div>
-            <div className="space-y-1.5">
-              <div className="readex-kicker opacity-50">{MEDIA_LABELS[item.type]}</div>
-              <h3 className="font-headline text-base font-bold italic leading-tight group-hover:text-accent transition-colors line-clamp-2">
+            <div className="space-y-2">
+              <div className="readex-kicker opacity-50 font-bold text-[9px]">{MEDIA_LABELS[item.type].toUpperCase()}</div>
+              <h3 className="font-headline text-lg font-bold italic leading-snug group-hover:text-accent transition-colors line-clamp-2 text-primary">
                 {item.title}
               </h3>
-              <p className="readex-kicker text-muted-foreground truncate">{item.creator}</p>
-              <div className="flex items-center justify-between pt-2">
-                <Badge variant="outline" className="font-code text-[8px] uppercase tracking-tighter px-1.5 py-0 bg-white border-border/60 shadow-sm rounded-full">
+              <p className="readex-kicker text-muted-foreground truncate text-[9px] font-bold tracking-widest">{item.creator.toUpperCase()}</p>
+              <div className="flex items-center justify-between pt-3">
+                <Badge variant="outline" className="font-code text-[8px] uppercase tracking-widest px-2 py-0.5 bg-white border-border/60 shadow-sm rounded-full font-bold">
                   {item.status}
                 </Badge>
                 {item.annotations?.length > 0 && (
-                  <div className="flex items-center gap-1 text-muted-foreground/60">
-                    <MessageSquare className="size-3" />
-                    <span className="font-code text-[9px]">{item.annotations.length}</span>
+                  <div className="flex items-center gap-1.5 text-muted-foreground/60">
+                    <MessageSquare className="size-3.5" />
+                    <span className="font-code text-[10px] font-bold">{item.annotations.length}</span>
                   </div>
                 )}
               </div>
@@ -511,45 +535,33 @@ export function MediaLibrary({
         ))}
 
         <Card 
-          className="aspect-[2/3] rounded-md border-2 border-dashed border-border/50 bg-white/50 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white transition-colors group shadow-sm"
+          className="aspect-[2/3] rounded-xl border-2 border-dashed border-border/50 bg-white/50 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white transition-all group shadow-sm hover:shadow-xl hover:-translate-y-2"
           onClick={() => openEditor()}
         >
-          <div className="size-10 rounded-full bg-white flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-sm border border-border/30">
-            <Plus className="size-5 text-muted-foreground" />
+          <div className="size-12 rounded-full bg-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-md border border-border/30">
+            <Plus className="size-6 text-muted-foreground" />
           </div>
-          <div className="readex-kicker text-muted-foreground">ADD MEDIA</div>
+          <div className="readex-kicker text-muted-foreground font-bold text-[10px]">ADD MEDIA</div>
         </Card>
       </div>
 
       <MediaEditor open={editorOpen} onOpenChange={setEditorOpen} draft={draft} setDraft={setDraft} onSave={saveMedia} />
-      
-      <ConceptDetailDialog 
-        name={conceptPopupName} 
-        onClose={() => setConceptPopupName(null)}
-        concepts={concepts}
-        media={media}
-        vault={vault}
-        drafts={drafts}
-        practices={practices}
-        questions={questions}
-        timeline={timeline}
-      />
     </div>
   );
 }
 
 function CaptureRow({ label, value, placeholder, onChange }: { label: string; value?: string; placeholder: string; onChange: (val: string) => void }) {
   return (
-    <div className="flex items-center border-b border-border/30 last:border-b-0 min-h-[60px] bg-white">
-      <div className="w-56 px-6 shrink-0">
-        <span className="font-code text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-bold">{label}</span>
+    <div className="flex items-center border-b border-border/30 last:border-b-0 min-h-[70px] bg-white">
+      <div className="w-60 px-8 shrink-0">
+        <span className="font-code text-[9px] uppercase tracking-[0.25em] text-muted-foreground font-bold">{label}</span>
       </div>
       <div className="flex-1 p-0 h-full flex items-center">
         <Textarea 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="bg-transparent border-none shadow-none focus-visible:ring-0 font-body text-base italic text-primary/80 placeholder:text-muted-foreground/30 py-4 h-auto min-h-0 resize-none"
+          className="bg-transparent border-none shadow-none focus-visible:ring-0 font-body text-[17px] italic text-primary/90 placeholder:text-muted-foreground/30 py-5 h-auto min-h-0 resize-none rounded-none"
         />
       </div>
     </div>
@@ -581,16 +593,16 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl p-0 overflow-hidden border-none rounded-2xl shadow-2xl bg-white font-body">
         <ScrollArea className="max-h-[85vh]">
-          <div className="p-6">
-            <DialogHeader className="mb-6">
-              <DialogTitle className="text-3xl font-headline italic mb-1">Add to Library</DialogTitle>
-              <p className="text-muted-foreground text-xs font-body">Books and videos: search or paste URL. Other types: enter manually.</p>
+          <div className="p-8">
+            <DialogHeader className="mb-8">
+              <DialogTitle className="text-4xl font-headline italic mb-2">Add to Library</DialogTitle>
+              <p className="text-muted-foreground text-sm font-body italic">Books and videos: search or paste URL. Other types: enter manually.</p>
             </DialogHeader>
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               <section>
-                <Label className="readex-kicker block mb-3">TYPE</Label>
-                <div className="flex flex-wrap gap-1.5">
+                <Label className="readex-kicker block mb-4 font-bold text-[10px]">MEDIA TYPE</Label>
+                <div className="flex flex-wrap gap-2">
                   {MEDIA_TYPES.map((type) => {
                     const Icon = MEDIA_ICONS_COMP[type];
                     const isActive = draft.type === type;
@@ -599,13 +611,13 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                         key={type}
                         onClick={() => setDraft(prev => ({ ...prev, type }))}
                         className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all font-code text-[9px] font-bold uppercase tracking-widest",
+                          "flex items-center gap-2 px-4 py-2 rounded-full border transition-all font-code text-[9px] font-bold uppercase tracking-widest shadow-sm",
                           isActive 
-                            ? "bg-accent text-white border-accent shadow-sm" 
-                            : "bg-white text-muted-foreground border-border/60 hover:border-accent hover:text-accent shadow-sm"
+                            ? "bg-accent text-white border-accent" 
+                            : "bg-white text-muted-foreground border-border/60 hover:border-accent hover:text-accent"
                         )}
                       >
-                        <Icon className="size-3" />
+                        <Icon className="size-3.5" />
                         {MEDIA_LABELS[type]}
                       </button>
                     );
@@ -614,90 +626,95 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
               </section>
 
               <section>
-                <Label className="readex-kicker block mb-3 uppercase">SEARCH {MEDIA_LABELS[draft.type || 'book']?.toUpperCase()}S</Label>
-                <div className="flex gap-2">
-                  <Input placeholder="Title or author..." className="h-10 flex-1" />
-                  <Button className="h-10 px-6 bg-accent font-code text-xs font-bold uppercase tracking-[0.14em] shadow-md shadow-accent/20 rounded-full">SEARCH</Button>
+                <Label className="readex-kicker block mb-4 uppercase font-bold text-[10px]">SEARCH {MEDIA_LABELS[draft.type || 'book']?.toUpperCase()}S</Label>
+                <div className="flex gap-3">
+                  <Input placeholder="Title or author..." className="h-11 flex-1 text-base italic" />
+                  <Button className="h-11 px-8 bg-accent font-code text-[11px] font-bold uppercase tracking-[0.16em] shadow-lg shadow-accent/20 rounded-full">SEARCH</Button>
                 </div>
               </section>
 
-              <div className="relative flex items-center py-2">
+              <div className="relative flex items-center py-4">
                 <div className="flex-grow border-t border-border/40"></div>
-                <span className="flex-shrink mx-4 font-code text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40">DETAILS</span>
+                <span className="flex-shrink mx-6 font-code text-[10px] uppercase tracking-[0.3em] text-muted-foreground/40 font-bold">MANUAL DETAILS</span>
                 <div className="flex-grow border-t border-border/40"></div>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label className="readex-kicker uppercase opacity-50">TITLE</Label>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">SOURCE TITLE</Label>
                   <Input 
                     value={draft.title || ''} 
                     onChange={(e) => setDraft(prev => ({ ...prev, title: e.target.value }))}
+                    className="h-11 text-base italic"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="readex-kicker uppercase opacity-50">AUTHOR</Label>
+                <div className="space-y-2">
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">CREATOR / AUTHOR</Label>
                   <Input 
                     value={draft.creator || ''} 
                     onChange={(e) => setDraft(prev => ({ ...prev, creator: e.target.value }))}
+                    className="h-11 text-base italic"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="readex-kicker uppercase opacity-50">YEAR</Label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">YEAR</Label>
                     <Input 
                       value={draft.year || ''} 
                       onChange={(e) => setDraft(prev => ({ ...prev, year: e.target.value }))}
+                      className="h-11 text-base"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="readex-kicker uppercase opacity-50">GENRE / TOPIC</Label>
+                  <div className="space-y-2">
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">GENRE / TOPIC</Label>
                     <Input 
                       value={draft.genre || ''} 
                       onChange={(e) => setDraft(prev => ({ ...prev, genre: e.target.value }))}
+                      className="h-11 text-base"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="readex-kicker uppercase opacity-50">CONCEPT TAGS</Label>
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="space-y-4">
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">CONCEPT TAGS</Label>
+                  <div className="flex flex-wrap gap-2">
                     {(draft.tags || []).map(tag => (
-                      <Badge key={tag} variant="secondary" className="px-3 py-1 font-code text-[9px] uppercase tracking-wider rounded-full border-border/60 bg-white shadow-sm">
+                      <Badge key={tag} variant="secondary" className="px-4 py-1.5 font-code text-[9px] uppercase tracking-widest rounded-full border-border/60 bg-white shadow-sm font-bold">
                         {tag}
-                        <button onClick={() => removeTag(tag)} className="ml-1.5 hover:text-destructive"><X className="size-2.5" /></button>
+                        <button onClick={() => removeTag(tag)} className="ml-2 hover:text-destructive transition-colors"><X className="size-3" /></button>
                       </Badge>
                     ))}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <Input 
                       placeholder="New concept tag..." 
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && addTag()}
+                      className="h-11 text-sm rounded-full"
                     />
-                    <Button variant="outline" onClick={addTag} className="h-10 font-code text-[9px] font-bold uppercase tracking-widest bg-white shadow-sm border-border/60 rounded-full">ADD</Button>
+                    <Button variant="outline" onClick={addTag} className="h-11 font-code text-[10px] font-bold uppercase tracking-widest bg-white shadow-sm border-border/60 rounded-full px-6">ADD</Button>
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="readex-kicker uppercase opacity-50">NOTES</Label>
+                <div className="space-y-2">
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">INTERNAL NOTES</Label>
                   <Textarea 
-                    placeholder="Quick notes about why you added this..."
+                    placeholder="Brief rationale for adding this source..."
                     value={draft.description || ''}
                     onChange={(e) => setDraft(prev => ({ ...prev, description: e.target.value }))}
-                    className="min-h-[100px] resize-none p-3"
+                    className="min-h-[120px] resize-none p-4 italic text-base"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="readex-kicker uppercase opacity-50">STATUS</Label>
+                <div className="space-y-2">
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">CONSUMPTION STATUS</Label>
                   <select 
                     value={draft.status || 'Want to Read'}
                     onChange={(e) => setDraft(prev => ({ ...prev, status: e.target.value as MediaStatus }))}
-                    className="w-full h-10 rounded-md border border-border/60 bg-white px-3 text-sm font-body appearance-none focus:outline-none focus:ring-2 focus:ring-accent shadow-sm"
+                    className="w-full h-11 rounded-full border border-border/60 bg-white px-5 text-sm font-body appearance-none focus:outline-none focus:ring-2 focus:ring-accent shadow-sm"
                   >
                     {statuses.map(status => <option key={status} value={status}>{status}</option>)}
                   </select>
@@ -707,9 +724,9 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
           </div>
         </ScrollArea>
 
-        <div className="p-6 pt-3 bg-muted/10 border-t flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="h-10 px-6 font-code text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:bg-transparent">CANCEL</Button>
-          <Button onClick={onSave} className="h-10 px-8 bg-accent font-code text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-accent/20 rounded-full">ADD TO LIBRARY</Button>
+        <div className="p-8 pt-4 bg-muted/10 border-t flex justify-end gap-4">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="h-11 px-8 font-code text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:bg-transparent rounded-full">CANCEL</Button>
+          <Button onClick={onSave} className="h-11 px-10 bg-accent font-code text-[11px] font-bold uppercase tracking-widest shadow-xl shadow-accent/20 rounded-full">ADD TO LIBRARY</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -748,127 +765,127 @@ function ConceptDetailDialog({ name, onClose, concepts, media, vault, drafts, qu
       case 'sources':
         return (
           <div className="space-y-4">
-            <h4 className="readex-kicker opacity-50">INPUTS: SOURCES</h4>
+            <h4 className="readex-kicker opacity-50 font-bold text-[10px]">INPUTS: SOURCES</h4>
             {related.sources.map(s => (
-              <Card key={s.id} className="p-4 bg-white border-border/40 flex gap-4 shadow-sm">
-                <div className="size-10 rounded bg-muted/20 flex items-center justify-center shrink-0">
-                  {React.createElement(MEDIA_ICONS_COMP[s.type] || BookOpen, { className: "size-5 text-accent/40" })}
+              <Card key={s.id} className="p-5 bg-white border-border/40 flex gap-5 shadow-sm rounded-xl hover:shadow-md transition-shadow">
+                <div className="size-12 rounded-lg bg-muted/20 flex items-center justify-center shrink-0 shadow-inner">
+                  {React.createElement(MEDIA_ICONS_COMP[s.type] || BookOpen, { className: "size-6 text-accent/40" })}
                 </div>
                 <div>
-                  <h5 className="font-headline font-bold text-lg leading-tight">{s.title}</h5>
-                  <p className="text-xs font-body italic text-muted-foreground">{s.creator} · {s.type}</p>
+                  <h5 className="font-headline font-bold text-xl leading-tight text-primary">{s.title}</h5>
+                  <p className="text-xs font-body italic text-muted-foreground mt-1">{s.creator} · {s.type}</p>
                 </div>
               </Card>
             ))}
-            {related.sources.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked sources discovered.</p>}
+            {related.sources.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-12 font-body">No linked sources discovered.</p>}
           </div>
         );
       case 'notes':
         return (
-          <div className="space-y-4">
-            <h4 className="readex-kicker opacity-50">INPUTS: ANNOTATIONS</h4>
+          <div className="space-y-5">
+            <h4 className="readex-kicker opacity-50 font-bold text-[10px]">INPUTS: ANNOTATIONS</h4>
             {related.annotations.map((a, i) => (
-              <Card key={i} className="p-4 bg-white border-border/40 shadow-sm">
-                <Badge variant="outline" className="mb-2 font-code text-[8px] uppercase border-border/60 shadow-sm bg-white rounded-full">{a.type}</Badge>
-                <p className="font-body italic text-sm text-primary/80 leading-relaxed">"{a.text}"</p>
+              <Card key={i} className="p-6 bg-white border-border/40 shadow-sm rounded-xl">
+                <Badge variant="outline" className="mb-3 font-code text-[9px] uppercase tracking-widest border-border/60 shadow-sm bg-white rounded-full font-bold">{a.type}</Badge>
+                <p className="font-body italic text-base text-primary/90 leading-relaxed">"{a.text}"</p>
               </Card>
             ))}
-            {related.annotations.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked annotations discovered.</p>}
+            {related.annotations.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-12 font-body">No linked annotations discovered.</p>}
           </div>
         );
       case 'ideas':
       case 'beliefs':
         const items = activeTab === 'ideas' ? (related.ideas || []) : related.beliefs;
         return (
-          <div className="space-y-4">
-            <h4 className="readex-kicker opacity-50">{activeTab.toUpperCase()}</h4>
+          <div className="space-y-5">
+            <h4 className="readex-kicker opacity-50 font-bold text-[10px]">{activeTab.toUpperCase()}</h4>
             {items.map((item, i) => (
-              <Card key={i} className="p-4 bg-white border-border/40 shadow-sm">
-                <h5 className="font-headline font-bold text-lg italic mb-2">{item.title}</h5>
-                <p className="font-body text-sm text-muted-foreground leading-relaxed">{('description' in item ? item.description : item.body) || ''}</p>
+              <Card key={i} className="p-6 bg-white border-border/40 shadow-sm rounded-xl hover:shadow-md transition-shadow">
+                <h5 className="font-headline font-bold text-xl italic mb-3 text-primary leading-tight">{item.title}</h5>
+                <p className="font-body text-base text-muted-foreground leading-relaxed italic">{('description' in item ? item.description : item.body) || ''}</p>
               </Card>
             ))}
-            {items.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked items discovered.</p>}
+            {items.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-12 font-body">No linked items discovered.</p>}
           </div>
         );
       case 'questions':
         return (
-          <div className="space-y-4">
-            <h4 className="readex-kicker opacity-50">INQUIRIES</h4>
+          <div className="space-y-5">
+            <h4 className="readex-kicker opacity-50 font-bold text-[10px]">INQUIRIES</h4>
             {related.questions.map((q, i) => (
-              <Card key={i} className="p-4 bg-white border-border/40 shadow-sm">
-                <p className="font-headline font-bold italic text-base leading-relaxed">"{q.text}"</p>
-                {q.answer && <p className="font-body text-sm text-muted-foreground mt-2 border-t pt-2 italic">{q.answer}</p>}
+              <Card key={i} className="p-6 bg-white border-border/40 shadow-sm rounded-xl">
+                <p className="font-headline font-bold italic text-lg leading-relaxed text-primary">"{q.text}"</p>
+                {q.answer && <p className="font-body text-base text-muted-foreground mt-4 border-t border-border/20 pt-4 italic leading-relaxed">{q.answer}</p>}
               </Card>
             ))}
-            {related.questions.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked inquiries discovered.</p>}
+            {related.questions.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-12 font-body">No linked inquiries discovered.</p>}
           </div>
         );
       case 'writing':
         return (
-          <div className="space-y-4">
-            <h4 className="readex-kicker opacity-50">WORKS</h4>
+          <div className="space-y-5">
+            <h4 className="readex-kicker opacity-50 font-bold text-[10px]">WORKS</h4>
             {related.drafts.map((d, i) => (
-              <Card key={i} className="p-4 bg-white border-border/40 shadow-sm">
-                <div className="flex justify-between items-start mb-1">
-                  <h5 className="font-headline font-bold text-lg italic">{d.title}</h5>
-                  <Badge variant="outline" className="text-[8px] border-border/60 bg-white shadow-sm rounded-full">{d.status}</Badge>
+              <Card key={i} className="p-6 bg-white border-border/40 shadow-sm rounded-xl hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-2">
+                  <h5 className="font-headline font-bold text-xl italic text-primary leading-tight">{d.title}</h5>
+                  <Badge variant="outline" className="text-[9px] border-border/60 bg-white shadow-sm rounded-full font-bold uppercase tracking-widest">{d.status}</Badge>
                 </div>
-                <p className="text-xs font-code opacity-50 uppercase">{d.type}</p>
+                <p className="text-[10px] font-code opacity-50 uppercase font-bold tracking-widest">{d.type}</p>
               </Card>
             ))}
-            {related.drafts.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked works discovered.</p>}
+            {related.drafts.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-12 font-body">No linked works discovered.</p>}
           </div>
         );
       case 'evolution':
         return (
-          <div className="space-y-4">
-            <h4 className="readex-kicker opacity-50">EVOLUTION</h4>
+          <div className="space-y-6">
+            <h4 className="readex-kicker opacity-50 font-bold text-[10px]">EVOLUTION</h4>
             {related.events.map((e, i) => (
-              <div key={i} className="flex gap-4 items-start border-l-2 border-accent/20 pl-4 py-1">
-                <div className="pt-1">
-                   <div className="size-2 rounded-full bg-accent" />
+              <div key={i} className="flex gap-5 items-start border-l-2 border-accent/20 pl-6 py-2 transition-colors hover:border-accent">
+                <div className="pt-2">
+                   <div className="size-2.5 rounded-full bg-accent shadow-sm" />
                 </div>
-                <div>
-                  <h5 className="font-headline font-bold text-base italic">{e.entityTitle}</h5>
-                  <p className="text-xs text-muted-foreground">{e.eventType}: {e.reason}</p>
-                  <time className="text-[9px] font-code opacity-40">{new Date(e.date).toLocaleDateString()}</time>
+                <div className="space-y-1">
+                  <h5 className="font-headline font-bold text-lg italic text-primary">{e.entityTitle}</h5>
+                  <p className="text-sm text-muted-foreground font-body leading-relaxed">{e.eventType}: {e.reason}</p>
+                  <time className="text-[10px] font-code opacity-40 font-bold uppercase tracking-widest">{new Date(e.date).toLocaleDateString()}</time>
                 </div>
               </div>
             ))}
-            {related.events.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked evolution events discovered.</p>}
+            {related.events.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-12 font-body">No linked evolution events discovered.</p>}
           </div>
         );
       default:
-        return <p className="text-sm italic text-muted-foreground text-center py-8">No linked content discovered for this filter.</p>;
+        return <p className="text-sm italic text-muted-foreground text-center py-12 font-body">No linked content discovered for this filter.</p>;
     }
   };
 
   return (
     <Dialog open={!!name} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden border-none rounded-2xl shadow-2xl bg-[#FAFAF7] font-body">
-        <div className="p-8">
-          <DialogHeader className="mb-8">
-            <DialogTitle className="text-4xl font-headline italic mb-1 text-primary/90">{name}</DialogTitle>
-            <p className="text-muted-foreground text-xs font-body italic">Linked inputs and outputs for this concept</p>
+      <DialogContent className="max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-[#FAFAF7] font-body">
+        <div className="p-10">
+          <DialogHeader className="mb-10">
+            <DialogTitle className="text-5xl font-headline italic mb-2 text-primary/90 leading-tight">{name}</DialogTitle>
+            <p className="text-muted-foreground text-sm font-body italic opacity-60">Complete audit of linked inputs and outputs for this conceptual node.</p>
           </DialogHeader>
 
-          <div className="flex flex-wrap gap-2 mb-8">
+          <div className="flex flex-wrap gap-2.5 mb-10 overflow-x-auto pb-2 scrollbar-hide">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "px-4 py-1.5 rounded-full border transition-all font-code text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5",
+                  "px-5 py-2 rounded-full border transition-all font-code text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-sm",
                   activeTab === tab.id 
                     ? "bg-accent text-white border-accent shadow-md" 
-                    : "bg-white text-muted-foreground border-border/60 hover:border-accent/40 shadow-sm"
+                    : "bg-white text-muted-foreground border-border/60 hover:border-accent/40"
                 )}
               >
                 {tab.label}
                 {tab.count !== null && (
                   <span className={cn(
-                    "rounded-full px-1.5 py-0.5 text-[8px]",
+                    "rounded-full px-2 py-0.5 text-[9px] font-bold",
                     activeTab === tab.id ? "bg-white/20 text-white" : "bg-muted/50 text-muted-foreground/60"
                   )}>
                     {tab.count}
@@ -878,15 +895,15 @@ function ConceptDetailDialog({ name, onClose, concepts, media, vault, drafts, qu
             ))}
           </div>
 
-          <Separator className="bg-border/30 mb-8" />
+          <Separator className="bg-border/30 mb-10" />
 
-          <ScrollArea className="h-[340px] pr-4">
+          <ScrollArea className="h-[380px] pr-5">
             {renderContent()}
           </ScrollArea>
         </div>
 
         <div className="p-8 pt-4 bg-muted/5 border-t border-border/20 flex justify-end">
-          <Button variant="outline" onClick={onClose} className="h-10 px-8 font-code text-[10px] font-bold uppercase tracking-widest bg-white border-border/60 shadow-sm rounded-full">CLOSE</Button>
+          <Button variant="outline" onClick={onClose} className="h-11 px-10 font-code text-[11px] font-bold uppercase tracking-widest bg-white border-border/60 shadow-sm rounded-full">CLOSE AUDIT</Button>
         </div>
       </DialogContent>
     </Dialog>

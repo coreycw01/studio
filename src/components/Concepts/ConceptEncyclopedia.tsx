@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo, useState } from 'react';
@@ -158,17 +157,17 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
       <header className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Concepts</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Build the encyclopedia of recurring ideas that organize your thinking.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground font-body">Build the encyclopedia of recurring ideas that organize your thinking.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search..." className="w-64 pl-9 h-9" />
           </div>
-          <Button variant="outline" onClick={() => setIdeaOpen(true)} size="sm" className="bg-white border-border/60 shadow-sm rounded-full">
+          <Button variant="outline" onClick={() => setIdeaOpen(true)} size="sm" className="bg-white border-border/60 shadow-sm rounded-full h-9">
             <Plus className="size-4 mr-1.5" /> NEW IDEA
           </Button>
-          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 shadow-md shadow-accent/20 rounded-full">
+          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 shadow-md shadow-accent/20 rounded-full h-9">
             <Plus className="size-4 mr-1.5" /> NEW CONCEPT
           </Button>
         </div>
@@ -178,15 +177,15 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         <Stat value={allTerms.length} label="Total Terms" sub="Knowledge index size" />
         <Stat value={media.length} label="Sources" sub="Input library" />
         <Stat value={allAnnotations(media).length} label="Annotations" sub="Tagged excerpts" />
-        <Stat value={vault.length + drafts.length + practices.length} label="Outputs" sub="Positions, works, practices" />
+        <Stat value={vault.length + drafts.length + (practices?.length || 0)} label="Outputs" sub="Positions, works, practices" />
       </div>
 
       <div className="flex items-center gap-3 mb-8 border-b border-border pb-4">
         <button 
           onClick={() => setMode('concepts')}
           className={cn(
-            "font-code text-[11px] uppercase tracking-[0.14em] px-4 py-2 rounded-full transition-all",
-            mode === 'concepts' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            "font-code text-[11px] uppercase tracking-[0.14em] px-5 py-2 rounded-full transition-all",
+            mode === 'concepts' ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground"
           )}
         >
           Concepts
@@ -194,8 +193,8 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         <button 
           onClick={() => setMode('ideas')}
           className={cn(
-            "font-code text-[11px] uppercase tracking-[0.14em] px-4 py-2 rounded-full transition-all",
-            mode === 'ideas' ? "bg-accent text-accent-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            "font-code text-[11px] uppercase tracking-[0.14em] px-5 py-2 rounded-full transition-all",
+            mode === 'ideas' ? "bg-accent text-accent-foreground shadow-md" : "text-muted-foreground hover:text-foreground"
           )}
         >
           Ideas
@@ -209,43 +208,43 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
           const isUnsorted = conceptKey(name) === conceptKey(UNSORTED_CONCEPT);
           
           return (
-            <Card key={name} className="rounded-lg p-4 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all border-border/50 group bg-white shadow-sm" onClick={() => setSelectedName(name)}>
-              <div className="flex items-start gap-3">
+            <Card key={name} className="rounded-xl p-5 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border-border/50 group bg-white shadow-sm" onClick={() => setSelectedName(name)}>
+              <div className="flex items-start gap-4">
                 <div className={cn(
-                  "size-9 rounded-md flex items-center justify-center transition-colors",
+                  "size-10 rounded-lg flex items-center justify-center transition-colors shadow-sm",
                   mode === 'ideas' || isUnsorted ? "bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
                 )}>
-                  {mode === 'ideas' || isUnsorted ? <Lightbulb className="size-4" /> : <BookOpen className="size-4" />}
+                  {mode === 'ideas' || isUnsorted ? <Lightbulb className="size-5" /> : <BookOpen className="size-5" />}
                 </div>
                 <div className="flex-1">
                   <div className="flex gap-2 items-start">
-                    <h3 className="font-headline text-xl font-bold flex-1 group-hover:text-accent transition-colors">{name}</h3>
+                    <h3 className="font-headline text-xl font-bold flex-1 group-hover:text-accent transition-colors leading-tight">{name}</h3>
                     {concept && !isUnsorted && (
-                      <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(event) => { event.stopPropagation(); openEditor(concept); }}>
+                      <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity rounded-full" onClick={(event) => { event.stopPropagation(); openEditor(concept); }}>
                         <Edit className="size-3" />
                       </Button>
                     )}
                   </div>
-                  <p className="text-[13px] leading-6 text-muted-foreground font-body mt-1 line-clamp-2 italic">
+                  <p className="text-[13px] leading-6 text-muted-foreground font-body mt-2 line-clamp-2 italic">
                     {concept?.description || (isUnsorted ? 'Catch-all for nascent thoughts and untagged observations.' : 'Inspect linked sources, positions, works, inquiries, and practices.')}
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 mt-4">
-                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full">{related.sources.length} sources</Badge>
-                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full">{related.beliefs.length} positions</Badge>
-                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full">{related.drafts.length} works</Badge>
-                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full">{related.practices.length} practices</Badge>
+              <div className="flex flex-wrap gap-2 mt-5">
+                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full px-2 py-0.5">{related.sources.length} sources</Badge>
+                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full px-2 py-0.5">{related.beliefs.length} positions</Badge>
+                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full px-2 py-0.5">{related.drafts.length} works</Badge>
+                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full px-2 py-0.5">{related.practices.length} practices</Badge>
               </div>
             </Card>
           );
         })}
 
         {filteredTerms.length === 0 && (
-          <div className="col-span-full py-20 text-center opacity-40">
-            <BookOpen className="size-16 mx-auto mb-4" />
-            <h3 className="text-xl font-headline italic">No {mode} found</h3>
-            <p className="text-sm font-body">Refine your search or add new intellectual artifacts.</p>
+          <div className="col-span-full py-24 text-center opacity-40">
+            <BookOpen className="size-16 mx-auto mb-6" />
+            <h3 className="text-2xl font-headline italic">No {mode} discovered</h3>
+            <p className="text-sm font-body mt-2">Refine your search or add new intellectual artifacts to the vault.</p>
           </div>
         )}
       </div>
@@ -290,11 +289,11 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
           </DialogHeader>
           <div className="space-y-6 pt-2">
             <div className="space-y-2">
-              <Label>Concept Name</Label>
+              <Label className="readex-kicker">Concept Name</Label>
               <Input value={draftConcept.name} onChange={(event) => setDraftConcept((prev) => ({ ...prev, name: event.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>Description</Label>
+              <Label className="readex-kicker">Description</Label>
               <Textarea value={draftConcept.description} onChange={(event) => setDraftConcept((prev) => ({ ...prev, description: event.target.value }))} className="min-h-[100px]" />
             </div>
             <SourceLinker 
@@ -306,11 +305,11 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
           </div>
           <DialogFooter className="gap-2 pt-4">
             {editing && (
-              <Button variant="destructive" onClick={() => { onDeleteConcept(editing.id); setEditing(null); setEditorOpen(false); }} className="rounded-full">
+              <Button variant="destructive" onClick={() => { onDeleteConcept(editing.id); setEditing(null); setEditorOpen(false); }} className="rounded-full px-6">
                 <Trash2 className="size-4 mr-2" /> Delete
               </Button>
             )}
-            <Button onClick={saveConcept} className="bg-accent shadow-md shadow-accent/20 rounded-full">Anchor Concept</Button>
+            <Button onClick={saveConcept} className="bg-accent shadow-md shadow-accent/20 rounded-full px-8">Anchor Concept</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -320,15 +319,15 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
           <DialogHeader><DialogTitle className="font-headline text-2xl italic">New Idea</DialogTitle></DialogHeader>
           <div className="space-y-6 pt-2">
             <div className="space-y-2">
-              <Label>Idea Statement</Label>
+              <Label className="readex-kicker">Idea Statement</Label>
               <Input value={ideaDraft.title} onChange={(event) => setIdeaDraft((prev) => ({ ...prev, title: event.target.value }))} placeholder="Brief title or central statement..." />
             </div>
             <div className="space-y-2">
-              <Label>Description / Reasoning</Label>
+              <Label className="readex-kicker">Description / Reasoning</Label>
               <Textarea value={ideaDraft.body} onChange={(event) => setIdeaDraft((prev) => ({ ...prev, body: event.target.value }))} className="min-h-[120px]" placeholder="Elaborate on the insight..." />
             </div>
             <div className="space-y-2">
-              <Label>Concepts</Label>
+              <Label className="readex-kicker">Concepts</Label>
               <ConceptTagPicker concepts={concepts} value={ideaDraft.tags} onChange={(tags) => setIdeaDraft((prev) => ({ ...prev, tags }))} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
             </div>
             
@@ -339,7 +338,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
               label="Influencing Sources"
             />
           </div>
-          <DialogFooter className="pt-4"><Button onClick={saveIdea} className="bg-accent shadow-md shadow-accent/20 rounded-full">Archive Idea</Button></DialogFooter>
+          <DialogFooter className="pt-4"><Button onClick={saveIdea} className="bg-accent shadow-md shadow-accent/20 rounded-full px-8">Archive Idea</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -348,23 +347,23 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
 
 function Stat({ value, label, sub }: { value: number | string; label: string; sub: string }) {
   return (
-    <Card className="bg-white border-border/40 shadow-sm p-4 h-20 flex flex-col justify-center">
-      <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground/60">{label}</div>
+    <Card className="bg-white border-border/40 shadow-sm p-4 h-20 flex flex-col justify-center rounded-xl">
+      <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground/60 font-bold">{label}</div>
       <div className="mt-1 text-2xl font-headline font-bold text-accent leading-none">{value}</div>
-      <div className="mt-1 text-[10px] text-muted-foreground/40 truncate">{sub}</div>
+      <div className="mt-1 text-[10px] text-muted-foreground/40 truncate font-body">{sub}</div>
     </Card>
   );
 }
 
 function RelatedSection({ title, items }: { title: string; items: string[] }) {
   return (
-    <section className="rounded-md border border-border/50 p-4 bg-white shadow-sm">
-      <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">{title}</h4>
-      <div className="space-y-2">
+    <section className="rounded-xl border border-border/50 p-5 bg-white shadow-sm">
+      <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-4 font-bold">{title}</h4>
+      <div className="space-y-3">
         {items.length ? items.map((item, index) => (
-          <div key={`${item}-${index}`} className="rounded bg-muted/20 p-3 text-sm font-body text-primary/80 shadow-sm border border-border/10 italic">{item}</div>
+          <div key={`${item}-${index}`} className="rounded-lg bg-muted/20 p-4 text-sm font-body text-primary/80 shadow-sm border border-border/10 italic leading-relaxed">{item}</div>
         )) : (
-          <p className="text-sm text-muted-foreground italic">Nothing linked yet.</p>
+          <p className="text-sm text-muted-foreground italic font-body py-2">Nothing linked yet.</p>
         )}
       </div>
     </section>
