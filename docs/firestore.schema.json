@@ -30,7 +30,7 @@
       "fields": {
         "name": "string",
         "description": "string",
-        "links": "string[] concept names for manual branches",
+        "links": "string[] concept names for saved concept links",
         "sourceIds": "string[]",
         "x": "number Atlas percent",
         "y": "number Atlas percent",
@@ -112,6 +112,29 @@
         "notes": "string",
         "dateCreated": "ISO string",
         "dateUpdated": "ISO string"
+      }
+    },
+    "atlasMaps": {
+      "path": "/users/{uid}/atlasMaps/{atlasMapId}",
+      "purpose": "Saved Atlas custom maps with user-selected nodes, typed user links, saved node positions, and optional auto-link filters.",
+      "fields": {
+        "title": "string",
+        "description": "string",
+        "nodeNames": "string[] concept names",
+        "nodePositions": "Record<concept name, { x: number Atlas percent, y: number Atlas percent }>",
+        "manualLinks": "AtlasMapLink[] typed user-created links between map nodes",
+        "autoLinkFilters": "AtlasAutoLinkFilters",
+        "dateCreated": "ISO string",
+        "dateUpdated": "ISO string"
+      },
+      "linkTypes": "supports | challenges | examples | causes | questions | practices | relates | custom",
+      "autoLinkFilters": {
+        "sharedSources": "boolean",
+        "sharedPositions": "boolean",
+        "sharedInquiries": "boolean",
+        "sharedWorks": "boolean",
+        "sharedPractices": "boolean",
+        "conceptLinks": "boolean"
       }
     },
     "timeline": {

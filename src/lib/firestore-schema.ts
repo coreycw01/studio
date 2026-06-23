@@ -10,6 +10,7 @@ export const READEX_COLLECTIONS = {
   vault: 'vault',
   drafts: 'drafts',
   practices: 'practices',
+  atlasMaps: 'atlasMaps',
   timeline: 'timeline',
   insights: 'insights',
   settings: 'settings',
@@ -55,6 +56,7 @@ export function readexRefs(db: Firestore, uid: string) {
     vault: userCollection('vault'),
     drafts: userCollection('drafts'),
     practices: userCollection('practices'),
+    atlasMaps: userCollection('atlasMaps'),
     timeline: userCollection('timeline'),
     insights: userCollection('insights'),
     settingsGoal: settingsDoc('goal'),
@@ -67,7 +69,7 @@ export function readexRefs(db: Firestore, uid: string) {
 export function readexSchemaDoc(uid: string) {
   return {
     uid,
-    version: 1,
+    version: 2,
     root: userPath(uid),
     collections: {
       media: `${userPath(uid)}/media`,
@@ -76,6 +78,7 @@ export function readexSchemaDoc(uid: string) {
       vault: `${userPath(uid)}/vault`,
       drafts: `${userPath(uid)}/drafts`,
       practices: `${userPath(uid)}/practices`,
+      atlasMaps: `${userPath(uid)}/atlasMaps`,
       timeline: `${userPath(uid)}/timeline`,
       insights: `${userPath(uid)}/insights`,
       settings: `${userPath(uid)}/settings`,

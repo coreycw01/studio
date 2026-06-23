@@ -110,6 +110,24 @@ const collectionPlaceholders = {
     dateUpdated: now,
     _schemaPlaceholder: true
   },
+  atlasMaps: {
+    title: 'Placeholder Custom Map',
+    description: 'Saved Atlas maps let users choose nodes, create typed links, and layer auto-connections with filters.',
+    nodeNames: ['Unsorted Ideas'],
+    nodePositions: { 'Unsorted Ideas': { x: 50, y: 50 } },
+    manualLinks: [],
+    autoLinkFilters: {
+      sharedSources: true,
+      sharedPositions: true,
+      sharedInquiries: true,
+      sharedWorks: true,
+      sharedPractices: true,
+      conceptLinks: true
+    },
+    dateCreated: now,
+    dateUpdated: now,
+    _schemaPlaceholder: true
+  },
   timeline: {
     entityId: '_schema',
     entityType: 'schema',

@@ -30,7 +30,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MEDIA_LABELS, MEDIA_TYPES, conceptKey, ensureConceptTerms, normalizeConceptTags, today } from '@/lib/readex';
 import { DEFAULT_ATLAS_NODE_SETTINGS, DEFAULT_ATLAS_VIEW_SETTINGS, DEFAULT_GOAL_SETTINGS, PROTOTYPE_USER_ID, readexRefs, readexSchemaDoc } from '@/lib/firestore-schema';
-import type { Concept, Draft, GoalSettings, Insight, Media, MediaType, Practice, Question, TimelineEvent, VaultEntry, SecurityRuleContext } from '@/lib/types';
+import type { AtlasMap, Concept, Draft, GoalSettings, Insight, Media, MediaType, Practice, Question, TimelineEvent, VaultEntry, SecurityRuleContext } from '@/lib/types';
 import { doc, getDoc, setDoc, updateDoc, writeBatch, deleteDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -53,6 +53,7 @@ function ReadexApp() {
   const { data: timeline = [] } = useCollection<TimelineEvent>(refs.timeline as any);
   const { data: drafts = [] } = useCollection<Draft>(refs.drafts as any);
   const { data: practices = [] } = useCollection<Practice>(refs.practices as any);
+  const { data: atlasMaps = [] } = useCollection<AtlasMap>(refs.atlasMaps as any);
   const { data: goalDoc } = useDoc<GoalSettings>(refs.settingsGoal as any);
   const goal = { ...DEFAULT_GOAL_SETTINGS, ...(goalDoc || {}) };
 
@@ -352,6 +353,39 @@ function ReadexApp() {
     deleteDoc(practiceRef).catch(() => emitError(practiceRef.path, 'delete'));
   };
 
+  const addAtlasMap = (data: Partial<AtlasMap>) => {
+    const mapRef = doc(refs.atlasMaps);
+    const payload = {
+      id: mapRef.id,
+      title: data.title || 'Untitled Map',
+      description: data.description || '',
+      nodeNames: data.nodeNames || [],
+      nodePositions: data.nodePositions || {},
+      manualLinks: data.manualLinks || [],
+      autoLinkFilters: data.autoLinkFilters || {
+        sharedSources: true,
+        sharedPositions: true,
+        sharedInquiries: true,
+        sharedWorks: true,
+        sharedPractices: true,
+        conceptLinks: true,
+      },
+      dateCreated: today(),
+      dateUpdated: today(),
+    };
+    setDoc(mapRef, payload).catch(() => emitError(mapRef.path, 'create', payload));
+  };
+
+  const updateAtlasMap = (map: AtlasMap) => {
+    const mapRef = doc(refs.atlasMaps, map.id);
+    updateDoc(mapRef, { ...map, dateUpdated: today() } as any).catch(() => emitError(mapRef.path, 'update', map));
+  };
+
+  const deleteAtlasMap = (id: string) => {
+    const mapRef = doc(refs.atlasMaps, id);
+    deleteDoc(mapRef).catch(() => emitError(mapRef.path, 'delete'));
+  };
+
   const saveGoal = async () => {
     await setDoc(refs.settingsGoal, goalDraft, { merge: true });
     setGoalOpen(false);
@@ -365,7 +399,7 @@ function ReadexApp() {
   const renderContent = () => {
     switch (view) {
       case 'atlas':
-        return <ConceptAtlas concepts={concepts} media={media} insights={insights} vault={vault} drafts={drafts} practices={practices} questions={questions} timeline={timeline} onAddConcept={addConcept} onUpdateConcept={updateConcept} />;
+        return <ConceptAtlas concepts={concepts} media={media} insights={insights} vault={vault} drafts={drafts} practices={practices} questions={questions} timeline={timeline} atlasMaps={atlasMaps} onAddConcept={addConcept} onUpdateConcept={updateConcept} onAddAtlasMap={addAtlasMap} onUpdateAtlasMap={updateAtlasMap} onDeleteAtlasMap={deleteAtlasMap} />;
       case 'concepts':
         return (
           <ConceptEncyclopedia 

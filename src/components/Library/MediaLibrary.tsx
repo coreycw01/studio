@@ -785,7 +785,7 @@ function ConceptDetailDialog({ name, onClose, concepts, media, vault, drafts, qu
             {items.map((item, i) => (
               <Card key={i} className="p-4 bg-white border-border/40 shadow-sm">
                 <h5 className="font-headline font-bold text-lg italic mb-2">{item.title}</h5>
-                <p className="font-body text-sm text-muted-foreground leading-relaxed">{item.description || (item as any).body}</p>
+                <p className="font-body text-sm text-muted-foreground leading-relaxed">{('description' in item ? item.description : item.body) || ''}</p>
               </Card>
             ))}
             {items.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked items discovered.</p>}

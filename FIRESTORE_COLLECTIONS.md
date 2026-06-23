@@ -21,6 +21,7 @@ Prototype mode uses:
 /users/{uid}/vault/{beliefId}
 /users/{uid}/drafts/{draftId}
 /users/{uid}/practices/{practiceId}
+/users/{uid}/atlasMaps/{atlasMapId}
 /users/{uid}/timeline/{eventId}
 /users/{uid}/insights/{insightId}
 ```
@@ -38,7 +39,7 @@ Prototype mode uses:
 
 `media` stores books, audiobooks, podcasts, videos, movies, articles, courses, lectures, documentaries, interviews, conversations, papers, and other source inputs.
 
-`concepts` stores encyclopedia entries and Atlas nodes. Concept records include descriptions, manual branch links, and saved map positions.
+`concepts` stores encyclopedia entries and Atlas nodes. Concept records include descriptions, saved concept links, and Auto Map positions.
 
 `questions` stores manual answer-workspace questions. Source capture questions and annotation questions can also be derived from `media`.
 
@@ -47,6 +48,8 @@ Prototype mode uses:
 `drafts` stores Works outputs: essays, scripts, and field notes.
 
 `practices` stores behavior-facing outputs: habits, experiments, disciplines, reflection prompts, commitments, observation periods, personal rules, and challenges.
+
+`atlasMaps` stores saved Custom Maps inside Atlas. Each custom map has selected concept nodes, node positions, typed user-created links, and auto-link filters for shared sources, positions, inquiries, works, practices, and saved concept links.
 
 `timeline` stores evolution/history events for positions, concepts, inquiries, works, practices, media, and insights.
 

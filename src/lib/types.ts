@@ -9,6 +9,11 @@ export type DraftType = 'essay' | 'script' | 'field_note';
 export type DraftStatus = 'seed' | 'drafting' | 'revised' | 'final';
 export type PracticeType = 'habit' | 'experiment' | 'discipline' | 'reflection_prompt' | 'commitment' | 'observation' | 'rule' | 'challenge';
 export type PracticeStatus = 'planned' | 'active' | 'completed' | 'paused' | 'abandoned';
+export type AtlasMapLinkType = 'supports' | 'challenges' | 'examples' | 'causes' | 'questions' | 'practices' | 'relates' | 'custom';
+
+export interface SecurityRuleContext {
+  operation: 'create' | 'update' | 'delete' | 'list' | 'get' | 'write';
+}
 
 export interface Annotation {
   id: string;
@@ -192,4 +197,40 @@ export interface AtlasNodePosition {
   name: string;
   x: number;
   y: number;
+}
+
+export interface AtlasMapNodePosition {
+  x: number;
+  y: number;
+}
+
+export interface AtlasAutoLinkFilters {
+  sharedSources: boolean;
+  sharedPositions: boolean;
+  sharedInquiries: boolean;
+  sharedWorks: boolean;
+  sharedPractices: boolean;
+  conceptLinks: boolean;
+}
+
+export interface AtlasMapLink {
+  id: string;
+  from: string;
+  to: string;
+  type: AtlasMapLinkType;
+  label: string;
+  note?: string;
+  dateCreated: string;
+}
+
+export interface AtlasMap {
+  id: string;
+  title: string;
+  description: string;
+  nodeNames: string[];
+  nodePositions: Record<string, AtlasMapNodePosition>;
+  manualLinks: AtlasMapLink[];
+  autoLinkFilters: AtlasAutoLinkFilters;
+  dateCreated: string;
+  dateUpdated: string;
 }
