@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { BookOpen, Edit, Plus, Search, Trash2, Lightbulb } from 'lucide-react';
+import { BookOpen, Edit, Plus, Search, Trash2, Lightbulb, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import { SourceLinker } from '@/components/SourceLinker';
 import type { Concept, Draft, Insight, Media, Practice, Question, TimelineEvent, VaultEntry } from '@/lib/types';
 import { allAnnotations, conceptKey, conceptRelated, conceptTerms, UNSORTED_CONCEPT } from '@/lib/readex';
 import { cn } from '@/lib/utils';
+import { suggestConceptDescription } from '@/ai/flows/suggest-concept-description';
+import { useToast } from '@/hooks/use-toast';
 
 interface ConceptEncyclopediaProps {
   concepts: Concept[];
@@ -39,6 +41,8 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
   const [editing, setEditing] = useState<Concept | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [draftConcept, setDraftConcept] = useState<Partial<Concept>>({ name: '', description: '', sourceIds: [] });
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const { toast } = useToast();
   
   const [ideaOpen, setIdeaOpen] = useState(false);
   const [ideaDraft, setIdeaDraft] = useState({ title: '', body: '', tags: [UNSORTED_CONCEPT], sourceIds: [] as string[] });
@@ -79,6 +83,27 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
       setDraftConcept({ name: '', description: '', sourceIds: [] });
     }
     setEditorOpen(true);
+  };
+
+  const handleSuggestDescription = async () => {
+    if (!draftConcept.name) return;
+    setIsSuggesting(true);
+    try {
+      const related = conceptRelated(draftConcept.name, { media, insights, vault, drafts, practices, questions, timeline });
+      const { suggestedDescription } = await suggestConceptDescription({
+        conceptName: draftConcept.name,
+        currentDescription: draftConcept.description,
+        linkedSources: related.sources.map(s => ({ title: s.title, creator: s.creator, description: s.description })),
+        linkedIdeas: related.ideas.map(i => ({ title: i.title, body: i.body })),
+        linkedBeliefs: related.beliefs.map(b => ({ title: b.title, statement: b.statement, description: b.description }))
+      });
+      setDraftConcept(prev => ({ ...prev, description: suggestedDescription }));
+      toast({ title: "Description Suggested", description: "AI has crafted a summary based on your linked research." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Suggestion Failed", description: "AI could not generate a description at this time." });
+    } finally {
+      setIsSuggesting(false);
+    }
   };
 
   const saveConcept = () => {
@@ -253,7 +278,15 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
       }}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle className="font-headline text-2xl italic">{editing ? 'Edit Concept' : 'New Concept'}</DialogTitle>
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle className="font-headline text-2xl italic">{editing ? 'Edit Concept' : 'New Concept'}</DialogTitle>
+              {draftConcept.name && (
+                <Button variant="outline" size="sm" onClick={handleSuggestDescription} disabled={isSuggesting} className="h-8 font-code text-[10px] uppercase tracking-widest text-accent border-accent/20">
+                  {isSuggesting ? <Loader2 className="size-3.5 mr-2 animate-spin" /> : <Sparkles className="size-3.5 mr-2" />}
+                  Suggest Description
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           <div className="space-y-6 pt-2">
             <div className="space-y-2">

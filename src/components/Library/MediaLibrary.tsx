@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Annotation, Concept, Media, MediaStatus, MediaType, VaultEntry } from '@/lib/types';
 import { MEDIA_LABELS, MEDIA_TYPES, MEDIA_ICONS_COMP, normalizeConceptTags, today, uid, conceptKey } from '@/lib/readex';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { distillInsightsFromMedia } from '@/ai/flows/distill-insights-from-media';
+import { generateReflectiveQuestions } from '@/ai/flows/generate-reflective-questions-flow';
 
 interface MediaLibraryProps {
   media: Media[];
@@ -37,6 +39,9 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState<Partial<Media>>({ type: 'book', title: '', creator: '', status: 'Want to Read', tags: [] });
   const [annotationDraft, setAnnotationDraft] = useState({ type: 'thought' as Annotation['type'], text: '' });
+  const [isDistilling, setIsDistilling] = useState(false);
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const { toast } = useToast();
 
   const selected = media.find((item) => item.id === selectedId) || null;
   const filtered = useMemo(() => media.filter((item) => {
@@ -72,6 +77,56 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
     setAnnotationDraft({ type: 'thought', text: '' });
   };
 
+  const handleDistill = async () => {
+    if (!selected) return;
+    setIsDistilling(true);
+    try {
+      const { coreClaim } = await distillInsightsFromMedia({
+        mediaTitle: selected.title,
+        mediaCreator: selected.creator,
+        capturedNotes: selected.capture,
+        annotations: selected.annotations,
+      });
+      updateSelected({ capture: { ...selected.capture, after: { ...selected.capture.after, coreArgument: coreClaim }, sessions: selected.capture.sessions || [] } });
+      toast({ title: "Insight Distilled", description: "AI has suggested a core claim based on your notes." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Distillation Failed", description: "The AI was unable to synthesize a claim at this time." });
+    } finally {
+      setIsDistilling(false);
+    }
+  };
+
+  const handleGenerateQuestions = async () => {
+    if (!selected) return;
+    setIsGeneratingQuestions(true);
+    try {
+      const questions = await generateReflectiveQuestions({
+        mediaTitle: selected.title,
+        beforePriorBeliefs: selected.capture?.before?.priorBeliefs,
+        beforeExpectation: selected.capture?.before?.expectation,
+        beforeOpenQuestion: selected.capture?.before?.openQuestion,
+        afterCoreArgument: selected.capture?.after?.coreArgument,
+        afterLastingIdea: selected.capture?.after?.lasting,
+        afterBeliefChange: selected.capture?.after?.beliefChange,
+      });
+      
+      const newAnnotations: Annotation[] = questions.map(q => ({
+        id: uid(),
+        type: 'question',
+        text: q,
+        date: today(),
+        conceptTags: selected.tags
+      }));
+
+      updateSelected({ annotations: [...newAnnotations, ...(selected.annotations || [])] });
+      toast({ title: "Questions Generated", description: "New reflective inquiries added to annotations." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Generation Failed", description: "AI reflective questions could not be created." });
+    } finally {
+      setIsGeneratingQuestions(false);
+    }
+  };
+
   if (selected) {
     const linkedBeliefs = vault.filter((entry) => (entry.sourceIds || []).includes(selected.id));
     return (
@@ -79,6 +134,14 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
         <div className="flex items-center justify-between mb-8">
           <Button variant="ghost" onClick={() => setSelectedId(null)} className="h-8 font-code text-[10px] uppercase tracking-widest"><ArrowLeft className="size-4 mr-2" /> Library</Button>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleDistill} disabled={isDistilling} className="h-8 font-code text-[10px] uppercase tracking-widest text-accent border-accent/20 hover:bg-accent/10">
+              {isDistilling ? <Loader2 className="size-3.5 mr-2 animate-spin" /> : <Sparkles className="size-3.5 mr-2" />}
+              Distill Claim
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleGenerateQuestions} disabled={isGeneratingQuestions} className="h-8 font-code text-[10px] uppercase tracking-widest text-accent border-accent/20 hover:bg-accent/10">
+              {isGeneratingQuestions ? <Loader2 className="size-3.5 mr-2 animate-spin" /> : <HelpCircle className="size-3.5 mr-2" />}
+              Reflect
+            </Button>
             <Button variant="outline" onClick={() => openEditor(selected)} className="h-8"><Edit className="size-4 mr-2" /> Edit</Button>
             <Button variant="destructive" onClick={() => { onDeleteMedia(selected.id); setSelectedId(null); }} className="h-8"><Trash2 className="size-4 mr-2" /> Delete</Button>
           </div>
