@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Annotation, Concept, Media, MediaStatus, MediaType, VaultEntry } from '@/lib/types';
 import { MEDIA_LABELS, MEDIA_TYPES, MEDIA_ICONS_COMP, normalizeConceptTags, today, uid, conceptKey } from '@/lib/readex';
 import { cn } from '@/lib/utils';
@@ -130,99 +131,158 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
   if (selected) {
     const linkedBeliefs = vault.filter((entry) => (entry.sourceIds || []).includes(selected.id));
     return (
-      <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-6xl mx-auto w-full font-body">
-        <div className="flex items-center justify-between mb-8">
-          <Button variant="ghost" onClick={() => setSelectedId(null)} className="h-8 font-code text-[10px] uppercase tracking-widest"><ArrowLeft className="size-4 mr-2" /> Library</Button>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleDistill} disabled={isDistilling} className="h-8 font-code text-[10px] uppercase tracking-widest text-accent border-accent/20 hover:bg-accent/10">
-              {isDistilling ? <Loader2 className="size-3.5 mr-2 animate-spin" /> : <Sparkles className="size-3.5 mr-2" />}
-              Distill Claim
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleGenerateQuestions} disabled={isGeneratingQuestions} className="h-8 font-code text-[10px] uppercase tracking-widest text-accent border-accent/20 hover:bg-accent/10">
-              {isGeneratingQuestions ? <Loader2 className="size-3.5 mr-2 animate-spin" /> : <HelpCircle className="size-3.5 mr-2" />}
-              Reflect
-            </Button>
-            <Button variant="outline" onClick={() => openEditor(selected)} className="h-8"><Edit className="size-4 mr-2" /> Edit</Button>
-            <Button variant="destructive" onClick={() => { onDeleteMedia(selected.id); setSelectedId(null); }} className="h-8"><Trash2 className="size-4 mr-2" /> Delete</Button>
+      <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-7xl mx-auto w-full font-body">
+        {/* Detail Header / Breadcrumb */}
+        <header className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSelectedId(null)} className="font-code text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center">
+              + LIBRARY
+            </button>
+            <span className="font-code text-[11px] uppercase tracking-widest text-primary/30">/</span>
+            <span className="font-code text-[11px] uppercase tracking-widest text-primary/80">
+              {MEDIA_LABELS[selected.type]}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Select value={selected.status} onValueChange={(value) => updateSelected({ status: value as MediaStatus })}>
+              <SelectTrigger className="w-40 font-code text-[10px] uppercase h-9 bg-white"><SelectValue /></SelectTrigger>
+              <SelectContent>{statuses.map((status) => <SelectItem key={status} value={status} className="font-code text-[10px] uppercase">{status}</SelectItem>)}</SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => openEditor(selected)} className="h-9 px-6 font-code text-[10px] tracking-widest uppercase">EDIT</Button>
+            <Button variant="outline" size="sm" onClick={() => { onDeleteMedia(selected.id); setSelectedId(null); }} className="h-9 px-6 font-code text-[10px] tracking-widest uppercase text-destructive border-destructive/20 hover:bg-destructive/10">DELETE</Button>
+          </div>
+        </header>
+
+        {/* Top Summary Card */}
+        <div className="bg-white border border-border/50 rounded-lg p-8 mb-10 flex gap-8">
+          <div className="size-48 bg-accent/5 rounded shrink-0 flex items-center justify-center border border-border/30">
+            {selected.thumbnailUrl ? (
+              <img src={selected.thumbnailUrl} alt={selected.title} className="w-full h-full object-cover" />
+            ) : (
+              <div className="size-16 rounded bg-accent/10 flex items-center justify-center">
+                {React.createElement(MEDIA_ICONS_COMP[selected.type], { className: "size-8 text-accent/40" })}
+              </div>
+            )}
+          </div>
+          <div className="flex-1">
+            <h1 className="font-headline text-4xl font-bold mb-2">{selected.title}</h1>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="font-body text-lg italic text-muted-foreground">{selected.creator}</span>
+              {selected.year && <span className="font-code text-xs text-muted-foreground/40">{selected.year}</span>}
+            </div>
+            <p className="font-body text-base italic text-primary/80 mb-6 max-w-2xl leading-relaxed">
+              {selected.description || "A placeholder for the central thesis or importance of this scholarly source."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(selected.tags || []).map(tag => (
+                <Badge key={tag} variant="secondary" className="font-code text-[9px] uppercase tracking-[0.15em] bg-muted/30 text-muted-foreground px-3 py-1">
+                  {tag}
+                </Badge>
+              ))}
+              <Badge variant="outline" className="font-code text-[9px] uppercase tracking-[0.15em] px-3 py-1">
+                {selected.annotations?.length || 0} NOTES
+              </Badge>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
-          <Card className="p-0 overflow-hidden h-fit border-border/50 shadow-sm bg-white">
-            <div className="aspect-[2/3] bg-muted/30 flex items-center justify-center text-center p-8">
-              <div className="space-y-4">
-                <div className="readex-kicker text-muted-foreground/60">{MEDIA_LABELS[selected.type]}</div>
-                <h2 className="font-headline text-2xl font-bold italic leading-tight text-primary">{selected.title}</h2>
-                <div className="readex-kicker">{selected.creator}</div>
+        {/* Workspace Tabs */}
+        <Tabs defaultValue="capture" className="w-full">
+          <TabsList className="bg-transparent border-b border-border/50 rounded-none h-12 w-full justify-start gap-8 p-0 mb-8">
+            <TabsTrigger value="capture" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full">CAPTURE</TabsTrigger>
+            <TabsTrigger value="annotations" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full">ANNOTATIONS</TabsTrigger>
+            <TabsTrigger value="insights" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full">INSIGHTS</TabsTrigger>
+            <TabsTrigger value="connections" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full">CONNECTIONS</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="capture" className="space-y-12">
+            <p className="font-body text-xs text-muted-foreground italic mb-8">
+              All capture is saved automatically. This stays attached to this {selected.type} permanently.
+            </p>
+
+            <section>
+              <h3 className="readex-kicker flex items-center gap-2 mb-4 opacity-40">
+                <Plus className="size-2" /> BEFORE YOU START
+              </h3>
+              <div className="bg-muted/5 border border-border/30 rounded-lg overflow-hidden">
+                <CaptureRow label="PRIOR BELIEFS" value={selected.capture?.before?.priorBeliefs} placeholder="What do I already believe about this topic?" onChange={(val) => updateSelected({ capture: { ...selected.capture, before: { ...selected.capture?.before, priorBeliefs: val }, sessions: selected.capture?.sessions || [] } })} />
+                <CaptureRow label="EXPECTATION" value={selected.capture?.before?.expectation} placeholder="What am I hoping this challenges or confirms?" onChange={(val) => updateSelected({ capture: { ...selected.capture, before: { ...selected.capture?.before, expectation: val }, sessions: selected.capture?.sessions || [] } })} />
+                <CaptureRow label="OPEN QUESTION" value={selected.capture?.before?.openQuestion} placeholder="What does success cost when I define it too narrowly?" onChange={(val) => updateSelected({ capture: { ...selected.capture, before: { ...selected.capture?.before, openQuestion: val }, sessions: selected.capture?.sessions || [] } })} />
               </div>
+            </section>
+
+            <section>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="readex-kicker flex items-center gap-2 opacity-40">
+                  <Plus className="size-2" /> SESSIONS
+                </h3>
+                <Button variant="outline" size="sm" className="h-7 px-3 font-code text-[9px] tracking-widest uppercase">+ ADD SESSION</Button>
+              </div>
+              <div className="bg-muted/5 border border-border/30 rounded-lg p-6">
+                <p className="font-body text-sm text-muted-foreground italic">Log each reading or listening session.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="readex-kicker flex items-center gap-2 mb-4 opacity-40">
+                <Plus className="size-2" /> AFTER COMPLETING
+              </h3>
+              <div className="bg-muted/5 border border-border/30 rounded-lg overflow-hidden">
+                <CaptureRow label="CORE ARGUMENT" value={selected.capture?.after?.coreArgument} placeholder="The central thesis as understood post-consumption..." onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, coreArgument: val }, sessions: selected.capture?.sessions || [] } })} />
+                <CaptureRow label="WHAT HELD UP" value={selected.capture?.after?.heldUp} placeholder="Ideas that survived your skepticism" onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, heldUp: val }, sessions: selected.capture?.sessions || [] } })} />
+                <CaptureRow label="WHAT DIDN'T" value={selected.capture?.after?.didntHold} placeholder="Where it was wrong or incomplete" onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, didntHold: val }, sessions: selected.capture?.sessions || [] } })} />
+                <CaptureRow label="LASTING IDEA" value={selected.capture?.after?.lasting} placeholder="Design life around games that expand agency and relationship." onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, lasting: val }, sessions: selected.capture?.sessions || [] } })} />
+                <CaptureRow label="BELIEF CHANGE" value={selected.capture?.after?.beliefChange} placeholder="I trust renewable commitments more than final victories." onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, beliefChange: val }, sessions: selected.capture?.sessions || [] } })} />
+                <CaptureRow label="CROSS-REFERENCES" value={selected.capture?.after?.crossRefs} placeholder="Other sources this connects to" onChange={(val) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, crossRefs: val }, sessions: selected.capture?.sessions || [] } })} />
+              </div>
+            </section>
+
+            <div className="flex gap-4 pt-8 border-t border-border/30">
+              <Button className="bg-accent px-8 h-10 font-code text-[10px] tracking-widest uppercase">SAVE CAPTURE</Button>
+              <Button variant="outline" onClick={handleDistill} disabled={isDistilling} className="h-10 px-8 font-code text-[10px] tracking-widest uppercase text-accent border-accent/20">
+                {isDistilling ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Sparkles className="size-4 mr-2" />}
+                DISTILL → INSIGHT
+              </Button>
             </div>
-            <div className="p-5 border-t border-border/40">
-              <Label className="readex-kicker block mb-2 opacity-50">Consumption Status</Label>
-              <Select value={selected.status} onValueChange={(value) => updateSelected({ status: value as MediaStatus })}>
-                <SelectTrigger className="font-code text-[10px] uppercase tracking-wider h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>{statuses.map((status) => <SelectItem key={status} value={status} className="font-code text-[10px] uppercase">{status}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </Card>
+          </TabsContent>
 
-          <div className="space-y-6">
-            <Card className="p-6 border-border/40 bg-white">
-              <h3 className="readex-kicker mb-4 opacity-50">Concept Tags</h3>
-              <ConceptTagPicker concepts={concepts} value={selected.tags || []} onChange={(tags) => updateSelected({ tags })} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
-            </Card>
-
-            <Card className="p-6 border-border/40 bg-white">
-              <h3 className="readex-kicker mb-6 opacity-50">Investigation Capture</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <CaptureField label="Open Question" value={selected.capture?.before?.openQuestion} onChange={(value) => updateSelected({ capture: { ...selected.capture, before: { ...selected.capture?.before, openQuestion: value }, sessions: selected.capture?.sessions || [] } })} />
-                <CaptureField label="Hypothesis / Working Answer" value={selected.capture?.before?.openAnswer} onChange={(value) => updateSelected({ capture: { ...selected.capture, before: { ...selected.capture?.before, openAnswer: value }, sessions: selected.capture?.sessions || [] } })} />
-                <CaptureField label="Core Argument Identified" value={selected.capture?.after?.coreArgument} onChange={(value) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, coreArgument: value }, sessions: selected.capture?.sessions || [] } })} />
-                <CaptureField label="Belief or Principle Change" value={selected.capture?.after?.beliefChange} onChange={(value) => updateSelected({ capture: { ...selected.capture, after: { ...selected.capture?.after, beliefChange: value }, sessions: selected.capture?.sessions || [] } })} />
-              </div>
-            </Card>
-
-            <Card className="p-6 border-border/40 bg-white">
-              <h3 className="readex-kicker mb-4 opacity-50">Annotations & Excerpts</h3>
-              <div className="flex gap-2 mb-6">
-                <Select value={annotationDraft.type} onValueChange={(value) => setAnnotationDraft((prev) => ({ ...prev, type: value as Annotation['type'] }))}>
-                  <SelectTrigger className="w-40 font-code text-[10px] uppercase h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="highlight" className="font-code text-[10px] uppercase">Highlight</SelectItem>
-                    <SelectItem value="thought" className="font-code text-[10px] uppercase">Thought</SelectItem>
-                    <SelectItem value="question" className="font-code text-[10px] uppercase">Question</SelectItem>
-                    <SelectItem value="connection" className="font-code text-[10px] uppercase">Connection</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input value={annotationDraft.text} onChange={(event) => setAnnotationDraft((prev) => ({ ...prev, text: event.target.value }))} placeholder="Extract highlight, thought, or connection..." className="font-body italic text-sm" />
-                <Button onClick={addAnnotation} size="sm" className="h-9 px-6">ADD</Button>
-              </div>
-              <div className="space-y-3">
-                {(selected.annotations || []).map((annotation) => (
-                  <div key={annotation.id} className="rounded-md border border-border/30 bg-muted/10 p-4 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                      <Badge variant="outline" className="font-code text-[9px] uppercase tracking-widest bg-white">{annotation.type}</Badge>
-                      <time className="font-code text-[8px] text-muted-foreground">{new Date(annotation.date).toLocaleDateString()}</time>
+          <TabsContent value="annotations">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-8">
+              <div className="space-y-6">
+                <div className="flex gap-2">
+                  <Select value={annotationDraft.type} onValueChange={(value) => setAnnotationDraft((prev) => ({ ...prev, type: value as Annotation['type'] }))}>
+                    <SelectTrigger className="w-40 font-code text-[10px] uppercase h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="highlight" className="font-code text-[10px] uppercase">Highlight</SelectItem>
+                      <SelectItem value="thought" className="font-code text-[10px] uppercase">Thought</SelectItem>
+                      <SelectItem value="question" className="font-code text-[10px] uppercase">Question</SelectItem>
+                      <SelectItem value="connection" className="font-code text-[10px] uppercase">Connection</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input value={annotationDraft.text} onChange={(event) => setAnnotationDraft((prev) => ({ ...prev, text: event.target.value }))} placeholder="Extract highlight, thought, or connection..." className="font-body italic text-sm" />
+                  <Button onClick={addAnnotation} size="sm" className="h-9 px-6">ADD</Button>
+                </div>
+                <div className="space-y-4">
+                  {(selected.annotations || []).map((annotation) => (
+                    <div key={annotation.id} className="rounded-lg border border-border/30 bg-white p-6 shadow-sm">
+                      <div className="flex justify-between items-start mb-3">
+                        <Badge variant="outline" className="font-code text-[9px] uppercase tracking-widest bg-muted/5">{annotation.type}</Badge>
+                        <time className="font-code text-[8px] text-muted-foreground">{new Date(annotation.date).toLocaleDateString()}</time>
+                      </div>
+                      <p className="font-body italic leading-relaxed text-[16px] text-primary/80">"{annotation.text}"</p>
                     </div>
-                    <p className="font-body italic leading-relaxed text-[15px] text-primary/80">"{annotation.text}"</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </Card>
-
-            <Card className="p-6 border-border/40 bg-white">
-              <h3 className="readex-kicker mb-4 opacity-50">Linked Positions</h3>
-              <div className="space-y-2">
-                {linkedBeliefs.length ? linkedBeliefs.map((entry) => (
-                  <div key={entry.id} className="rounded border border-border/20 bg-muted/5 p-3 text-sm font-headline italic hover:text-accent cursor-pointer transition-colors">
-                    {entry.title}
-                  </div>
-                )) : (
-                  <p className="text-sm text-muted-foreground italic">No formal positions linked to this source yet.</p>
-                )}
-              </div>
-            </Card>
-          </div>
-        </div>
+              <aside className="space-y-6">
+                <Card className="p-6 border-border/40">
+                  <h3 className="readex-kicker mb-4 opacity-50">Related Concepts</h3>
+                  <ConceptTagPicker concepts={concepts} value={selected.tags || []} onChange={(tags) => updateSelected({ tags })} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
+                </Card>
+              </aside>
+            </div>
+          </TabsContent>
+        </Tabs>
         <MediaEditor open={editorOpen} onOpenChange={setEditorOpen} draft={draft} setDraft={setDraft} onSave={saveMedia} />
       </div>
     );
@@ -319,16 +379,20 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
   );
 }
 
-function CaptureField({ label, value, onChange }: { label: string; value?: string; onChange: (value: string) => void }) {
+function CaptureRow({ label, value, placeholder, onChange }: { label: string; value?: string; placeholder: string; onChange: (val: string) => void }) {
   return (
-    <div className="space-y-3">
-      <Label className="readex-kicker opacity-60">{label}</Label>
-      <Textarea 
-        value={value || ''} 
-        onChange={(event) => onChange(event.target.value)} 
-        className="min-h-[120px] font-body italic text-[15px] leading-relaxed bg-muted/10 border-border/30" 
-        placeholder="..."
-      />
+    <div className="flex items-center border-b border-border/30 last:border-b-0 min-h-[60px]">
+      <div className="w-56 px-6 shrink-0">
+        <span className="font-code text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-bold">{label}</span>
+      </div>
+      <div className="flex-1 p-0 h-full flex items-center">
+        <Textarea 
+          value={value || ''} 
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="bg-transparent border-none shadow-none focus-visible:ring-0 font-body text-base italic text-primary/80 placeholder:text-muted-foreground/30 py-4 h-auto min-h-0 resize-none"
+        />
+      </div>
     </div>
   );
 }
