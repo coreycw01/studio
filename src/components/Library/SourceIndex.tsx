@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Media, MediaType } from '@/lib/types';
 import { MEDIA_LABELS, MEDIA_TYPES } from '@/lib/readex';
 import { cn } from '@/lib/utils';
@@ -34,8 +35,8 @@ export function SourceIndex({ media }: SourceIndexProps) {
         return typeOk && (!search || query.includes(search.toLowerCase()));
       })
       .sort((a, b) => {
-        const valA = a[sortKey] || '';
-        const valB = b[sortKey] || '';
+        const valA = (a[sortKey as keyof Media] as string) || '';
+        const valB = (b[sortKey as keyof Media] as string) || '';
         if (sortOrder === 'asc') return valA > valB ? 1 : -1;
         return valA < valB ? 1 : -1;
       });
@@ -94,7 +95,7 @@ export function SourceIndex({ media }: SourceIndexProps) {
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
             placeholder="Search registry by title, creator, identifier..." 
-            className="pl-9 h-10 text-sm"
+            className="pl-9 h-10 text-sm rounded-full"
           />
         </div>
         <div className="flex gap-2">
