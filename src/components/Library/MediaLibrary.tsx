@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { Annotation, Concept, Media, MediaStatus, MediaType, VaultEntry } from '@/lib/types';
-import { MEDIA_LABELS, MEDIA_TYPES, MEDIA_ICONS_COMP, normalizeConceptTags, today, uid, conceptKey } from '@/lib/readex';
+import { Separator } from '@/components/ui/separator';
+import type { Annotation, Concept, Media, MediaStatus, MediaType, VaultEntry, Draft, Question, TimelineEvent } from '@/lib/types';
+import { MEDIA_LABELS, MEDIA_TYPES, MEDIA_ICONS_COMP, normalizeConceptTags, today, uid, conceptKey, conceptRelated } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { distillInsightsFromMedia } from '@/ai/flows/distill-insights-from-media';
@@ -25,6 +26,9 @@ interface MediaLibraryProps {
   media: Media[];
   concepts: Concept[];
   vault: VaultEntry[];
+  drafts: Draft[];
+  questions: Question[];
+  timeline: TimelineEvent[];
   onAddMedia: (data: Partial<Media>) => void;
   onUpdateMedia: (media: Media) => void;
   onDeleteMedia: (id: string) => void;
@@ -39,6 +43,9 @@ export function MediaLibrary({
   media, 
   concepts, 
   vault, 
+  drafts,
+  questions,
+  timeline,
   onAddMedia, 
   onUpdateMedia, 
   onDeleteMedia, 
@@ -56,6 +63,7 @@ export function MediaLibrary({
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [insightOpen, setInsightOpen] = useState(false);
   const [insightDraft, setInsightDraft] = useState({ title: '', body: '', tags: [] as string[] });
+  const [conceptPopupName, setConceptPopupName] = useState<string | null>(null);
   const { toast } = useToast();
 
   const selected = media.find((item) => item.id === selectedId) || null;
@@ -115,7 +123,7 @@ export function MediaLibrary({
     if (!selected) return;
     setIsGeneratingQuestions(true);
     try {
-      const questions = await generateReflectiveQuestions({
+      const questionsRes = await generateReflectiveQuestions({
         mediaTitle: selected.title,
         beforePriorBeliefs: selected.capture?.before?.priorBeliefs,
         beforeExpectation: selected.capture?.before?.expectation,
@@ -125,7 +133,7 @@ export function MediaLibrary({
         afterBeliefChange: selected.capture?.after?.beliefChange,
       });
       
-      const newAnnotations: Annotation[] = questions.map(q => ({
+      const newAnnotations: Annotation[] = questionsRes.map(q => ({
         id: uid(),
         type: 'question',
         text: q,
@@ -158,7 +166,6 @@ export function MediaLibrary({
     
     return (
       <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-7xl mx-auto w-full font-body">
-        {/* Detail Header / Breadcrumb */}
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <button onClick={() => setSelectedId(null)} className="font-code text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center">
@@ -179,7 +186,6 @@ export function MediaLibrary({
           </div>
         </header>
 
-        {/* Top Summary Card */}
         <div className="bg-white border border-border/50 rounded-lg p-8 mb-10 flex gap-8">
           <div className="size-48 bg-accent/5 rounded shrink-0 flex items-center justify-center border border-border/30 overflow-hidden">
             {selected.thumbnailUrl ? (
@@ -201,9 +207,13 @@ export function MediaLibrary({
             </p>
             <div className="flex flex-wrap gap-2">
               {(selected.tags || []).map(tag => (
-                <Badge key={tag} variant="secondary" className="font-code text-[9px] uppercase tracking-[0.15em] bg-muted/30 text-muted-foreground px-3 py-1">
+                <button
+                  key={tag}
+                  onClick={() => setConceptPopupName(tag)}
+                  className="inline-flex items-center rounded-full border px-3 py-1 font-code text-[9px] uppercase tracking-[0.15em] bg-muted/30 text-muted-foreground border-transparent hover:bg-accent/10 hover:text-accent hover:border-accent/20 transition-all"
+                >
                   {tag}
-                </Badge>
+                </button>
               ))}
               <Badge variant="outline" className="font-code text-[9px] uppercase tracking-[0.15em] px-3 py-1">
                 {selected.annotations?.length || 0} NOTES
@@ -212,7 +222,6 @@ export function MediaLibrary({
           </div>
         </div>
 
-        {/* Workspace Tabs */}
         <Tabs defaultValue="capture" className="w-full">
           <TabsList className="bg-transparent border-b border-border/50 rounded-none h-12 w-full justify-start gap-8 p-0 mb-8">
             <TabsTrigger value="capture" className="readex-kicker data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:text-accent rounded-none bg-transparent px-0 h-full">CAPTURE</TabsTrigger>
@@ -301,10 +310,6 @@ export function MediaLibrary({
                 </div>
               </div>
               <aside className="space-y-6">
-                <Card className="p-6 border-border/40">
-                  <h3 className="readex-kicker mb-4 opacity-50">Related Concepts</h3>
-                  <ConceptTagPicker concepts={concepts} value={selected.tags || []} onChange={(tags) => updateSelected({ tags })} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
-                </Card>
                 <Button variant="outline" onClick={handleGenerateQuestions} disabled={isGeneratingQuestions} className="w-full h-10 font-code text-[10px] uppercase tracking-widest text-accent border-accent/20">
                   {isGeneratingQuestions ? <Loader2 className="size-4 mr-2 animate-spin" /> : <HelpCircle className="size-4 mr-2" />}
                   GENERATE REFLECTIONS
@@ -408,35 +413,19 @@ export function MediaLibrary({
                 </div>
               )}
             </div>
-
-            <div className="p-3 rounded border border-yellow-500/20 bg-yellow-500/5 text-yellow-600 font-body text-xs italic">
-              Graph view (visual node connections) is a production feature. This list view is the prototype equivalent.
-            </div>
           </TabsContent>
         </Tabs>
         
-        <MediaEditor open={editorOpen} onOpenChange={setEditorOpen} draft={draft} setDraft={setDraft} onSave={saveMedia} />
-        
-        <Dialog open={insightOpen} onOpenChange={setInsightOpen}>
-          <DialogContent className="max-w-xl">
-            <DialogHeader><DialogTitle className="font-headline text-2xl italic">Anchored Insight</DialogTitle></DialogHeader>
-            <div className="space-y-6 pt-2">
-              <div className="space-y-2">
-                <Label className="readex-kicker">CORE CLAIM</Label>
-                <Input value={insightDraft.title} onChange={(e) => setInsightDraft(prev => ({ ...prev, title: e.target.value }))} placeholder="State the discovery clearly..." />
-              </div>
-              <div className="space-y-2">
-                <Label className="readex-kicker">REASONING / ELABORATION</Label>
-                <Textarea value={insightDraft.body} onChange={(e) => setInsightDraft(prev => ({ ...prev, body: e.target.value }))} className="min-h-[120px] font-body italic" placeholder="How does this source support this position?" />
-              </div>
-              <div className="space-y-2">
-                <Label className="readex-kicker">CONCEPTS</Label>
-                <ConceptTagPicker concepts={concepts} value={insightDraft.tags} onChange={(tags) => setInsightDraft(prev => ({ ...prev, tags }))} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
-              </div>
-            </div>
-            <DialogFooter className="pt-4"><Button onClick={saveInsight} className="w-full">ARCHIVE INSIGHT</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ConceptDetailDialog 
+          name={conceptPopupName} 
+          onClose={() => setConceptPopupName(null)}
+          concepts={concepts}
+          media={media}
+          vault={vault}
+          drafts={drafts}
+          questions={questions}
+          timeline={timeline}
+        />
       </div>
     );
   }
@@ -492,7 +481,7 @@ export function MediaLibrary({
           <Card key={item.id} className="cursor-pointer border-none shadow-none bg-transparent group" onClick={() => setSelectedId(item.id)}>
             <div className="aspect-[2/3] rounded-md overflow-hidden shadow-sm mb-4 bg-muted/30 flex items-center justify-center p-6 text-center border border-border/30 group-hover:shadow-xl group-hover:-translate-y-1 transition-all">
               <div className="size-10 bg-white/50 rounded-md flex items-center justify-center mb-4">
-                <BookIcon className="size-6 text-accent/40" />
+                {React.createElement(MEDIA_ICONS_COMP[item.type], { className: "size-6 text-accent/40" })}
               </div>
             </div>
             <div className="space-y-1.5">
@@ -528,6 +517,17 @@ export function MediaLibrary({
       </div>
 
       <MediaEditor open={editorOpen} onOpenChange={setEditorOpen} draft={draft} setDraft={setDraft} onSave={saveMedia} />
+      
+      <ConceptDetailDialog 
+        name={conceptPopupName} 
+        onClose={() => setConceptPopupName(null)}
+        concepts={concepts}
+        media={media}
+        vault={vault}
+        drafts={drafts}
+        questions={questions}
+        timeline={timeline}
+      />
     </div>
   );
 }
@@ -715,10 +715,178 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   );
 }
 
-const BookIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-    <path d="M6.5 2H20v20H6.5" />
-    <path d="M6.5 18H20" />
-  </svg>
-);
+function ConceptDetailDialog({ name, onClose, concepts, media, vault, drafts, questions, timeline }: {
+  name: string | null;
+  onClose: () => void;
+  concepts: Concept[];
+  media: Media[];
+  vault: VaultEntry[];
+  drafts: Draft[];
+  questions: Question[];
+  timeline: TimelineEvent[];
+}) {
+  const [activeTab, setActiveTab] = useState('sources');
+  const related = useMemo(() => name ? conceptRelated(name, { media, insights: [], vault, drafts, questions, timeline }) : null, [name, media, vault, drafts, questions, timeline]);
+
+  if (!name || !related) return null;
+
+  const tabs = [
+    { id: 'all', label: 'ALL', count: null },
+    { id: 'sources', label: 'SOURCES', count: related.sources.length },
+    { id: 'notes', label: 'NOTES', count: related.annotations.length },
+    { id: 'ideas', label: 'IDEAS', count: (related.ideas || []).length },
+    { id: 'questions', label: 'QUESTIONS', count: related.questions.length },
+    { id: 'beliefs', label: 'BELIEFS', count: related.beliefs.length },
+    { id: 'writing', label: 'WRITING', count: related.drafts.length },
+    { id: 'evolution', label: 'EVOLUTION', count: related.events.length },
+  ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'sources':
+        return (
+          <div className="space-y-4">
+            <h4 className="readex-kicker opacity-50">INPUTS: SOURCES</h4>
+            {related.sources.map(s => (
+              <Card key={s.id} className="p-4 bg-white border-border/40 flex gap-4">
+                <div className="size-10 rounded bg-muted/20 flex items-center justify-center shrink-0">
+                  {React.createElement(MEDIA_ICONS_COMP[s.type] || BookOpen, { className: "size-5 text-accent/40" })}
+                </div>
+                <div>
+                  <h5 className="font-headline font-bold text-lg leading-tight">{s.title}</h5>
+                  <p className="text-xs font-body italic text-muted-foreground">{s.creator} · {s.type}</p>
+                </div>
+              </Card>
+            ))}
+            {related.sources.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked sources discovered.</p>}
+          </div>
+        );
+      case 'notes':
+        return (
+          <div className="space-y-4">
+            <h4 className="readex-kicker opacity-50">INPUTS: ANNOTATIONS</h4>
+            {related.annotations.map((a, i) => (
+              <Card key={i} className="p-4 bg-white border-border/40">
+                <Badge variant="outline" className="mb-2 font-code text-[8px] uppercase">{a.type}</Badge>
+                <p className="font-body italic text-sm text-primary/80 leading-relaxed">"{a.text}"</p>
+              </Card>
+            ))}
+            {related.annotations.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked annotations discovered.</p>}
+          </div>
+        );
+      case 'ideas':
+      case 'beliefs':
+        const items = activeTab === 'ideas' ? (related.ideas || []) : related.beliefs;
+        return (
+          <div className="space-y-4">
+            <h4 className="readex-kicker opacity-50">{activeTab.toUpperCase()}</h4>
+            {items.map((item, i) => (
+              <Card key={i} className="p-4 bg-white border-border/40">
+                <h5 className="font-headline font-bold text-lg italic mb-2">{item.title}</h5>
+                <p className="font-body text-sm text-muted-foreground leading-relaxed">{item.description || (item as any).body}</p>
+              </Card>
+            ))}
+            {items.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked items discovered.</p>}
+          </div>
+        );
+      case 'questions':
+        return (
+          <div className="space-y-4">
+            <h4 className="readex-kicker opacity-50">INQUIRIES</h4>
+            {related.questions.map((q, i) => (
+              <Card key={i} className="p-4 bg-white border-border/40">
+                <p className="font-headline font-bold italic text-base leading-relaxed">"{q.text}"</p>
+                {q.answer && <p className="font-body text-sm text-muted-foreground mt-2 border-t pt-2 italic">{q.answer}</p>}
+              </Card>
+            ))}
+            {related.questions.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked inquiries discovered.</p>}
+          </div>
+        );
+      case 'writing':
+        return (
+          <div className="space-y-4">
+            <h4 className="readex-kicker opacity-50">WORKS</h4>
+            {related.drafts.map((d, i) => (
+              <Card key={i} className="p-4 bg-white border-border/40">
+                <div className="flex justify-between items-start mb-1">
+                  <h5 className="font-headline font-bold text-lg italic">{d.title}</h5>
+                  <Badge variant="outline" className="text-[8px]">{d.status}</Badge>
+                </div>
+                <p className="text-xs font-code opacity-50 uppercase">{d.type}</p>
+              </Card>
+            ))}
+            {related.drafts.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked works discovered.</p>}
+          </div>
+        );
+      case 'evolution':
+        return (
+          <div className="space-y-4">
+            <h4 className="readex-kicker opacity-50">EVOLUTION</h4>
+            {related.events.map((e, i) => (
+              <div key={i} className="flex gap-4 items-start border-l-2 border-accent/20 pl-4 py-1">
+                <div className="pt-1">
+                   <div className="size-2 rounded-full bg-accent" />
+                </div>
+                <div>
+                  <h5 className="font-headline font-bold text-base italic">{e.entityTitle}</h5>
+                  <p className="text-xs text-muted-foreground">{e.eventType}: {e.reason}</p>
+                  <time className="text-[9px] font-code opacity-40">{new Date(e.date).toLocaleDateString()}</time>
+                </div>
+              </div>
+            ))}
+            {related.events.length === 0 && <p className="text-sm italic text-muted-foreground text-center py-8">No linked evolution events discovered.</p>}
+          </div>
+        );
+      default:
+        return <p className="text-sm italic text-muted-foreground text-center py-8">No linked content discovered for this filter.</p>;
+    }
+  };
+
+  return (
+    <Dialog open={!!name} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl p-0 overflow-hidden border-none rounded-2xl shadow-2xl bg-[#FAFAF7] font-body">
+        <div className="p-8">
+          <DialogHeader className="mb-8">
+            <DialogTitle className="text-4xl font-headline italic mb-1 text-primary/90">{name}</DialogTitle>
+            <p className="text-muted-foreground text-xs font-body italic">Linked inputs and outputs for this concept</p>
+          </DialogHeader>
+
+          <div className="flex flex-wrap gap-2 mb-8">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full border transition-all font-code text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5",
+                  activeTab === tab.id 
+                    ? "bg-accent text-white border-accent shadow-md" 
+                    : "bg-white text-muted-foreground border-border/50 hover:border-accent/40"
+                )}
+              >
+                {tab.label}
+                {tab.count !== null && (
+                  <span className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[8px]",
+                    activeTab === tab.id ? "bg-white/20 text-white" : "bg-muted/50 text-muted-foreground/60"
+                  )}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <Separator className="bg-border/30 mb-8" />
+
+          <ScrollArea className="h-[340px] pr-4">
+            {renderContent()}
+          </ScrollArea>
+        </div>
+
+        <div className="p-8 pt-4 bg-muted/5 border-t border-border/20 flex justify-end">
+          <Button variant="outline" onClick={onClose} className="h-10 px-8 font-code text-[10px] font-bold uppercase tracking-widest">CLOSE</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

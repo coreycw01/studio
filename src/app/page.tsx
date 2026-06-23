@@ -349,6 +349,9 @@ function ReadexApp() {
             media={media} 
             concepts={concepts} 
             vault={vault} 
+            drafts={drafts}
+            questions={questions}
+            timeline={timeline}
             onAddMedia={addMedia} 
             onUpdateMedia={updateMedia} 
             onDeleteMedia={deleteMedia} 
