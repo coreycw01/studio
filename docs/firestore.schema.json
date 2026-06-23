@@ -1,0 +1,152 @@
+{
+  "app": "Noesis",
+  "version": 2,
+  "root": "/users/{uid}",
+  "prototypeUid": "anonymous-scholar",
+  "collections": {
+    "media": {
+      "path": "/users/{uid}/media/{mediaId}",
+      "purpose": "Source inputs: books, audiobooks, podcasts, videos, movies, articles, courses, lectures, documentaries, interviews, conversations, papers, and other media.",
+      "fields": {
+        "title": "string",
+        "creator": "string",
+        "type": "book | audiobook | podcast | video | movie | article | course | lecture | documentary | interview | conversation | paper | other",
+        "status": "Want to Read | Consuming | Finished | Paused | Abandoned",
+        "year": "string?",
+        "genre": "string?",
+        "description": "string?",
+        "url": "string?",
+        "thumbnailUrl": "string?",
+        "tags": "string[] concept names",
+        "annotations": "Annotation[]",
+        "capture": "MediaCapture",
+        "dateAdded": "ISO string",
+        "dateUpdated": "ISO string?"
+      }
+    },
+    "concepts": {
+      "path": "/users/{uid}/concepts/{conceptId}",
+      "purpose": "Encyclopedia entries and Atlas map nodes.",
+      "fields": {
+        "name": "string",
+        "description": "string",
+        "links": "string[] concept names for manual branches",
+        "sourceIds": "string[]",
+        "x": "number Atlas percent",
+        "y": "number Atlas percent",
+        "createdFrom": "manual | tag | idea | fallback",
+        "dateCreated": "ISO string",
+        "dateUpdated": "ISO string?"
+      }
+    },
+    "questions": {
+      "path": "/users/{uid}/questions/{questionId}",
+      "purpose": "Inquiry answer workspaces.",
+      "fields": {
+        "text": "string",
+        "status": "open | investigating | answered | archived",
+        "answer": "string?",
+        "evidenceIds": "string[]",
+        "conceptIds": "string[] concept names",
+        "sourceIds": "string[]",
+        "beliefIds": "string[] vault ids",
+        "draftIds": "string[]",
+        "type": "open | annotation | manual",
+        "dateCreated": "ISO string",
+        "dateUpdated": "ISO string?"
+      }
+    },
+    "vault": {
+      "path": "/users/{uid}/vault/{positionId}",
+      "purpose": "Positions: explicit beliefs, principles, mental models, life rules, and worldview statements.",
+      "fields": {
+        "title": "string",
+        "type": "belief | principle | mental_model | life_rule | worldview",
+        "statement": "string",
+        "description": "string",
+        "confidence": "number 1-5",
+        "status": "active | questioning | revised | abandoned",
+        "tags": "string[] concept names",
+        "sourceIds": "string[]",
+        "insightIds": "string[]?",
+        "evidenceFor": "string[]?",
+        "evidenceAgainst": "string[]?",
+        "versionHistory": "VaultVersion[]?",
+        "createdFrom": "manual | idea",
+        "dateCreated": "ISO string",
+        "dateUpdated": "ISO string"
+      }
+    },
+    "drafts": {
+      "path": "/users/{uid}/drafts/{draftId}",
+      "purpose": "Works: essays, scripts, and field notes.",
+      "fields": {
+        "title": "string",
+        "body": "string",
+        "type": "essay | script | field_note",
+        "status": "seed | drafting | revised | final",
+        "conceptTags": "string[] concept names",
+        "sourceIds": "string[]",
+        "questionIds": "string[]",
+        "beliefIds": "string[] vault ids",
+        "dateCreated": "ISO string",
+        "dateUpdated": "ISO string"
+      }
+    },
+    "practices": {
+      "path": "/users/{uid}/practices/{practiceId}",
+      "purpose": "Behavior-facing outputs: habits, experiments, disciplines, commitments, observations, rules, and challenges.",
+      "fields": {
+        "title": "string",
+        "description": "string",
+        "type": "habit | experiment | discipline | reflection_prompt | commitment | observation | rule | challenge",
+        "status": "planned | active | completed | paused | abandoned",
+        "durationDays": "number",
+        "startDate": "YYYY-MM-DD string",
+        "endDate": "YYYY-MM-DD string",
+        "conceptTags": "string[] concept names",
+        "sourceIds": "string[]",
+        "questionIds": "string[]",
+        "positionIds": "string[] vault ids",
+        "draftIds": "string[]",
+        "notes": "string",
+        "dateCreated": "ISO string",
+        "dateUpdated": "ISO string"
+      }
+    },
+    "timeline": {
+      "path": "/users/{uid}/timeline/{eventId}",
+      "purpose": "Evolution/history events for concepts, sources, inquiries, positions, works, practices, and insights.",
+      "fields": {
+        "entityId": "string",
+        "entityType": "media | vault | concept | question | draft | practice | insight | string",
+        "entityTitle": "string",
+        "eventType": "created | refined | challenged | revised | expanded | abandoned",
+        "reason": "string",
+        "influencedBy": "string[]",
+        "date": "ISO string"
+      }
+    },
+    "insights": {
+      "path": "/users/{uid}/insights/{insightId}",
+      "purpose": "Mirrored idea records for Atlas/concept linking when ideas become positions.",
+      "fields": {
+        "title": "string",
+        "body": "string",
+        "sourceIds": "string[]",
+        "tags": "string[] concept names",
+        "categories": "string[]?",
+        "connections": "string[]?",
+        "beliefId": "string?",
+        "dateCreated": "ISO string",
+        "dateUpdated": "ISO string"
+      }
+    }
+  },
+  "settingsDocs": {
+    "goal": "/users/{uid}/settings/goal",
+    "atlasView": "/users/{uid}/settings/atlasView",
+    "atlasNodes": "/users/{uid}/settings/atlasNodes",
+    "schema": "/users/{uid}/settings/schema"
+  }
+}

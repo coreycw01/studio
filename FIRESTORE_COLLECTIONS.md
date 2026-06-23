@@ -20,6 +20,7 @@ Prototype mode uses:
 /users/{uid}/questions/{questionId}
 /users/{uid}/vault/{beliefId}
 /users/{uid}/drafts/{draftId}
+/users/{uid}/practices/{practiceId}
 /users/{uid}/timeline/{eventId}
 /users/{uid}/insights/{insightId}
 ```
@@ -41,11 +42,13 @@ Prototype mode uses:
 
 `questions` stores manual answer-workspace questions. Source capture questions and annotation questions can also be derived from `media`.
 
-`vault` stores claims, principles, mental models, life rules, worldview statements, and ideas created from the Claims page.
+`vault` stores positions, principles, mental models, life rules, worldview statements, and ideas created from the Positions page.
 
-`drafts` stores writing outputs: essays, scripts, and field notes.
+`drafts` stores Works outputs: essays, scripts, and field notes.
 
-`timeline` stores evolution/history events for beliefs, concepts, questions, drafts, media, and insights.
+`practices` stores behavior-facing outputs: habits, experiments, disciplines, reflection prompts, commitments, observation periods, personal rules, and challenges.
+
+`timeline` stores evolution/history events for positions, concepts, inquiries, works, practices, media, and insights.
 
 `insights` stores mirrored idea records used for Atlas/concept linking when an idea is created as a belief.
 
@@ -68,3 +71,25 @@ On app load, Studio creates these user documents if they are missing:
 - `/users/{uid}/settings/schema`
 
 The scaffold does not overwrite existing goal or Atlas settings.
+
+## Terminal Schema Seed
+
+The machine-readable schema is stored at:
+
+```txt
+docs/firestore.schema.json
+```
+
+To scaffold the Firestore collection shape from Firebase Studio:
+
+```bash
+npm run firestore:schema
+```
+
+To scaffold a real signed-in user instead of prototype mode:
+
+```bash
+npm run firestore:schema -- YOUR_FIREBASE_AUTH_UID
+```
+
+The script creates `/users/{uid}`, settings docs, and a `_schema` placeholder document in each collection. It does not overwrite existing placeholder docs.
