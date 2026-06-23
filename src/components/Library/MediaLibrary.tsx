@@ -29,11 +29,23 @@ interface MediaLibraryProps {
   onUpdateMedia: (media: Media) => void;
   onDeleteMedia: (id: string) => void;
   onAddConcept: (data: Partial<Concept>) => void;
+  onCreateIdea: (data: { title: string; body: string; tags: string[]; sourceIds: string[] }) => void;
+  onDeleteVaultEntry: (id: string) => void;
 }
 
 const statuses: MediaStatus[] = ['Want to Read', 'Consuming', 'Finished', 'Paused', 'Abandoned'];
 
-export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia, onDeleteMedia, onAddConcept }: MediaLibraryProps) {
+export function MediaLibrary({ 
+  media, 
+  concepts, 
+  vault, 
+  onAddMedia, 
+  onUpdateMedia, 
+  onDeleteMedia, 
+  onAddConcept,
+  onCreateIdea,
+  onDeleteVaultEntry
+}: MediaLibraryProps) {
   const [filter, setFilter] = useState<MediaType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -42,6 +54,8 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
   const [annotationDraft, setAnnotationDraft] = useState({ type: 'thought' as Annotation['type'], text: '' });
   const [isDistilling, setIsDistilling] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [insightOpen, setInsightOpen] = useState(false);
+  const [insightDraft, setInsightDraft] = useState({ title: '', body: '', tags: [] as string[] });
   const { toast } = useToast();
 
   const selected = media.find((item) => item.id === selectedId) || null;
@@ -128,8 +142,20 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
     }
   };
 
+  const saveInsight = () => {
+    if (!selected || !insightDraft.title.trim()) return;
+    onCreateIdea({
+      ...insightDraft,
+      sourceIds: [selected.id]
+    });
+    setInsightDraft({ title: '', body: '', tags: [] });
+    setInsightOpen(false);
+    toast({ title: "Insight Saved", description: "New breakthrough anchored to this source." });
+  };
+
   if (selected) {
-    const linkedBeliefs = vault.filter((entry) => (entry.sourceIds || []).includes(selected.id));
+    const linkedInsights = vault.filter((entry) => (entry.sourceIds || []).includes(selected.id));
+    
     return (
       <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-7xl mx-auto w-full font-body">
         {/* Detail Header / Breadcrumb */}
@@ -155,7 +181,7 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
 
         {/* Top Summary Card */}
         <div className="bg-white border border-border/50 rounded-lg p-8 mb-10 flex gap-8">
-          <div className="size-48 bg-accent/5 rounded shrink-0 flex items-center justify-center border border-border/30">
+          <div className="size-48 bg-accent/5 rounded shrink-0 flex items-center justify-center border border-border/30 overflow-hidden">
             {selected.thumbnailUrl ? (
               <img src={selected.thumbnailUrl} alt={selected.title} className="w-full h-full object-cover" />
             ) : (
@@ -279,11 +305,84 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
                   <h3 className="readex-kicker mb-4 opacity-50">Related Concepts</h3>
                   <ConceptTagPicker concepts={concepts} value={selected.tags || []} onChange={(tags) => updateSelected({ tags })} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
                 </Card>
+                <Button variant="outline" onClick={handleGenerateQuestions} disabled={isGeneratingQuestions} className="w-full h-10 font-code text-[10px] uppercase tracking-widest text-accent border-accent/20">
+                  {isGeneratingQuestions ? <Loader2 className="size-4 mr-2 animate-spin" /> : <HelpCircle className="size-4 mr-2" />}
+                  GENERATE REFLECTIONS
+                </Button>
               </aside>
             </div>
           </TabsContent>
+
+          <TabsContent value="insights" className="space-y-8">
+            <div className="flex justify-between items-center">
+              <h3 className="readex-kicker opacity-50 uppercase">{linkedInsights.length} INSIGHTS FROM THIS SOURCE</h3>
+              <Button onClick={() => setInsightOpen(true)} size="sm" className="bg-accent h-8 px-4 font-code text-[10px] tracking-widest uppercase">+ NEW INSIGHT</Button>
+            </div>
+
+            <div className="space-y-4">
+              {linkedInsights.map((insight) => (
+                <Card key={insight.id} className="p-6 border-border/40 bg-white group relative">
+                  <h4 className="font-headline text-xl font-bold italic mb-2 leading-tight">{insight.title}</h4>
+                  <p className="font-body text-base italic text-primary/70 mb-6 leading-relaxed">
+                    {insight.description || insight.statement}
+                  </p>
+                  <div className="flex justify-between items-center">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0.5 bg-muted/20 border-transparent text-muted-foreground">
+                        <BookIcon className="size-2.5 mr-1 opacity-40" />
+                        {selected.title}
+                      </Badge>
+                      {(insight.tags || []).slice(0, 2).map(tag => (
+                        <Badge key={tag} variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0.5 bg-muted/10 border-transparent text-muted-foreground/60">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <time className="font-code text-[10px] text-muted-foreground/40">{new Date(insight.dateCreated).toLocaleDateString()}</time>
+                      <button 
+                        onClick={() => onDeleteVaultEntry(insight.id)}
+                        className="font-code text-[10px] uppercase tracking-widest text-muted-foreground/40 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        DELETE
+                      </button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+
+              {linkedInsights.length === 0 && (
+                <div className="py-20 text-center opacity-30 bg-muted/5 rounded-lg border border-dashed border-border/50">
+                  <p className="font-headline text-xl italic mb-2">No breakthroughs archived yet.</p>
+                  <p className="font-body text-sm">Turn your annotations into explicit claims using the "New Insight" action.</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
+        
         <MediaEditor open={editorOpen} onOpenChange={setEditorOpen} draft={draft} setDraft={setDraft} onSave={saveMedia} />
+        
+        <Dialog open={insightOpen} onOpenChange={setInsightOpen}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader><DialogTitle className="font-headline text-2xl italic">Anchored Insight</DialogTitle></DialogHeader>
+            <div className="space-y-6 pt-2">
+              <div className="space-y-2">
+                <Label className="readex-kicker">CORE CLAIM</Label>
+                <Input value={insightDraft.title} onChange={(e) => setInsightDraft(prev => ({ ...prev, title: e.target.value }))} placeholder="State the discovery clearly..." />
+              </div>
+              <div className="space-y-2">
+                <Label className="readex-kicker">REASONING / ELABORATION</Label>
+                <Textarea value={insightDraft.body} onChange={(e) => setInsightDraft(prev => ({ ...prev, body: e.target.value }))} className="min-h-[120px] font-body italic" placeholder="How does this source support this position?" />
+              </div>
+              <div className="space-y-2">
+                <Label className="readex-kicker">CONCEPTS</Label>
+                <ConceptTagPicker concepts={concepts} value={insightDraft.tags} onChange={(tags) => setInsightDraft(prev => ({ ...prev, tags }))} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
+              </div>
+            </div>
+            <DialogFooter className="pt-4"><Button onClick={saveInsight} className="w-full">ARCHIVE INSIGHT</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
