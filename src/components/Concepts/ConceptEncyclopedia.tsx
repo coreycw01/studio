@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import type { Concept, Draft, Insight, Media, Question, TimelineEvent, VaultEntry } from '@/lib/types';
 import { allAnnotations, conceptKey, conceptRelated, conceptTerms, UNSORTED_CONCEPT } from '@/lib/readex';
 import { cn } from '@/lib/utils';
@@ -24,16 +25,20 @@ interface ConceptEncyclopediaProps {
   onAddConcept: (data: Partial<Concept>) => void;
   onUpdateConcept: (concept: Concept) => void;
   onDeleteConcept: (id: string) => void;
+  onCreateIdea: (data: { title: string; body: string; tags: string[]; sourceIds: string[] }) => void;
 }
 
 export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
-  const { concepts, media, insights, vault, drafts, questions, timeline, onAddConcept, onUpdateConcept, onDeleteConcept } = props;
+  const { concepts, media, insights, vault, drafts, questions, timeline, onAddConcept, onUpdateConcept, onDeleteConcept, onCreateIdea } = props;
   const [search, setSearch] = useState('');
   const [mode, setMode] = useState<'concepts' | 'ideas'>('concepts');
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [editing, setEditing] = useState<Concept | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [draftConcept, setDraftConcept] = useState({ name: '', description: '' });
+  
+  const [ideaOpen, setIdeaOpen] = useState(false);
+  const [ideaDraft, setIdeaDraft] = useState({ title: '', body: '', tags: [UNSORTED_CONCEPT], sourceIds: [] as string[] });
 
   const allTerms = useMemo(() => conceptTerms(concepts, media, insights, vault, drafts), [concepts, media, insights, vault, drafts]);
   
@@ -82,6 +87,13 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
     setDraftConcept({ name: '', description: '' });
   };
 
+  const saveIdea = () => {
+    if (!ideaDraft.title.trim()) return;
+    onCreateIdea(ideaDraft);
+    setIdeaDraft({ title: '', body: '', tags: [UNSORTED_CONCEPT], sourceIds: [] });
+    setIdeaOpen(false);
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-7 max-w-7xl mx-auto w-full">
       <header className="flex flex-col gap-4 mb-7 md:flex-row md:items-end md:justify-between">
@@ -94,6 +106,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search..." className="w-72 pl-9 bg-muted font-code text-[11px]" />
           </div>
+          <Button variant="outline" onClick={() => setIdeaOpen(true)}><Plus className="size-4 mr-2" /> New Idea</Button>
           <Button onClick={() => openEditor()}><Plus className="size-4 mr-2" /> New Concept</Button>
         </div>
       </header>
@@ -135,9 +148,9 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
               <div className="flex items-start gap-3">
                 <div className={cn(
                   "size-9 rounded-md flex items-center justify-center transition-colors",
-                  mode === 'ideas' ? "bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
+                  mode === 'ideas' || conceptKey(name) === conceptKey(UNSORTED_CONCEPT) ? "bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
                 )}>
-                  {mode === 'ideas' ? <Lightbulb className="size-4" /> : <BookOpen className="size-4" />}
+                  {mode === 'ideas' || conceptKey(name) === conceptKey(UNSORTED_CONCEPT) ? <Lightbulb className="size-4" /> : <BookOpen className="size-4" />}
                 </div>
                 <div className="flex-1">
                   <div className="flex gap-2 items-start">
@@ -218,6 +231,18 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
             )}
             <Button onClick={saveConcept}>Save Concept</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={ideaOpen} onOpenChange={setIdeaOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="font-headline text-2xl italic">New Idea</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Title</Label><Input value={ideaDraft.title} onChange={(event) => setIdeaDraft((prev) => ({ ...prev, title: event.target.value }))} /></div>
+            <div className="space-y-2"><Label>Body</Label><Textarea value={ideaDraft.body} onChange={(event) => setIdeaDraft((prev) => ({ ...prev, body: event.target.value }))} /></div>
+            <ConceptTagPicker concepts={concepts} value={ideaDraft.tags} onChange={(tags) => setIdeaDraft((prev) => ({ ...prev, tags }))} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
+          </div>
+          <DialogFooter><Button onClick={saveIdea}>Save Claim</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

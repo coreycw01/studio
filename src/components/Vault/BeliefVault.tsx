@@ -23,18 +23,15 @@ interface BeliefVaultProps {
   onAddEntry: (data: Partial<VaultEntry>) => void;
   onUpdateEntry: (entry: VaultEntry) => void;
   onDeleteEntry: (id: string) => void;
-  onCreateIdea: (data: { title: string; body: string; tags: string[]; sourceIds: string[] }) => void;
   onAddConcept: (data: Partial<Concept>) => void;
 }
 
 const vaultTypes: VaultType[] = ['belief', 'principle', 'mental_model', 'life_rule', 'worldview'];
 
-export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUpdateEntry, onDeleteEntry, onCreateIdea, onAddConcept }: BeliefVaultProps) {
+export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUpdateEntry, onDeleteEntry, onAddConcept }: BeliefVaultProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [ideaOpen, setIdeaOpen] = useState(false);
   const [draftEntry, setDraftEntry] = useState<Partial<VaultEntry>>({ type: 'belief', title: '', statement: '', description: '', confidence: 3, status: 'active', tags: [] });
-  const [ideaDraft, setIdeaDraft] = useState({ title: '', body: '', tags: ['Unsorted Ideas'], sourceIds: [] as string[] });
 
   const selected = entries.find((entry) => entry.id === selectedId) || null;
 
@@ -48,13 +45,6 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
     if (draftEntry.id) onUpdateEntry({ ...(draftEntry as VaultEntry), tags: normalizeConceptTags(draftEntry.tags), dateUpdated: today() });
     else onAddEntry({ ...draftEntry, tags: normalizeConceptTags(draftEntry.tags) });
     setEditorOpen(false);
-  };
-
-  const saveIdea = () => {
-    if (!ideaDraft.title.trim()) return;
-    onCreateIdea(ideaDraft);
-    setIdeaDraft({ title: '', body: '', tags: ['Unsorted Ideas'], sourceIds: [] });
-    setIdeaOpen(false);
   };
 
   if (selected) {
@@ -97,7 +87,6 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
           <p className="text-muted-foreground italic font-body text-lg">Ideas become explicit claims, principles, mental models, and worldview statements here.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIdeaOpen(true)}><Plus className="size-4 mr-2" /> Idea</Button>
           <Button onClick={() => openEditor()}><Plus className="size-4 mr-2" /> Form Claim</Button>
         </div>
       </header>
@@ -128,17 +117,6 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
       </div>
 
       <BeliefEditor open={editorOpen} onOpenChange={setEditorOpen} draft={draftEntry} setDraft={setDraftEntry} concepts={concepts} media={media} onAddConcept={onAddConcept} onSave={saveEntry} />
-      <Dialog open={ideaOpen} onOpenChange={setIdeaOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle className="font-headline text-2xl italic">New Idea</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>Title</Label><Input value={ideaDraft.title} onChange={(event) => setIdeaDraft((prev) => ({ ...prev, title: event.target.value }))} /></div>
-            <div className="space-y-2"><Label>Body</Label><Textarea value={ideaDraft.body} onChange={(event) => setIdeaDraft((prev) => ({ ...prev, body: event.target.value }))} /></div>
-            <ConceptTagPicker concepts={concepts} value={ideaDraft.tags} onChange={(tags) => setIdeaDraft((prev) => ({ ...prev, tags }))} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
-          </div>
-          <DialogFooter><Button onClick={saveIdea}>Save Claim</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

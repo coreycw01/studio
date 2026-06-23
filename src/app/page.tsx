@@ -251,11 +251,36 @@ function ReadexApp() {
       case 'atlas':
         return <ConceptAtlas concepts={concepts} media={media} insights={insights} vault={vault} drafts={drafts} questions={questions} timeline={timeline} onAddConcept={addConcept} onUpdateConcept={updateConcept} />;
       case 'concepts':
-        return <ConceptEncyclopedia concepts={concepts} media={media} insights={insights} vault={vault} drafts={drafts} questions={questions} timeline={timeline} onAddConcept={addConcept} onUpdateConcept={updateConcept} onDeleteConcept={deleteConcept} />;
+        return (
+          <ConceptEncyclopedia 
+            concepts={concepts} 
+            media={media} 
+            insights={insights} 
+            vault={vault} 
+            drafts={drafts} 
+            questions={questions} 
+            timeline={timeline} 
+            onAddConcept={addConcept} 
+            onUpdateConcept={updateConcept} 
+            onDeleteConcept={deleteConcept} 
+            onCreateIdea={createIdea}
+          />
+        );
       case 'library':
         return <MediaLibrary media={media} concepts={concepts} vault={vault} onAddMedia={addMedia} onUpdateMedia={updateMedia} onDeleteMedia={deleteMedia} onAddConcept={addConcept} />;
       case 'vault':
-        return <BeliefVault entries={vault} media={media} drafts={drafts} concepts={concepts} onAddEntry={addVaultEntry} onUpdateEntry={updateVaultEntry} onDeleteEntry={deleteVaultEntry} onCreateIdea={createIdea} onAddConcept={addConcept} />;
+        return (
+          <BeliefVault 
+            entries={vault} 
+            media={media} 
+            drafts={drafts} 
+            concepts={concepts} 
+            onAddEntry={addVaultEntry} 
+            onUpdateEntry={updateVaultEntry} 
+            onDeleteEntry={deleteVaultEntry} 
+            onAddConcept={addConcept} 
+          />
+        );
       case 'questions':
         return <QuestionsWorkspace questions={questions} media={media} vault={vault} drafts={drafts} concepts={concepts} onAddQuestion={addQuestion} onUpdateQuestion={updateQuestion} />;
       case 'writing':
