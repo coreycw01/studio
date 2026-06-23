@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Media, MediaType } from '@/lib/types';
-import { MEDIA_LABELS, MEDIA_TYPES } from '@/lib/readex';
+import { MEDIA_LABELS, MEDIA_TYPES, conceptKey } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,16 +23,24 @@ type SortKey = 'creator' | 'dateAdded' | 'title' | 'year';
 export function SourceIndex({ media }: SourceIndexProps) {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<MediaType | 'all'>('all');
+  const [filterConcept, setFilterConcept] = useState<string>('all');
   const [sortKey, setSortKey] = useState<SortKey>('dateAdded');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const { toast } = useToast();
+
+  const allConcepts = useMemo(() => {
+    const tags = new Set<string>();
+    media.forEach(m => (m.tags || []).forEach(tag => tags.add(conceptKey(tag))));
+    return Array.from(tags).sort();
+  }, [media]);
 
   const filtered = useMemo(() => {
     return media
       .filter((m) => {
         const typeOk = filterType === 'all' || m.type === filterType;
-        const query = `${m.title} ${m.creator} ${m.publisher} ${m.isbn}`.toLowerCase();
-        return typeOk && (!search || query.includes(search.toLowerCase()));
+        const conceptOk = filterConcept === 'all' || (m.tags || []).map(conceptKey).includes(filterConcept);
+        const query = `${m.title} ${m.creator} ${m.publisher} ${m.isbn} ${(m.tags || []).join(' ')}`.toLowerCase();
+        return typeOk && conceptOk && (!search || query.includes(search.toLowerCase()));
       })
       .sort((a, b) => {
         const valA = (a[sortKey as keyof Media] as string) || '';
@@ -40,7 +48,7 @@ export function SourceIndex({ media }: SourceIndexProps) {
         if (sortOrder === 'asc') return valA > valB ? 1 : -1;
         return valA < valB ? 1 : -1;
       });
-  }, [media, search, filterType, sortKey, sortOrder]);
+  }, [media, search, filterType, filterConcept, sortKey, sortOrder]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -94,16 +102,23 @@ export function SourceIndex({ media }: SourceIndexProps) {
           <Input 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            placeholder="Search registry by title, creator, identifier..." 
+            placeholder="Search registry by title, creator, identifiers, tags..." 
             className="pl-9 h-10 text-sm rounded-full"
           />
         </div>
         <div className="flex gap-2">
           <Select value={filterType} onValueChange={(v) => setFilterType(v as MediaType | 'all')}>
-            <SelectTrigger className="w-44 h-10 font-code text-[10px] uppercase rounded-full bg-white shadow-sm border-border/60"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-40 h-10 font-code text-[10px] uppercase rounded-full bg-white shadow-sm border-border/60"><SelectValue placeholder="All Types" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all" className="font-code text-[10px] uppercase">All Types</SelectItem>
               {MEDIA_TYPES.map(t => <SelectItem key={t} value={t} className="font-code text-[10px] uppercase">{MEDIA_LABELS[t]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterConcept} onValueChange={setFilterConcept}>
+            <SelectTrigger className="w-48 h-10 font-code text-[10px] uppercase rounded-full bg-white shadow-sm border-border/60"><SelectValue placeholder="All Concepts" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="font-code text-[10px] uppercase">All Concepts</SelectItem>
+              {allConcepts.map(c => <SelectItem key={c} value={c} className="font-code text-[10px] uppercase">{c}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

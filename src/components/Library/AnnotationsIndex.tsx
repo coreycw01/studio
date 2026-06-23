@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Media, AnnotationType } from '@/lib/types';
-import { allAnnotations } from '@/lib/readex';
+import { allAnnotations, conceptKey } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 
 interface AnnotationsIndexProps {
@@ -18,17 +19,27 @@ interface AnnotationsIndexProps {
 export function AnnotationsIndex({ media }: AnnotationsIndexProps) {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<AnnotationType | 'all'>('all');
+  const [filterConcept, setFilterConcept] = useState<string>('all');
 
   const filtered = useMemo(() => {
     return allAnnotations(media)
-      .filter((a) => a.type !== 'question') // Exclude questions as requested
+      .filter((a) => a.type !== 'question') // Exclude questions
       .filter((a) => {
         const typeOk = filterType === 'all' || a.type === filterType;
-        const query = `${a.text} ${a.source.title} ${a.source.creator}`.toLowerCase();
-        return typeOk && (!search || query.includes(search.toLowerCase()));
+        const conceptOk = filterConcept === 'all' || (a.conceptTags || a.source.tags || []).map(conceptKey).includes(filterConcept);
+        const query = `${a.text} ${a.source.title} ${a.source.creator} ${(a.conceptTags || []).join(' ')}`.toLowerCase();
+        return typeOk && conceptOk && (!search || query.includes(search.toLowerCase()));
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [media, search, filterType]);
+  }, [media, search, filterType, filterConcept]);
+
+  const allConcepts = useMemo(() => {
+    const tags = new Set<string>();
+    allAnnotations(media)
+      .filter(a => a.type !== 'question')
+      .forEach(a => (a.conceptTags || a.source.tags || []).forEach(tag => tags.add(conceptKey(tag))));
+    return Array.from(tags).sort();
+  }, [media]);
 
   const typeCounts = useMemo(() => {
     const annotations = allAnnotations(media).filter(a => a.type !== 'question');
@@ -91,14 +102,25 @@ export function AnnotationsIndex({ media }: AnnotationsIndexProps) {
             CONNECTIONS {typeCounts.connection}
           </button>
         </div>
-        <div className="relative w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            placeholder="Search excerpt text..." 
-            className="pl-9 h-10 rounded-full"
-          />
+
+        <div className="flex items-center gap-3">
+          <Select value={filterConcept} onValueChange={setFilterConcept}>
+            <SelectTrigger className="w-56 h-10 font-code text-[10px] uppercase rounded-full bg-white shadow-sm border-border/60"><SelectValue placeholder="Filter by Concept" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="font-code text-[10px] uppercase">All Concepts</SelectItem>
+              {allConcepts.map(c => <SelectItem key={c} value={c} className="font-code text-[10px] uppercase">{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          
+          <div className="relative w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              placeholder="Search excerpt text..." 
+              className="pl-9 h-10 rounded-full"
+            />
+          </div>
         </div>
       </div>
 
