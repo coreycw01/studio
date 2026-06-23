@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Edit, Plus, ShieldCheck, Trash2, Search, Triangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -71,14 +71,14 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
     return (
       <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-5xl mx-auto w-full font-body">
         <div className="flex items-center justify-between mb-8">
-          <Button variant="ghost" onClick={() => setSelectedId(null)} className="h-8 font-code text-[10px] uppercase tracking-widest"><ArrowLeft className="size-4 mr-2" /> Positions</Button>
+          <Button variant="ghost" onClick={() => setSelectedId(null)} className="h-8 font-code text-[10px] uppercase tracking-widest rounded-full"><ArrowLeft className="size-4 mr-2" /> Positions</Button>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => openEditor(selected)} className="h-8 bg-white border-border/60 shadow-sm"><Edit className="size-4 mr-2" /> Edit</Button>
-            <Button variant="destructive" onClick={() => { onDeleteEntry(selected.id); setSelectedId(null); }} className="h-8 shadow-sm"><Trash2 className="size-4 mr-2" /> Delete</Button>
+            <Button variant="outline" onClick={() => openEditor(selected)} className="h-8 bg-white border-border/60 shadow-sm rounded-full"><Edit className="size-4 mr-2" /> Edit</Button>
+            <Button variant="destructive" onClick={() => { onDeleteEntry(selected.id); setSelectedId(null); }} className="h-8 shadow-sm rounded-full"><Trash2 className="size-4 mr-2" /> Delete</Button>
           </div>
         </div>
 
-        <Card className="p-6 mb-6 bg-white border-border/50 shadow-sm">
+        <Card className="p-6 mb-6 bg-white border-border/50 shadow-sm rounded-xl">
           <Badge variant="outline" className="mb-3 font-code uppercase bg-white border-border/60 shadow-sm rounded-full">{selected.type.replace('_', ' ')}</Badge>
           <h1 className="font-headline text-4xl font-bold mb-3">{selected.title}</h1>
           <p className="font-body text-lg italic text-primary/80 mb-4">{selected.statement || selected.description}</p>
@@ -109,7 +109,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search positions, principles..." className="w-72 pl-9 h-9" />
           </div>
-          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 px-6 shadow-md shadow-accent/20">
+          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 px-6 shadow-md shadow-accent/20 rounded-full h-9">
             <Plus className="size-4 mr-1.5" /> NEW BELIEF
           </Button>
         </div>
@@ -121,7 +121,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
           <button
             onClick={() => setFilter('all')}
             className={cn(
-              "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
+              "px-5 py-2 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
               filter === 'all' 
                 ? "bg-accent text-white shadow-sm" 
                 : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
@@ -134,7 +134,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
               key={type}
               onClick={() => setFilter(type)}
               className={cn(
-                "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
+                "px-5 py-2 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
                 filter === type 
                   ? "bg-accent text-white shadow-sm" 
                   : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
@@ -150,37 +150,44 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
         {filteredEntries.map((entry) => (
           <Card 
             key={entry.id} 
-            className="group cursor-pointer hover:shadow-xl transition-all border-border/50 bg-white p-4 flex gap-4 shadow-sm" 
+            className="group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border border-accent/10 bg-white/95 p-5 rounded-xl shadow-md" 
             onClick={() => setSelectedId(entry.id)}
           >
-            <div className="size-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/50">
-              <Triangle className="size-4 fill-current rotate-180" />
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex-1 min-w-0">
+                <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground/60 mb-1 font-bold">
+                  {TYPE_LABELS[entry.type]}
+                </div>
+                <h3 className="font-headline text-xl font-bold italic leading-tight group-hover:text-accent transition-colors truncate text-primary">
+                  {entry.title}
+                </h3>
+              </div>
+              <div className="size-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/50 shadow-sm">
+                <Triangle className="size-4 fill-current rotate-180" />
+              </div>
             </div>
             
-            <div className="flex-1 min-w-0">
-              <div className="readex-kicker opacity-50 mb-1">{TYPE_LABELS[entry.type]}</div>
-              <h3 className="font-headline text-lg font-bold italic leading-tight group-hover:text-accent transition-colors truncate">
-                {entry.title}
-              </h3>
-              
-              <div className="flex items-center gap-3 mt-4">
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <div 
-                      key={n} 
-                      className={cn(
-                        'size-1.5 rounded-full', 
-                        n <= entry.confidence ? 'bg-accent' : 'bg-muted'
-                      )} 
-                    />
-                  ))}
-                </div>
-                <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full">
-                  {entry.status}
-                </Badge>
-                <div className="font-code text-[9px] text-muted-foreground/60">
-                  {(entry.sourceIds || []).length} source{(entry.sourceIds || []).length !== 1 && 's'}
-                </div>
+            <p className="text-[13px] leading-relaxed text-muted-foreground font-body line-clamp-2 italic mb-6">
+              {entry.statement || entry.description}
+            </p>
+
+            <div className="flex items-center gap-5 pt-4 border-t border-border/30">
+              <div className="flex gap-1.5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <div 
+                    key={n} 
+                    className={cn(
+                      'size-2 rounded-full shadow-sm', 
+                      n <= entry.confidence ? 'bg-accent' : 'bg-muted'
+                    )} 
+                  />
+                ))}
+              </div>
+              <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-widest px-2 py-0.5 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full font-bold">
+                {entry.status}
+              </Badge>
+              <div className="font-code text-[9px] text-muted-foreground/60 font-bold uppercase tracking-widest ml-auto">
+                {(entry.sourceIds || []).length} source{(entry.sourceIds || []).length !== 1 && 's'}
               </div>
             </div>
           </Card>
@@ -202,22 +209,22 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
 function EvidencePanel({ title, items, onAdd }: { title: string; items: string[]; onAdd: (text: string) => void }) {
   const [text, setText] = useState('');
   return (
-    <Card className="p-5 bg-white border-border/40 shadow-sm">
-      <h3 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">{title}</h3>
-      <div className="space-y-2 mb-3">{items.map((item, index) => <div key={`${item}-${index}`} className="rounded bg-muted/30 p-3 text-sm italic shadow-sm">{item}</div>)}</div>
-      <div className="flex gap-2"><Input value={text} onChange={(event) => setText(event.target.value)} placeholder="Add evidence..." className="h-9" /><Button onClick={() => { if (text.trim()) { onAdd(text.trim()); setText(''); } }} size="sm" className="h-9 px-4">Add</Button></div>
+    <Card className="p-5 bg-white border-border/40 shadow-sm rounded-xl">
+      <h3 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3 font-bold">{title}</h3>
+      <div className="space-y-2 mb-3">{items.map((item, index) => <div key={`${item}-${index}`} className="rounded-lg bg-muted/30 p-3 text-sm italic shadow-sm border border-border/10 leading-relaxed text-primary/80">{item}</div>)}</div>
+      <div className="flex gap-2"><Input value={text} onChange={(event) => setText(event.target.value)} placeholder="Add evidence..." className="h-9" /><Button onClick={() => { if (text.trim()) { onAdd(text.trim()); setText(''); } }} size="sm" className="h-9 px-4 rounded-full">Add</Button></div>
     </Card>
   );
 }
 
 function InfoPanel({ title, items, empty }: { title: string; items: string[]; empty: string }) {
   return (
-    <Card className="p-5 bg-white border-border/40 shadow-sm">
-      <h3 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">{title}</h3>
+    <Card className="p-5 bg-white border-border/40 shadow-sm rounded-xl">
+      <h3 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3 font-bold">{title}</h3>
       {items.length ? items.map((item) => (
-        <div key={item} className="rounded bg-muted/30 p-3 text-sm mb-2 italic shadow-sm">{item}</div>
+        <div key={item} className="rounded-lg bg-muted/30 p-3 text-sm mb-2 italic shadow-sm border border-border/10 leading-relaxed text-primary/80">{item}</div>
       )) : (
-        <p className="text-sm text-muted-foreground italic px-2">{empty}</p>
+        <p className="text-sm text-muted-foreground italic px-2 font-body">{empty}</p>
       )}
     </Card>
   );
@@ -248,27 +255,27 @@ function BeliefEditor({ open, onOpenChange, draft, setDraft, concepts, media, on
         <div className="space-y-6 pt-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="readex-kicker">Title</Label>
-              <Input value={draft.title || ''} onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))} />
+              <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">TITLE</Label>
+              <Input value={draft.title || ''} onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))} className="italic" />
             </div>
             <div className="space-y-2">
-              <Label className="readex-kicker">Type</Label>
+              <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">TYPE</Label>
               <Select value={draft.type || 'belief'} onValueChange={(value) => setDraft((prev) => ({ ...prev, type: value as VaultType }))}>
-                <SelectTrigger className="h-10 border-border/60 bg-white shadow-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>{vaultTypes.map((type) => <SelectItem key={type} value={type}>{type.replace('_', ' ')}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="h-10 border-border/60 bg-white shadow-sm rounded-full font-code text-[10px] uppercase"><SelectValue /></SelectTrigger>
+                <SelectContent>{vaultTypes.map((type) => <SelectItem key={type} value={type} className="font-code text-[10px] uppercase">{type.replace('_', ' ')}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="readex-kicker">Statement</Label>
-            <Textarea value={draft.statement || ''} onChange={(event) => setDraft((prev) => ({ ...prev, statement: event.target.value, description: prev.description || event.target.value }))} placeholder="The core position in one clear sentence..." className="min-h-[60px]" />
+            <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">STATEMENT</Label>
+            <Textarea value={draft.statement || ''} onChange={(event) => setDraft((prev) => ({ ...prev, statement: event.target.value, description: prev.description || event.target.value }))} placeholder="The core position in one clear sentence..." className="min-h-[60px] italic text-base" />
           </div>
           <div className="space-y-2">
-            <Label className="readex-kicker">Description</Label>
-            <Textarea value={draft.description || ''} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder="Elaborate on the reasoning, assumptions, or evidence..." className="min-h-[120px]" />
+            <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">DESCRIPTION</Label>
+            <Textarea value={draft.description || ''} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder="Elaborate on the reasoning, assumptions, or evidence..." className="min-h-[120px] italic text-base" />
           </div>
           <div className="space-y-2">
-            <Label className="readex-kicker">Concept Tags</Label>
+            <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">CONCEPT TAGS</Label>
             <ConceptTagPicker concepts={concepts} value={draft.tags || []} onChange={(tags) => setDraft((prev) => ({ ...prev, tags }))} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
           </div>
           
@@ -279,7 +286,7 @@ function BeliefEditor({ open, onOpenChange, draft, setDraft, concepts, media, on
             label="Supporting Sources"
           />
         </div>
-        <DialogFooter className="pt-4"><Button onClick={onSave} className="bg-accent shadow-md shadow-accent/20 h-10 px-8">Save Position</Button></DialogFooter>
+        <DialogFooter className="pt-4"><Button onClick={onSave} className="bg-accent shadow-md shadow-accent/20 h-11 px-10 rounded-full font-bold">Save Position</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

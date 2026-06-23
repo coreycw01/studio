@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { Plus, Save, Trash2, Search, Edit2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Save, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,7 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import type { Concept, Draft, DraftStatus, DraftType, Media, Question, VaultEntry } from '@/lib/types';
-import { allQuestions, DRAFT_LABELS, normalizeConceptTags, today } from '@/lib/readex';
+import { DRAFT_LABELS, normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 
 interface AtelierProps {
@@ -38,7 +38,6 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
   const [newDraft, setNewDraft] = useState({ title: '', type: 'essay' as DraftType });
   
   const active = drafts.find((draft) => draft.id === activeId) || null;
-  const questionList = allQuestions(media, questions);
   
   const visibleDrafts = drafts
     .filter((draft) => {
@@ -83,9 +82,9 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => openNewDraft('field_note')} size="sm" className="h-9 px-4 font-code text-[10px] tracking-widest">+ FIELD NOTE</Button>
-              <Button variant="outline" onClick={() => openNewDraft('script')} size="sm" className="h-9 px-4 font-code text-[10px] tracking-widest">+ SCRIPT</Button>
-              <Button onClick={() => openNewDraft('essay')} size="sm" className="bg-accent hover:bg-accent/90 h-9 px-6 font-code text-[10px] tracking-widest shadow-lg shadow-accent/20 text-white border-accent">+ ESSAY</Button>
+              <Button variant="outline" onClick={() => openNewDraft('field_note')} size="sm" className="h-9 px-5 font-code text-[10px] tracking-widest rounded-full uppercase font-bold">+ FIELD NOTE</Button>
+              <Button variant="outline" onClick={() => openNewDraft('script')} size="sm" className="h-9 px-5 font-code text-[10px] tracking-widest rounded-full uppercase font-bold">+ SCRIPT</Button>
+              <Button onClick={() => openNewDraft('essay')} size="sm" className="bg-accent hover:bg-accent/90 h-9 px-7 font-code text-[10px] tracking-widest shadow-lg shadow-accent/20 text-white border-accent rounded-full uppercase font-bold">+ ESSAY</Button>
             </div>
           </div>
         </header>
@@ -98,10 +97,10 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                 key={val}
                 onClick={() => setFilter(val)}
                 className={cn(
-                  "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
+                  "px-5 py-2 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all shadow-sm",
                   filter === val 
-                    ? "bg-accent text-white shadow-sm" 
-                    : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-accent text-white shadow-md" 
+                    : "bg-white text-muted-foreground border border-border/60 hover:text-foreground hover:bg-muted/5"
                 )}
               >
                 {val === 'field_note' ? 'FIELD NOTES' : val === 'essay' ? 'ESSAYS' : val === 'script' ? 'SCRIPTS' : val.toUpperCase()}
@@ -122,21 +121,21 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                     key={draft.id} 
                     onClick={() => setActiveId(draft.id)}
                     className={cn(
-                      "cursor-pointer p-5 transition-all border-none bg-transparent hover:bg-muted/10 group",
-                      activeId === draft.id && "bg-muted/20"
+                      "cursor-pointer p-6 transition-all border border-accent/10 bg-white/95 rounded-xl shadow-md group hover:shadow-xl hover:-translate-y-1",
+                      activeId === draft.id && "border-accent ring-2 ring-accent"
                     )}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="readex-kicker opacity-50">{DRAFT_LABELS[draft.type]}</span>
-                      <Badge variant="outline" className="font-code text-[8px] uppercase tracking-tighter bg-white/50 rounded-full">{draft.status}</Badge>
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="font-code text-[9px] uppercase tracking-widest text-muted-foreground/60 font-bold">{DRAFT_LABELS[draft.type]}</span>
+                      <Badge variant="outline" className="font-code text-[8px] uppercase tracking-tighter bg-white shadow-sm border-border/60 rounded-full font-bold">{draft.status}</Badge>
                     </div>
                     <h3 className={cn(
-                      "font-headline text-lg font-bold italic leading-tight group-hover:text-accent transition-colors",
-                      activeId === draft.id ? "text-accent" : "text-primary/80"
+                      "font-headline text-xl font-bold italic leading-tight group-hover:text-accent transition-colors",
+                      activeId === draft.id ? "text-accent" : "text-primary"
                     )}>
                       {draft.title || "Untitled Draft"}
                     </h3>
-                    <p className="text-[11px] text-muted-foreground line-clamp-1 font-body mt-2">
+                    <p className="text-[11px] text-muted-foreground line-clamp-1 font-body italic mt-3 opacity-60">
                       {draft.conceptTags?.length ? draft.conceptTags.join(', ') : 'No concepts linked'}
                     </p>
                   </Card>
@@ -156,32 +155,32 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
         <div className="flex-1 flex flex-col overflow-hidden border-l border-border/30 pl-12">
           {active ? (
             <div className="flex-1 flex flex-col space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-border/20">
+              <div className="flex items-center justify-between pb-6 border-b border-border/20">
                 <div className="flex-1">
                   <Input 
-                    className="bg-transparent border-none text-3xl font-headline font-semibold focus-visible:ring-0 italic p-0 h-auto" 
+                    className="bg-transparent border-none text-4xl font-headline font-bold focus-visible:ring-0 italic p-0 h-auto rounded-none shadow-none text-primary" 
                     value={active.title} 
                     onChange={(event) => updateActive({ title: event.target.value })} 
                   />
-                  <div className="flex gap-4 mt-2">
-                    <div className="flex items-center gap-2">
-                      <span className="readex-kicker opacity-40">Type:</span>
+                  <div className="flex gap-6 mt-4">
+                    <div className="flex items-center gap-3">
+                      <span className="font-code text-[9px] uppercase tracking-widest opacity-40 font-bold">TYPE</span>
                       <Select value={active.type} onValueChange={(value) => updateActive({ type: value as DraftType })}>
-                        <SelectTrigger className="h-6 border-none bg-transparent font-code text-[10px] uppercase tracking-wider p-0 w-auto"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-8 border-border/40 bg-white shadow-sm font-code text-[9px] uppercase tracking-wider rounded-full w-32 px-3 font-bold"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="essay" className="font-code text-[10px] uppercase">Essay</SelectItem>
-                          <SelectItem value="script" className="font-code text-[10px] uppercase">Script</SelectItem>
-                          <SelectItem value="field_note" className="font-code text-[10px] uppercase">Field Note</SelectItem>
+                          <SelectItem value="essay" className="font-code text-[9px] uppercase">Essay</SelectItem>
+                          <SelectItem value="script" className="font-code text-[9px] uppercase">Script</SelectItem>
+                          <SelectItem value="field_note" className="font-code text-[9px] uppercase">Field Note</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="readex-kicker opacity-40">Status:</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-code text-[9px] uppercase tracking-widest opacity-40 font-bold">STATUS</span>
                       <Select value={active.status} onValueChange={(value) => updateActive({ status: value as DraftStatus })}>
-                        <SelectTrigger className="h-6 border-none bg-transparent font-code text-[10px] uppercase tracking-wider p-0 w-auto"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-8 border-border/40 bg-white shadow-sm font-code text-[9px] uppercase tracking-wider rounded-full w-32 px-3 font-bold"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {statuses.map((s) => (
-                            <SelectItem key={s} value={s} className="font-code text-[10px] uppercase">{s}</SelectItem>
+                            <SelectItem key={s} value={s} className="font-code text-[9px] uppercase">{s}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -189,24 +188,24 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => onUpdateDraft(active)} className="h-8"><Save className="size-3.5 mr-2" /> Save</Button>
-                  <Button variant="destructive" size="sm" onClick={() => { onDeleteDraft(active.id); setActiveId(null); }} className="h-8"><Trash2 className="size-3.5" /></Button>
+                  <Button variant="outline" size="sm" onClick={() => onUpdateDraft(active)} className="h-9 px-6 rounded-full font-bold shadow-sm bg-white"><Save className="size-4 mr-2" /> Save</Button>
+                  <Button variant="destructive" size="sm" onClick={() => { onDeleteDraft(active.id); setActiveId(null); }} className="h-9 w-9 rounded-full shadow-sm"><Trash2 className="size-4" /></Button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-4 pt-4">
+              <div className="flex-1 overflow-y-auto pr-4 pt-6">
                 <Textarea 
-                  className="w-full h-full min-h-[50vh] border-none shadow-none text-[18px] leading-8 font-body focus-visible:ring-0 resize-none bg-transparent p-0 italic" 
+                  className="w-full h-full min-h-[50vh] border-none shadow-none text-[19px] leading-[2.2] font-body focus-visible:ring-0 resize-none bg-transparent p-0 italic text-primary/90" 
                   placeholder="Begin your synthesis..." 
                   value={active.body} 
                   onChange={(event) => updateActive({ body: event.target.value })} 
                 />
               </div>
 
-              {/* Secondary Controls - Simplified for clean look */}
-              <div className="pt-6 border-t border-border/20 grid grid-cols-2 gap-8">
+              {/* Secondary Controls */}
+              <div className="pt-8 border-t border-border/20 grid grid-cols-2 gap-12">
                 <div>
-                  <h4 className="readex-kicker opacity-40 mb-3">Linked Concepts</h4>
+                  <h4 className="font-code text-[10px] uppercase tracking-widest opacity-40 mb-4 font-bold">Linked Concepts</h4>
                   <ConceptTagPicker 
                     concepts={concepts} 
                     value={active.conceptTags || []} 
@@ -215,9 +214,12 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                     compact 
                   />
                 </div>
-                <div className="flex justify-end items-end">
-                   <p className="font-code text-[9px] uppercase tracking-widest text-muted-foreground">
-                     {active.body.split(/\s+/).filter(Boolean).length} words · Last updated {new Date(active.dateUpdated).toLocaleDateString()}
+                <div className="flex flex-col justify-end items-end gap-2">
+                   <p className="font-code text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50 font-bold">
+                     {active.body.split(/\s+/).filter(Boolean).length} WORDS
+                   </p>
+                   <p className="font-code text-[9px] uppercase tracking-widest text-muted-foreground/30 font-bold">
+                     LAST SAVED {new Date(active.dateUpdated).toLocaleDateString()}
                    </p>
                 </div>
               </div>
@@ -225,7 +227,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30">
               <p className="font-headline text-lg italic leading-relaxed">
-                Select a draft or create one.
+                Select a manuscript or initiate a new work.
               </p>
             </div>
           )}
@@ -233,22 +235,22 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
       </div>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader><DialogTitle className="font-headline text-2xl italic">New {DRAFT_LABELS[newDraft.type]}</DialogTitle></DialogHeader>
-          <div className="space-y-6 pt-2">
+        <DialogContent className="max-w-xl border-none shadow-2xl rounded-2xl bg-white">
+          <DialogHeader><DialogTitle className="font-headline text-3xl italic">Initiate {DRAFT_LABELS[newDraft.type]}</DialogTitle></DialogHeader>
+          <div className="space-y-6 pt-6">
             <div className="space-y-2">
-              <Label className="readex-kicker">Title</Label>
+              <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">MANUSCRIPT TITLE</Label>
               <Input 
                 value={newDraft.title} 
                 onChange={(event) => setNewDraft((prev) => ({ ...prev, title: event.target.value }))} 
-                placeholder="Enter a title for this manuscript..."
-                className="h-12 text-base font-body border-border/60"
+                placeholder="Enter a working title..."
+                className="h-12 text-base font-body italic"
               />
             </div>
           </div>
-          <DialogFooter className="pt-4">
-            <Button variant="ghost" onClick={() => setIsAddOpen(false)} className="h-12 px-8 font-code text-xs tracking-widest uppercase">Cancel</Button>
-            <Button onClick={createDraft} className="h-12 px-10 bg-accent font-code text-xs tracking-widest uppercase shadow-lg shadow-accent/20">Anchor Draft</Button>
+          <DialogFooter className="pt-8 gap-3">
+            <Button variant="ghost" onClick={() => setIsAddOpen(false)} className="h-11 px-8 font-code text-[10px] tracking-widest uppercase font-bold text-muted-foreground hover:bg-transparent rounded-full">CANCEL</Button>
+            <Button onClick={createDraft} className="h-11 px-10 bg-accent font-code text-[10px] tracking-widest uppercase shadow-xl shadow-accent/20 rounded-full font-bold">ANCHOR WORK</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
