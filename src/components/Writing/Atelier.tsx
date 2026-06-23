@@ -121,7 +121,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                     key={draft.id} 
                     onClick={() => setActiveId(draft.id)}
                     className={cn(
-                      "cursor-pointer p-6 transition-all border border-accent/10 bg-white/95 rounded-xl shadow-md group hover:shadow-xl hover:-translate-y-1",
+                      "cursor-pointer p-6 transition-all border border-accent/20 bg-white/95 rounded-xl shadow-md group hover:shadow-xl hover:-translate-y-1",
                       activeId === draft.id && "border-accent ring-2 ring-accent"
                     )}
                   >

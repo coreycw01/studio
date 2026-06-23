@@ -109,8 +109,8 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search positions, principles..." className="w-72 pl-9 h-9" />
           </div>
-          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 px-6 shadow-md shadow-accent/20 rounded-full h-9">
-            <Plus className="size-4 mr-1.5" /> NEW BELIEF
+          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 px-6 shadow-md shadow-accent/20 rounded-full h-9 font-bold">
+            <Plus className="size-4 mr-1.5" /> NEW POSITION
           </Button>
         </div>
       </header>
@@ -150,7 +150,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
         {filteredEntries.map((entry) => (
           <Card 
             key={entry.id} 
-            className="group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border border-accent/10 bg-white/95 p-5 rounded-xl shadow-md" 
+            className="group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border border-accent/20 bg-white/95 p-5 rounded-xl shadow-md" 
             onClick={() => setSelectedId(entry.id)}
           >
             <div className="flex items-start justify-between gap-4 mb-4">

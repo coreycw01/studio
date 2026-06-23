@@ -129,7 +129,7 @@ function PracticeCard({ practice, questions, positions, onEdit, onDelete }: { pr
   const linkedQuestions = questions.filter((question) => (practice.questionIds || []).includes(question.id));
   const linkedPositions = positions.filter((position) => (practice.positionIds || []).includes(position.id));
   return (
-    <Card className="group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border border-accent/10 bg-white/95 p-5 rounded-xl shadow-md">
+    <Card className="group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border border-accent/20 bg-white/95 p-5 rounded-xl shadow-md">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap gap-2 mb-2">
@@ -223,7 +223,7 @@ function PracticeEditor({ open, onOpenChange, draft, setDraft, concepts, media, 
         </div>
         <div className="p-8 pt-4 bg-muted/10 border-t flex justify-end gap-3">
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="h-11 px-8 rounded-full font-bold text-muted-foreground hover:bg-transparent">CANCEL</Button>
-          <Button onClick={onSave} className="h-11 px-10 bg-accent shadow-xl shadow-accent/20 rounded-full font-bold uppercase tracking-widest text-[11px]">Initiate Practice</Button>
+          <Button onClick={savePractice} className="h-11 px-10 bg-accent shadow-xl shadow-accent/20 rounded-full font-bold uppercase tracking-widest text-[11px]">Initiate Practice</Button>
         </div>
       </DialogContent>
     </Dialog>
