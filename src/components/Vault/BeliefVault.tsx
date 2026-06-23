@@ -79,10 +79,10 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
         </div>
 
         <Card className="p-6 mb-6 bg-white border-border/50 shadow-sm">
-          <Badge variant="outline" className="mb-3 font-code uppercase bg-white border-border/60 shadow-sm">{selected.type.replace('_', ' ')}</Badge>
+          <Badge variant="outline" className="mb-3 font-code uppercase bg-white border-border/60 shadow-sm rounded-full">{selected.type.replace('_', ' ')}</Badge>
           <h1 className="font-headline text-4xl font-bold mb-3">{selected.title}</h1>
           <p className="font-body text-lg italic text-primary/80 mb-4">{selected.statement || selected.description}</p>
-          <div className="flex flex-wrap gap-2">{(selected.tags || []).map((tag) => <Badge key={tag} className="font-code text-[9px] uppercase tracking-widest bg-white border-border/60 shadow-sm">{tag}</Badge>)}</div>
+          <div className="flex flex-wrap gap-2">{(selected.tags || []).map((tag) => <Badge key={tag} className="font-code text-[9px] uppercase tracking-widest bg-white border-border/60 shadow-sm rounded-full">{tag}</Badge>)}</div>
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -121,7 +121,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
           <button
             onClick={() => setFilter('all')}
             className={cn(
-              "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
+              "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
               filter === 'all' 
                 ? "bg-accent text-white shadow-sm" 
                 : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
@@ -134,7 +134,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
               key={type}
               onClick={() => setFilter(type)}
               className={cn(
-                "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
+                "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
                 filter === type 
                   ? "bg-accent text-white shadow-sm" 
                   : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
@@ -175,7 +175,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
                     />
                   ))}
                 </div>
-                <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0 bg-emerald-100/40 text-emerald-700 border-emerald-200/50">
+                <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full">
                   {entry.status}
                 </Badge>
                 <div className="font-code text-[9px] text-muted-foreground/60">

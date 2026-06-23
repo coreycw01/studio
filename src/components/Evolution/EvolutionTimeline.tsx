@@ -56,7 +56,7 @@ export function EvolutionTimeline({ events, media }: EvolutionTimelineProps) {
           <button
             onClick={() => setFilter('all')}
             className={cn(
-              "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
+              "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
               filter === 'all' 
                 ? "bg-accent text-white shadow-sm" 
                 : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -69,7 +69,7 @@ export function EvolutionTimeline({ events, media }: EvolutionTimelineProps) {
               key={type}
               onClick={() => setFilter(type)}
               className={cn(
-                "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
+                "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
                 filter === type 
                   ? "bg-accent text-white shadow-sm" 
                   : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -108,7 +108,7 @@ export function EvolutionTimeline({ events, media }: EvolutionTimelineProps) {
                 {influencedSources.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-2">
                     {influencedSources.map(s => (
-                      <Badge key={s.id} variant="secondary" className="bg-muted/30 text-[9px] font-code uppercase tracking-tighter py-0.5 px-2 border-transparent hover:bg-muted/50 transition-colors flex items-center gap-1.5">
+                      <Badge key={s.id} variant="secondary" className="bg-muted/30 text-[9px] font-code uppercase tracking-tighter py-0.5 px-2 border-transparent hover:bg-muted/50 transition-colors flex items-center gap-1.5 rounded-full">
                         <BookIcon className="size-2.5 opacity-40" />
                         {s.title}
                       </Badge>

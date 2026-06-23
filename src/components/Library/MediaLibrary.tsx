@@ -214,7 +214,7 @@ export function MediaLibrary({
                   {tag}
                 </button>
               ))}
-              <Badge variant="outline" className="font-code text-[9px] uppercase tracking-[0.15em] px-3 py-1 bg-white border-border/60 shadow-sm">
+              <Badge variant="outline" className="font-code text-[9px] uppercase tracking-[0.15em] px-3 py-1 bg-white border-border/60 shadow-sm rounded-full">
                 {selected.annotations?.length || 0} NOTES
               </Badge>
             </div>
@@ -300,7 +300,7 @@ export function MediaLibrary({
                   {(selected.annotations || []).map((annotation) => (
                     <div key={annotation.id} className="rounded-lg border border-border/30 bg-white p-6 shadow-sm">
                       <div className="flex justify-between items-start mb-3">
-                        <Badge variant="outline" className="font-code text-[9px] uppercase tracking-widest bg-muted/5 border-border/40">
+                        <Badge variant="outline" className="font-code text-[9px] uppercase tracking-widest bg-muted/5 border-border/40 rounded-full">
                           {annotation.type}
                         </Badge>
                         <time className="font-code text-[8px] text-muted-foreground">{new Date(annotation.date).toLocaleDateString()}</time>
@@ -334,12 +334,12 @@ export function MediaLibrary({
                   </p>
                   <div className="flex justify-between items-center">
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0.5 bg-muted/20 border-transparent text-muted-foreground">
+                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0.5 bg-muted/20 border-transparent text-muted-foreground rounded-full">
                         <BookOpen className="size-2.5 mr-1 opacity-40" />
                         {selected.title}
                       </Badge>
                       {(insight.tags || []).slice(0, 2).map(tag => (
-                        <Badge key={tag} variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0.5 bg-muted/10 border-transparent text-muted-foreground/60">
+                        <Badge key={tag} variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0.5 bg-muted/10 border-transparent text-muted-foreground/60 rounded-full">
                           {tag}
                         </Badge>
                       ))}
@@ -396,7 +396,7 @@ export function MediaLibrary({
                           />
                         ))}
                       </div>
-                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0 bg-emerald-100/40 text-emerald-700 border-emerald-200/50">
+                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full">
                         {entry.status || 'active'}
                       </Badge>
                       <div className="font-code text-[9px] text-muted-foreground/60">
@@ -453,7 +453,7 @@ export function MediaLibrary({
         <button
           onClick={() => setFilter('all')}
           className={cn(
-            "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
+            "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
             filter === 'all' 
               ? "bg-accent text-white shadow-sm" 
               : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
@@ -466,7 +466,7 @@ export function MediaLibrary({
             key={type}
             onClick={() => setFilter(type)}
             className={cn(
-              "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
+              "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
               filter === type 
                 ? "bg-accent text-white shadow-sm" 
                 : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
@@ -492,7 +492,7 @@ export function MediaLibrary({
               </h3>
               <p className="readex-kicker text-muted-foreground truncate">{item.creator}</p>
               <div className="flex items-center justify-between pt-2">
-                <Badge variant="outline" className="font-code text-[8px] uppercase tracking-tighter px-1.5 py-0 bg-white border-border/60 shadow-sm">
+                <Badge variant="outline" className="font-code text-[8px] uppercase tracking-tighter px-1.5 py-0 bg-white border-border/60 shadow-sm rounded-full">
                   {item.status}
                 </Badge>
                 {item.annotations?.length > 0 && (
@@ -594,7 +594,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                         key={type}
                         onClick={() => setDraft(prev => ({ ...prev, type }))}
                         className={cn(
-                          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-all font-code text-[9px] font-bold uppercase tracking-widest",
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all font-code text-[9px] font-bold uppercase tracking-widest",
                           isActive 
                             ? "bg-accent text-white border-accent shadow-sm" 
                             : "bg-white text-muted-foreground border-border/60 hover:border-accent hover:text-accent shadow-sm"
@@ -660,7 +660,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                   <Label className="readex-kicker uppercase opacity-50">CONCEPT TAGS</Label>
                   <div className="flex flex-wrap gap-1.5">
                     {(draft.tags || []).map(tag => (
-                      <Badge key={tag} variant="secondary" className="px-2 py-0.5 font-code text-[9px] uppercase tracking-wider rounded border-border/60 bg-white shadow-sm">
+                      <Badge key={tag} variant="secondary" className="px-3 py-1 font-code text-[9px] uppercase tracking-wider rounded-full border-border/60 bg-white shadow-sm">
                         {tag}
                         <button onClick={() => removeTag(tag)} className="ml-1.5 hover:text-destructive"><X className="size-2.5" /></button>
                       </Badge>
@@ -763,7 +763,7 @@ function ConceptDetailDialog({ name, onClose, concepts, media, vault, drafts, qu
             <h4 className="readex-kicker opacity-50">INPUTS: ANNOTATIONS</h4>
             {related.annotations.map((a, i) => (
               <Card key={i} className="p-4 bg-white border-border/40 shadow-sm">
-                <Badge variant="outline" className="mb-2 font-code text-[8px] uppercase border-border/60 shadow-sm bg-white">{a.type}</Badge>
+                <Badge variant="outline" className="mb-2 font-code text-[8px] uppercase border-border/60 shadow-sm bg-white rounded-full">{a.type}</Badge>
                 <p className="font-body italic text-sm text-primary/80 leading-relaxed">"{a.text}"</p>
               </Card>
             ))}
@@ -806,7 +806,7 @@ function ConceptDetailDialog({ name, onClose, concepts, media, vault, drafts, qu
               <Card key={i} className="p-4 bg-white border-border/40 shadow-sm">
                 <div className="flex justify-between items-start mb-1">
                   <h5 className="font-headline font-bold text-lg italic">{d.title}</h5>
-                  <Badge variant="outline" className="text-[8px] border-border/60 bg-white shadow-sm">{d.status}</Badge>
+                  <Badge variant="outline" className="text-[8px] border-border/60 bg-white shadow-sm rounded-full">{d.status}</Badge>
                 </div>
                 <p className="text-xs font-code opacity-50 uppercase">{d.type}</p>
               </Card>
@@ -853,7 +853,7 @@ function ConceptDetailDialog({ name, onClose, concepts, media, vault, drafts, qu
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "px-3 py-1.5 rounded-full border transition-all font-code text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5",
+                  "px-4 py-1.5 rounded-full border transition-all font-code text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5",
                   activeTab === tab.id 
                     ? "bg-accent text-white border-accent shadow-md" 
                     : "bg-white text-muted-foreground border-border/60 hover:border-accent/40 shadow-sm"

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -99,7 +98,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                 key={val}
                 onClick={() => setFilter(val)}
                 className={cn(
-                  "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
+                  "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
                   filter === val 
                     ? "bg-accent text-white shadow-sm" 
                     : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -129,7 +128,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span className="readex-kicker opacity-50">{DRAFT_LABELS[draft.type]}</span>
-                      <Badge variant="outline" className="font-code text-[8px] uppercase tracking-tighter bg-white/50">{draft.status}</Badge>
+                      <Badge variant="outline" className="font-code text-[8px] uppercase tracking-tighter bg-white/50 rounded-full">{draft.status}</Badge>
                     </div>
                     <h3 className={cn(
                       "font-headline text-lg font-bold italic leading-tight group-hover:text-accent transition-colors",

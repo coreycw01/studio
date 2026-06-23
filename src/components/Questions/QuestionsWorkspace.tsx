@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo, useState } from 'react';
@@ -115,7 +114,7 @@ export function QuestionsWorkspace({ questions, media, vault, drafts, concepts, 
               key={v}
               onClick={() => setFilter(v)}
               className={cn(
-                "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
+                "px-4 py-1.5 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
                 filter === v 
                   ? "bg-accent text-white shadow-sm" 
                   : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -209,7 +208,7 @@ function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, 
       <Button variant="ghost" onClick={onBack} className="mb-6 h-8 text-xs font-code uppercase tracking-widest"><ArrowLeft className="size-4 mr-2" /> Back to Inquiries</Button>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
         <Card className="p-8 bg-white border-border/40 shadow-sm">
-          <Badge variant="outline" className="mb-4 font-code text-[10px] uppercase tracking-widest bg-muted/30">{question.type || 'manual'}</Badge>
+          <Badge variant="outline" className="mb-4 font-code text-[10px] uppercase tracking-widest bg-muted/30 rounded-full">{question.type || 'manual'}</Badge>
           <h1 className="font-headline text-3xl italic mb-8 text-primary leading-tight">{question.text}</h1>
           <div className="relative">
             <div className="absolute left-0 top-0 h-full w-px bg-accent/20" />

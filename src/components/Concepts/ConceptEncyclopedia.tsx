@@ -184,7 +184,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         <button 
           onClick={() => setMode('concepts')}
           className={cn(
-            "font-code text-[11px] uppercase tracking-[0.14em] px-4 py-2 rounded transition-all",
+            "font-code text-[11px] uppercase tracking-[0.14em] px-4 py-2 rounded-full transition-all",
             mode === 'concepts' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -193,7 +193,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         <button 
           onClick={() => setMode('ideas')}
           className={cn(
-            "font-code text-[11px] uppercase tracking-[0.14em] px-4 py-2 rounded transition-all",
+            "font-code text-[11px] uppercase tracking-[0.14em] px-4 py-2 rounded-full transition-all",
             mode === 'ideas' ? "bg-accent text-accent-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -231,10 +231,10 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
-                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm">{related.sources.length} sources</Badge>
-                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm">{related.beliefs.length} positions</Badge>
-                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm">{related.drafts.length} works</Badge>
-                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm">{related.practices.length} practices</Badge>
+                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full">{related.sources.length} sources</Badge>
+                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full">{related.beliefs.length} positions</Badge>
+                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full">{related.drafts.length} works</Badge>
+                <Badge variant="outline" className="text-[8px] bg-white border-border/60 shadow-sm rounded-full">{related.practices.length} practices</Badge>
               </div>
             </Card>
           );
@@ -280,7 +280,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
             <div className="flex items-center justify-between pr-8">
               <DialogTitle className="font-headline text-2xl italic">{editing ? 'Edit Concept' : 'New Concept'}</DialogTitle>
               {draftConcept.name && (
-                <Button variant="outline" size="sm" onClick={handleSuggestDescription} disabled={isSuggesting} className="h-8 font-code text-[10px] uppercase tracking-widest text-accent border-accent/20 bg-white shadow-sm">
+                <Button variant="outline" size="sm" onClick={handleSuggestDescription} disabled={isSuggesting} className="h-8 font-code text-[10px] uppercase tracking-widest text-accent border-accent/20 bg-white shadow-sm rounded-full">
                   {isSuggesting ? <Loader2 className="size-3.5 mr-2 animate-spin" /> : <Sparkles className="size-3.5 mr-2" />}
                   Suggest Description
                 </Button>
