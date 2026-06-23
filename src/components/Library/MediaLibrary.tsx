@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -329,7 +329,7 @@ export function MediaLibrary({
                   <div className="flex justify-between items-center">
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0.5 bg-muted/20 border-transparent text-muted-foreground">
-                        <BookIcon className="size-2.5 mr-1 opacity-40" />
+                        <BookOpen className="size-2.5 mr-1 opacity-40" />
                         {selected.title}
                       </Badge>
                       {(insight.tags || []).slice(0, 2).map(tag => (
@@ -357,6 +357,60 @@ export function MediaLibrary({
                   <p className="font-body text-sm">Turn your annotations into explicit claims using the "New Insight" action.</p>
                 </div>
               )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="connections" className="space-y-8">
+            <h3 className="readex-kicker opacity-50 uppercase">VAULT ENTRIES LINKED TO THIS SOURCE</h3>
+            <div className="space-y-4">
+              {linkedInsights.map((entry) => (
+                <Card 
+                  key={entry.id} 
+                  className="group cursor-pointer hover:shadow-lg transition-all border-border/50 bg-white p-4 flex gap-4"
+                >
+                  <div className="size-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/50">
+                    <Triangle className="size-4 fill-current rotate-180" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="readex-kicker opacity-50 mb-1">{entry.type?.toUpperCase() || 'BELIEF'}</div>
+                    <h3 className="font-headline text-lg font-bold italic leading-tight group-hover:text-accent transition-colors truncate">
+                      {entry.title}
+                    </h3>
+                    
+                    <div className="flex items-center gap-3 mt-4">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <div 
+                            key={n} 
+                            className={cn(
+                              'size-1.5 rounded-full', 
+                              n <= (entry.confidence || 3) ? 'bg-accent' : 'bg-muted'
+                            )} 
+                          />
+                        ))}
+                      </div>
+                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0 bg-emerald-100/40 text-emerald-700 border-emerald-200/50">
+                        {entry.status || 'active'}
+                      </Badge>
+                      <div className="font-code text-[9px] text-muted-foreground/60">
+                        {(entry.sourceIds || []).length} source{(entry.sourceIds || []).length !== 1 && 's'}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+
+              {linkedInsights.length === 0 && (
+                <div className="py-20 text-center opacity-30 bg-muted/5 rounded-lg border border-dashed border-border/50">
+                  <p className="font-headline text-xl italic mb-2">No vault connections established.</p>
+                  <p className="font-body text-sm">Create an insight or anchor a belief to this source to see it here.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-3 rounded border border-yellow-500/20 bg-yellow-500/5 text-yellow-600 font-body text-xs italic">
+              Graph view (visual node connections) is a production feature. This list view is the prototype equivalent.
             </div>
           </TabsContent>
         </Tabs>
