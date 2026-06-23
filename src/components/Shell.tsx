@@ -9,6 +9,7 @@ import {
   Library, 
   Map as MapIcon, 
   PenTool, 
+  Repeat,
   Settings, 
   ShieldCheck,
   Edit2,
@@ -31,6 +32,7 @@ interface ShellProps {
     media: number;
     vault: number;
     drafts: number;
+    practices: number;
     timeline: number;
   };
   goal: GoalSettings;
@@ -43,9 +45,10 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
     { id: 'atlas', label: 'Atlas', icon: MapIcon, section: 'Mind' },
     { id: 'concepts', label: 'Concepts', icon: BookOpen, section: 'Mind', count: counts.concepts },
     { id: 'questions', label: 'Inquiries', icon: HelpCircle, section: 'Mind', count: counts.questions },
-    { id: 'library', label: 'Sources', icon: Library, section: 'Inputs', count: counts.media },
-    { id: 'vault', label: 'Beliefs', icon: ShieldCheck, section: 'Outputs', count: counts.vault },
-    { id: 'writing', label: 'Writing', icon: PenTool, section: 'Outputs', count: counts.drafts },
+    { id: 'library', label: 'Library', icon: Library, section: 'Inputs', count: counts.media },
+    { id: 'vault', label: 'Positions', icon: ShieldCheck, section: 'Outputs', count: counts.vault },
+    { id: 'writing', label: 'Works', icon: PenTool, section: 'Outputs', count: counts.drafts },
+    { id: 'practices', label: 'Practices', icon: Repeat, section: 'Outputs', count: counts.practices },
     { id: 'evolution', label: 'Evolution', icon: History, section: 'Outputs', count: counts.timeline },
   ];
 

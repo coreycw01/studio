@@ -1,4 +1,4 @@
-import type { Concept, Draft, Insight, Media, MediaType, Question, QuestionStatus, TimelineEvent, VaultEntry } from './types';
+import type { Concept, Draft, Insight, Media, MediaType, Practice, Question, QuestionStatus, TimelineEvent, VaultEntry } from './types';
 import { Book, Headphones, Mic, Play, Film, FileText, GraduationCap, School, Clapperboard, MessageSquare, Users, File, Paperclip } from 'lucide-react';
 
 export const UNSORTED_CONCEPT = 'Unsorted Ideas';
@@ -41,6 +41,17 @@ export const DRAFT_LABELS = {
   essay: 'Essay',
   script: 'Script',
   field_note: 'Field Note',
+};
+
+export const PRACTICE_LABELS = {
+  habit: 'Habit',
+  experiment: 'Experiment',
+  discipline: 'Discipline',
+  reflection_prompt: 'Reflection Prompt',
+  commitment: 'Commitment',
+  observation: 'Observation',
+  rule: 'Rule',
+  challenge: 'Challenge',
 };
 
 export function uid() {
@@ -108,25 +119,27 @@ export function allQuestions(media: Media[], questions: Question[]) {
   return [...questions, ...captureQuestions, ...annotationQuestions];
 }
 
-export function conceptTerms(concepts: Concept[], media: Media[], insights: Insight[], vault: VaultEntry[], drafts: Draft[]) {
+export function conceptTerms(concepts: Concept[], media: Media[], insights: Insight[], vault: VaultEntry[], drafts: Draft[], practices: Practice[] = []) {
   const terms = [
     ...concepts.map((concept) => concept.name),
     ...media.flatMap((item) => item.tags || []),
     ...insights.flatMap((item) => item.tags || []),
     ...vault.flatMap((item) => item.tags || []),
     ...drafts.flatMap((item) => item.conceptTags || []),
+    ...practices.flatMap((item) => item.conceptTags || []),
   ].map(conceptKey).filter(Boolean);
   return Array.from(new Set(terms));
 }
 
-export function taggedItemsForConcept(name: string, media: Media[], insights: Insight[], vault: VaultEntry[], drafts: Draft[]) {
+export function taggedItemsForConcept(name: string, media: Media[], insights: Insight[], vault: VaultEntry[], drafts: Draft[], practices: Practice[] = []) {
   const key = conceptKey(name);
   const hasTag = (tags?: string[]) => (tags || []).map(conceptKey).includes(key);
   return [
     ...media.filter((item) => hasTag(item.tags)).map((item) => ({ type: 'source', item })),
     ...insights.filter((item) => hasTag(item.tags)).map((item) => ({ type: 'idea', item })),
-    ...vault.filter((item) => hasTag(item.tags)).map((item) => ({ type: 'belief', item })),
+    ...vault.filter((item) => hasTag(item.tags)).map((item) => ({ type: 'position', item })),
     ...drafts.filter((item) => hasTag(item.conceptTags)).map((item) => ({ type: 'draft', item })),
+    ...practices.filter((item) => hasTag(item.conceptTags)).map((item) => ({ type: 'practice', item })),
   ];
 }
 
@@ -135,6 +148,7 @@ export function conceptRelated(name: string, data: {
   insights: Insight[];
   vault: VaultEntry[];
   drafts: Draft[];
+  practices?: Practice[];
   questions: Question[];
   timeline: TimelineEvent[];
 }) {
@@ -152,11 +166,14 @@ export function conceptRelated(name: string, data: {
   const drafts = data.drafts.filter((item) => (item.conceptTags || []).map(conceptKey).includes(key) || (item.sourceIds || []).some((id) => sourceIds.has(id)));
   drafts.flatMap((item) => item.sourceIds || []).forEach((id) => sourceIds.add(id));
 
+  const practices = (data.practices || []).filter((item) => (item.conceptTags || []).map(conceptKey).includes(key) || (item.sourceIds || []).some((id) => sourceIds.has(id)) || (item.positionIds || []).some((id) => beliefs.some((belief) => belief.id === id)) || (item.draftIds || []).some((id) => drafts.some((draft) => draft.id === id)));
+  practices.flatMap((item) => item.sourceIds || []).forEach((id) => sourceIds.add(id));
+
   const sources = data.media.filter((item) => sourceIds.has(item.id) || (item.tags || []).map(conceptKey).includes(key));
   const annotations = allAnnotations(data.media).filter((annotation) => sourceIds.has(annotation.source.id) || (annotation.conceptTags || []).map(conceptKey).includes(key));
   const questions = allQuestions(data.media, data.questions).filter((question) => (question.conceptIds || []).map(conceptKey).includes(key) || (question.sourceIds || []).some((id) => sourceIds.has(id)));
-  const relatedIds = new Set([...sources.map((x) => x.id), ...ideas.map((x) => x.id), ...beliefs.map((x) => x.id), ...drafts.map((x) => x.id)]);
+  const relatedIds = new Set([...sources.map((x) => x.id), ...ideas.map((x) => x.id), ...beliefs.map((x) => x.id), ...drafts.map((x) => x.id), ...practices.map((x) => x.id)]);
   const events = data.timeline.filter((event) => relatedIds.has(event.entityId) || (event.influencedBy || []).some((id) => relatedIds.has(id)));
 
-  return { sources, annotations, questions, ideas, beliefs, drafts, events };
+  return { sources, annotations, questions, ideas, beliefs, drafts, practices, events };
 }

@@ -7,6 +7,8 @@ export type EventType = 'created' | 'refined' | 'challenged' | 'revised' | 'expa
 export type QuestionStatus = 'open' | 'investigating' | 'answered' | 'archived';
 export type DraftType = 'essay' | 'script' | 'field_note';
 export type DraftStatus = 'seed' | 'drafting' | 'revised' | 'final';
+export type PracticeType = 'habit' | 'experiment' | 'discipline' | 'reflection_prompt' | 'commitment' | 'observation' | 'rule' | 'challenge';
+export type PracticeStatus = 'planned' | 'active' | 'completed' | 'paused' | 'abandoned';
 
 export interface Annotation {
   id: string;
@@ -148,6 +150,25 @@ export interface Draft {
   sourceIds: string[];
   questionIds: string[];
   beliefIds: string[];
+  dateCreated: string;
+  dateUpdated: string;
+}
+
+export interface Practice {
+  id: string;
+  title: string;
+  description: string;
+  type: PracticeType;
+  status: PracticeStatus;
+  durationDays: number;
+  startDate: string;
+  endDate: string;
+  conceptTags: string[];
+  sourceIds: string[];
+  questionIds: string[];
+  positionIds: string[];
+  draftIds: string[];
+  notes: string;
   dateCreated: string;
   dateUpdated: string;
 }

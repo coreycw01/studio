@@ -72,7 +72,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
     return (
       <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-5xl mx-auto w-full font-body">
         <div className="flex items-center justify-between mb-8">
-          <Button variant="ghost" onClick={() => setSelectedId(null)} className="h-8 font-code text-[10px] uppercase tracking-widest"><ArrowLeft className="size-4 mr-2" /> Beliefs</Button>
+          <Button variant="ghost" onClick={() => setSelectedId(null)} className="h-8 font-code text-[10px] uppercase tracking-widest"><ArrowLeft className="size-4 mr-2" /> Positions</Button>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => openEditor(selected)} className="h-8"><Edit className="size-4 mr-2" /> Edit</Button>
             <Button variant="destructive" onClick={() => { onDeleteEntry(selected.id); setSelectedId(null); }} className="h-8"><Trash2 className="size-4 mr-2" /> Delete</Button>
@@ -90,7 +90,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
           <EvidencePanel title="Evidence For" items={selected.evidenceFor || []} onAdd={(text) => onUpdateEntry({ ...selected, evidenceFor: [...(selected.evidenceFor || []), text], dateUpdated: today() })} />
           <EvidencePanel title="Evidence Against" items={selected.evidenceAgainst || []} onAdd={(text) => onUpdateEntry({ ...selected, evidenceAgainst: [...(selected.evidenceAgainst || []), text], dateUpdated: today() })} />
           <InfoPanel title="Linked Sources" items={linkedSources.map((item) => item.title)} empty="No sources linked yet." />
-          <InfoPanel title="Linked Writing" items={linkedDrafts.map((draft) => draft.title)} empty="No drafts linked yet." />
+          <InfoPanel title="Linked Works" items={linkedDrafts.map((draft) => draft.title)} empty="No works linked yet." />
           <InfoPanel title="Version History" items={(selected.versionHistory || []).map((v) => `${v.date}: ${v.description}`)} empty="No revisions recorded yet." />
         </div>
         <BeliefEditor open={editorOpen} onOpenChange={setEditorOpen} draft={draftEntry} setDraft={setDraftEntry} concepts={concepts} media={media} onAddConcept={onAddConcept} onSave={saveEntry} />
@@ -102,12 +102,13 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
     <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-7xl mx-auto w-full font-body">
       <header className="flex justify-between items-center mb-10">
         <div>
-          <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80 leading-none">Beliefs</h1>
+          <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80 leading-none">Positions</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">State what you currently believe, what you are testing, and what evidence supports or challenges each position.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search beliefs, principles..." className="w-72 pl-9 bg-muted/40 font-code text-[11px] h-9" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search positions, principles..." className="w-72 pl-9 bg-muted/40 font-code text-[11px] h-9" />
           </div>
           <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 px-6">
             <Plus className="size-4 mr-1.5" /> NEW BELIEF
@@ -116,7 +117,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
       </header>
 
       <div className="mb-10">
-        <p className="text-xl font-headline italic text-foreground/60 mb-5">Explicit claims, principles, and mental models</p>
+        <p className="text-xl font-headline italic text-foreground/60 mb-5">Explicit positions, principles, and mental models</p>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setFilter('all')}
@@ -188,7 +189,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
         {filteredEntries.length === 0 && (
           <div className="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-40">
             <ShieldCheck className="size-20 mb-6 text-muted-foreground" />
-            <h2 className="text-2xl font-headline italic mb-2">No claims found</h2>
+            <h2 className="text-2xl font-headline italic mb-2">No positions found</h2>
             <p className="max-w-md font-body">Refine your search or turn an idea into something you are willing to examine.</p>
           </div>
         )}
@@ -235,7 +236,7 @@ function BeliefEditor({ open, onOpenChange, draft, setDraft, concepts, media, on
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto">
-        <DialogHeader><DialogTitle className="font-headline text-2xl italic">{draft.id ? 'Edit Claim' : 'Form Claim'}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="font-headline text-2xl italic">{draft.id ? 'Edit Position' : 'Form Position'}</DialogTitle></DialogHeader>
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -252,7 +253,7 @@ function BeliefEditor({ open, onOpenChange, draft, setDraft, concepts, media, on
           </div>
           <div className="space-y-2">
             <Label>Statement</Label>
-            <Textarea value={draft.statement || ''} onChange={(event) => setDraft((prev) => ({ ...prev, statement: event.target.value, description: prev.description || event.target.value }))} placeholder="The core claim in one clear sentence..." />
+            <Textarea value={draft.statement || ''} onChange={(event) => setDraft((prev) => ({ ...prev, statement: event.target.value, description: prev.description || event.target.value }))} placeholder="The core position in one clear sentence..." />
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
@@ -270,7 +271,7 @@ function BeliefEditor({ open, onOpenChange, draft, setDraft, concepts, media, on
             label="Supporting Sources"
           />
         </div>
-        <DialogFooter><Button onClick={onSave}>Save Claim</Button></DialogFooter>
+        <DialogFooter><Button onClick={onSave}>Save Position</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

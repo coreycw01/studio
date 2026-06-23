@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Annotation, Concept, Media, MediaStatus, MediaType, VaultEntry } from '@/lib/types';
 import { MEDIA_LABELS, MEDIA_TYPES, MEDIA_ICONS_COMP, normalizeConceptTags, today, uid, conceptKey } from '@/lib/readex';
 import { cn } from '@/lib/utils';
@@ -146,14 +147,14 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
             </Card>
 
             <Card className="p-6 border-border/40 bg-white">
-              <h3 className="readex-kicker mb-4 opacity-50">Linked Claims</h3>
+              <h3 className="readex-kicker mb-4 opacity-50">Linked Positions</h3>
               <div className="space-y-2">
                 {linkedBeliefs.length ? linkedBeliefs.map((entry) => (
                   <div key={entry.id} className="rounded border border-border/20 bg-muted/5 p-3 text-sm font-headline italic hover:text-accent cursor-pointer transition-colors">
                     {entry.title}
                   </div>
                 )) : (
-                  <p className="text-sm text-muted-foreground italic">No formal claims linked to this source yet.</p>
+                  <p className="text-sm text-muted-foreground italic">No formal positions linked to this source yet.</p>
                 )}
               </div>
             </Card>
@@ -169,6 +170,7 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
       <header className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Library</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Capture books, films, articles, lectures, conversations, and other sources before they become understanding.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">

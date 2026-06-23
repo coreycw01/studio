@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import { SourceLinker } from '@/components/SourceLinker';
-import type { Concept, Draft, Insight, Media, Question, TimelineEvent, VaultEntry } from '@/lib/types';
+import type { Concept, Draft, Insight, Media, Practice, Question, TimelineEvent, VaultEntry } from '@/lib/types';
 import { allAnnotations, conceptKey, conceptRelated, conceptTerms, UNSORTED_CONCEPT } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,7 @@ interface ConceptEncyclopediaProps {
   insights: Insight[];
   vault: VaultEntry[];
   drafts: Draft[];
+  practices: Practice[];
   questions: Question[];
   timeline: TimelineEvent[];
   onAddConcept: (data: Partial<Concept>) => void;
@@ -31,7 +32,7 @@ interface ConceptEncyclopediaProps {
 }
 
 export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
-  const { concepts, media, insights, vault, drafts, questions, timeline, onAddConcept, onUpdateConcept, onDeleteConcept, onCreateIdea } = props;
+  const { concepts, media, insights, vault, drafts, practices, questions, timeline, onAddConcept, onUpdateConcept, onDeleteConcept, onCreateIdea } = props;
   const [search, setSearch] = useState('');
   const [mode, setMode] = useState<'concepts' | 'ideas'>('concepts');
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
   const [ideaOpen, setIdeaOpen] = useState(false);
   const [ideaDraft, setIdeaDraft] = useState({ title: '', body: '', tags: [UNSORTED_CONCEPT], sourceIds: [] as string[] });
 
-  const allTerms = useMemo(() => conceptTerms(concepts, media, insights, vault, drafts), [concepts, media, insights, vault, drafts]);
+  const allTerms = useMemo(() => conceptTerms(concepts, media, insights, vault, drafts, practices), [concepts, media, insights, vault, drafts, practices]);
   
   const filteredTerms = useMemo(() => {
     return allTerms.filter((name) => {
@@ -54,16 +55,16 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         if (!conceptDoc) return false;
       } else {
         if (isUnsorted) return true;
-        const related = conceptRelated(name, { media, insights, vault, drafts, questions, timeline });
+        const related = conceptRelated(name, { media, insights, vault, drafts, practices, questions, timeline });
         if (related.beliefs.length === 0 && related.ideas.length === 0) return false;
       }
 
-      const related = conceptRelated(name, { media, insights, vault, drafts, questions, timeline });
+      const related = conceptRelated(name, { media, insights, vault, drafts, practices, questions, timeline });
       return !search || `${name} ${JSON.stringify(related)}`.toLowerCase().includes(search.toLowerCase());
     });
-  }, [allTerms, mode, search, concepts, media, insights, vault, drafts, questions, timeline]);
+  }, [allTerms, mode, search, concepts, media, insights, vault, drafts, practices, questions, timeline]);
 
-  const selectedRelated = selectedName ? conceptRelated(selectedName, { media, insights, vault, drafts, questions, timeline }) : null;
+  const selectedRelated = selectedName ? conceptRelated(selectedName, { media, insights, vault, drafts, practices, questions, timeline }) : null;
 
   const openEditor = (concept?: Concept) => {
     if (concept) {
@@ -131,7 +132,8 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
     <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-7xl mx-auto w-full font-body">
       <header className="flex justify-between items-center mb-10">
         <div>
-          <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Encyclopedia</h1>
+          <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Concepts</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Build the encyclopedia of recurring ideas that organize your thinking.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -151,7 +153,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         <Stat value={allTerms.length} label="Total Terms" sub="Knowledge index size" />
         <Stat value={media.length} label="Sources" sub="Input library" />
         <Stat value={allAnnotations(media).length} label="Annotations" sub="Tagged excerpts" />
-        <Stat value={vault.length + drafts.length} label="Outputs" sub="Claims & Writing" />
+        <Stat value={vault.length + drafts.length + practices.length} label="Outputs" sub="Positions, works, practices" />
       </div>
 
       <div className="flex items-center gap-3 mb-8 border-b border-border pb-4">
@@ -177,7 +179,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filteredTerms.map((name) => {
-          const related = conceptRelated(name, { media, insights, vault, drafts, questions, timeline });
+          const related = conceptRelated(name, { media, insights, vault, drafts, practices, questions, timeline });
           const concept = concepts.find((item) => conceptKey(item.name) === conceptKey(name));
           const isUnsorted = conceptKey(name) === conceptKey(UNSORTED_CONCEPT);
           
@@ -200,14 +202,15 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
                     )}
                   </div>
                   <p className="text-[13px] leading-6 text-muted-foreground font-body mt-1 line-clamp-2 italic">
-                    {concept?.description || (isUnsorted ? 'Catch-all for nascent thoughts and untagged observations.' : 'Inspect linked sources, claims, writing, and inquiries.')}
+                    {concept?.description || (isUnsorted ? 'Catch-all for nascent thoughts and untagged observations.' : 'Inspect linked sources, positions, works, inquiries, and practices.')}
                   </p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
                 <Badge variant="outline" className="text-[10px] bg-muted/20">{related.sources.length} sources</Badge>
-                <Badge variant="outline" className="text-[10px] bg-muted/20">{related.beliefs.length} claims</Badge>
-                <Badge variant="outline" className="text-[10px] bg-muted/20">{related.drafts.length} drafts</Badge>
+                <Badge variant="outline" className="text-[10px] bg-muted/20">{related.beliefs.length} positions</Badge>
+                <Badge variant="outline" className="text-[10px] bg-muted/20">{related.drafts.length} works</Badge>
+                <Badge variant="outline" className="text-[10px] bg-muted/20">{related.practices.length} practices</Badge>
               </div>
             </Card>
           );
@@ -232,8 +235,9 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
               <RelatedSection title="Inputs: Sources" items={selectedRelated.sources.map((item) => `${item.title} - ${item.creator || item.type}`)} />
               <RelatedSection title="Inputs: Annotations" items={selectedRelated.annotations.map((item) => `${item.type}: ${item.text}`)} />
               <RelatedSection title="Inputs: Inquiries" items={selectedRelated.questions.map((item) => item.text)} />
-              <RelatedSection title="Outputs: Claims" items={selectedRelated.beliefs.map((item) => item.title)} />
-              <RelatedSection title="Outputs: Writing" items={selectedRelated.drafts.map((item) => `${item.title} (${item.type})`)} />
+              <RelatedSection title="Outputs: Positions" items={selectedRelated.beliefs.map((item) => item.title)} />
+              <RelatedSection title="Outputs: Works" items={selectedRelated.drafts.map((item) => `${item.title} (${item.type})`)} />
+              <RelatedSection title="Outputs: Practices" items={selectedRelated.practices.map((item) => `${item.title} (${item.type})`)} />
               <RelatedSection title="Outputs: Evolution" items={selectedRelated.events.map((item) => `${item.eventType}: ${item.entityTitle}`)} />
             </div>
           )}

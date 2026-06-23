@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Noesis - Turn thought into understanding',
-  description: 'A personal philosophy workspace for mapping concepts, examining claims, and writing from evidence.',
+  description: 'A personal philosophy workspace for mapping concepts, examining positions, building works, and testing practices.',
 };
 
 export default function RootLayout({

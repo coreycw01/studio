@@ -86,7 +86,8 @@ export function QuestionsWorkspace({ questions, media, vault, drafts, concepts, 
     <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-7xl mx-auto w-full font-body">
       <header className="flex justify-between items-center mb-10">
         <div>
-          <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Questions</h1>
+          <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Inquiries</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Work through the questions that keep returning and gather evidence toward answers.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -103,7 +104,7 @@ export function QuestionsWorkspace({ questions, media, vault, drafts, concepts, 
         <Stat label="Total Questions" value={all.length} />
         <Stat label="Answered" value={answered} />
         <Stat label="Open Inquiries" value={all.length - answered} />
-        <Stat label="Linked Drafts" value={linkedDraftCount} />
+        <Stat label="Linked Works" value={linkedDraftCount} />
       </div>
 
       <div className="mb-8">
@@ -151,7 +152,7 @@ export function QuestionsWorkspace({ questions, media, vault, drafts, concepts, 
                       <span>•</span>
                     </>
                   )}
-                  <span>{draftLinks} linked drafts</span>
+                  <span>{draftLinks} linked works</span>
                 </div>
               </CardContent>
             </Card>
@@ -216,7 +217,7 @@ function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, 
               value={answer} 
               onChange={(event) => setAnswer(event.target.value)} 
               className="min-h-[400px] pl-6 text-[17px] leading-8 font-body border-none shadow-none bg-transparent focus-visible:ring-0 italic" 
-              placeholder="Begin your synthesis. Examine evidence, resolve contradictions, and work toward a formal claim..." 
+              placeholder="Begin your synthesis. Examine evidence, resolve contradictions, and work toward a position..." 
             />
           </div>
           <div className="flex justify-end mt-8"><Button onClick={() => onSave(answer)} className="px-8">Archive Synthesis</Button></div>
@@ -224,8 +225,8 @@ function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, 
         <aside className="space-y-4">
           <ContextPanel title="Evidence Sources" items={sources.map((item) => item.title)} />
           <ContextPanel title="Concepts" items={Array.from(new Set(concepts))} />
-          <ContextPanel title="Related Claims" items={beliefs.map((entry) => entry.title)} />
-          <ContextPanel title="Linked Writing" items={drafts.map((draft) => draft.title)} />
+          <ContextPanel title="Related Positions" items={beliefs.map((entry) => entry.title)} />
+          <ContextPanel title="Linked Works" items={drafts.map((draft) => draft.title)} />
         </aside>
       </div>
     </div>

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import type { Concept, Draft, DraftStatus, DraftType, Media, Question, VaultEntry } from '@/lib/types';
 import { allQuestions, DRAFT_LABELS, normalizeConceptTags, today } from '@/lib/readex';
@@ -69,7 +70,8 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
       <div className="p-8 pt-8 w-full max-w-7xl mx-auto">
         <header className="flex justify-between items-center mb-10">
           <div>
-            <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Writing Studio</h1>
+            <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Works</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Develop essays, scripts, field notes, and longer pieces from the ideas gathered across Noesis.</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -90,7 +92,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
         </header>
 
         <div className="mb-8">
-          <p className="text-xl font-headline italic text-foreground/60 mb-5">Drafts, essays, scripts, and field notes</p>
+          <p className="text-xl font-headline italic text-foreground/60 mb-5">Essays, scripts, field notes, and longer works</p>
           <div className="flex flex-wrap gap-2">
             {(['all', 'essay', 'script', 'field_note', 'drafting', 'final'] as const).map((val) => (
               <button

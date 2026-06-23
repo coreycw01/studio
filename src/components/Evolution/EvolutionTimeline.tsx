@@ -36,6 +36,7 @@ export function EvolutionTimeline({ events, media }: EvolutionTimelineProps) {
       <header className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Evolution</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Trace how your concepts, inquiries, positions, works, and practices change over time.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -129,7 +130,7 @@ export function EvolutionTimeline({ events, media }: EvolutionTimelineProps) {
           <div className="py-20 text-center opacity-30">
             <History className="size-16 mx-auto mb-6 text-muted-foreground" />
             <h2 className="text-2xl font-headline italic mb-2">No events recorded</h2>
-            <p className="max-w-xs mx-auto font-body">As you refine claims and complete sources, your cognitive evolution will appear here.</p>
+            <p className="max-w-xs mx-auto font-body">As you refine positions, complete sources, create works, and test practices, your evolution will appear here.</p>
           </div>
         )}
       </div>

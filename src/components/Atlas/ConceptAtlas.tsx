@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SourceLinker } from '@/components/SourceLinker';
-import type { Concept, Draft, Insight, Media, Question, TimelineEvent, VaultEntry } from '@/lib/types';
+import type { Concept, Draft, Insight, Media, Practice, Question, TimelineEvent, VaultEntry } from '@/lib/types';
 import { conceptKey, conceptRelated, conceptTerms, taggedItemsForConcept } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase';
@@ -24,6 +24,7 @@ interface ConceptAtlasProps {
   insights: Insight[];
   vault: VaultEntry[];
   drafts: Draft[];
+  practices: Practice[];
   questions: Question[];
   timeline: TimelineEvent[];
   onAddConcept: (data: Partial<Concept>) => void;
@@ -31,7 +32,7 @@ interface ConceptAtlasProps {
   uid?: string;
 }
 
-export function ConceptAtlas({ concepts, media, insights, vault, drafts, questions, timeline, onAddConcept, onUpdateConcept, uid }: ConceptAtlasProps) {
+export function ConceptAtlas({ concepts, media, insights, vault, drafts, practices, questions, timeline, onAddConcept, onUpdateConcept, uid }: ConceptAtlasProps) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [search, setSearch] = useState('');
@@ -46,7 +47,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const mapRef = useRef<HTMLDivElement | null>(null);
 
-  const terms = useMemo(() => conceptTerms(concepts, media, insights, vault, drafts), [concepts, media, insights, vault, drafts]);
+  const terms = useMemo(() => conceptTerms(concepts, media, insights, vault, drafts, practices), [concepts, media, insights, vault, drafts, practices]);
   
   const nodes = useMemo(() => {
     const filtered = terms.filter((name) => !search || name.toLowerCase().includes(search.toLowerCase()));
@@ -54,7 +55,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
       const concept = concepts.find((c) => conceptKey(c.name) === conceptKey(name));
       const angle = -Math.PI / 2 + (Math.PI * 2 * index) / Math.max(1, filtered.length);
       const radius = filtered.length <= 2 ? 22 : 34 + (index % 2) * 7;
-      const count = taggedItemsForConcept(name, media, insights, vault, drafts).length;
+      const count = taggedItemsForConcept(name, media, insights, vault, drafts, practices).length;
       return {
         name,
         concept,
@@ -63,7 +64,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
         y: draftPositions[conceptKey(name)]?.y ?? concept?.y ?? 50 + Math.sin(angle) * radius,
       };
     });
-  }, [concepts, drafts, draftPositions, insights, media, search, terms, vault]);
+  }, [concepts, drafts, draftPositions, insights, media, practices, search, terms, vault]);
 
   const edges = useMemo(() => {
     const result: { from: string; to: string; type: 'manual' | 'shared'; label: string }[] = [];
@@ -74,13 +75,13 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
     }));
     for (let i = 0; i < nodes.length; i += 1) {
       for (let j = i + 1; j < nodes.length; j += 1) {
-        const a = taggedItemsForConcept(nodes[i].name, media, insights, vault, drafts).map((item) => item.item.id);
-        const shared = taggedItemsForConcept(nodes[j].name, media, insights, vault, drafts).filter((item) => a.includes(item.item.id)).length;
+        const a = taggedItemsForConcept(nodes[i].name, media, insights, vault, drafts, practices).map((item) => item.item.id);
+        const shared = taggedItemsForConcept(nodes[j].name, media, insights, vault, drafts, practices).filter((item) => a.includes(item.item.id)).length;
         if (shared) result.push({ from: nodes[i].name, to: nodes[j].name, type: 'shared', label: `${shared} shared` });
       }
     }
     return result;
-  }, [concepts, drafts, insights, media, nodes, terms, vault]);
+  }, [concepts, drafts, insights, media, nodes, practices, terms, vault]);
 
   const addConcept = () => {
     if (!newConcept.name?.trim()) return;
@@ -165,13 +166,14 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
 
   const selectedNode = nodes.find((node) => conceptKey(node.name) === conceptKey(selectedName || ''));
   const selectedConcept = selectedNode?.concept;
-  const related = selectedName ? conceptRelated(selectedName, { media, insights, vault, drafts, questions, timeline }) : null;
+  const related = selectedName ? conceptRelated(selectedName, { media, insights, vault, drafts, practices, questions, timeline }) : null;
 
   return (
     <div className="relative w-full h-full bg-background flex flex-col overflow-hidden">
       <header className="flex justify-between items-center mb-10 px-8 pt-8 z-20">
         <div>
           <h1 className="text-[28px] font-headline font-semibold italic">Atlas</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Map the relationships between concepts, sources, inquiries, positions, works, and practices.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -340,9 +342,10 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
                     {related ? (
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="outline" className="bg-muted/30">{related.sources.length} sources</Badge>
-                        <Badge variant="outline" className="bg-muted/30">{related.beliefs.length} claims</Badge>
-                        <Badge variant="outline" className="bg-muted/30">{related.drafts.length} drafts</Badge>
-                        <Badge variant="outline" className="bg-muted/30">{related.questions.length} questions</Badge>
+                        <Badge variant="outline" className="bg-muted/30">{related.beliefs.length} positions</Badge>
+                        <Badge variant="outline" className="bg-muted/30">{related.drafts.length} works</Badge>
+                        <Badge variant="outline" className="bg-muted/30">{related.practices.length} practices</Badge>
+                        <Badge variant="outline" className="bg-muted/30">{related.questions.length} inquiries</Badge>
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground italic">Gathering connections...</p>

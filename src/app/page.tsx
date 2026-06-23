@@ -17,6 +17,7 @@ import { BeliefVault } from '@/components/Vault/BeliefVault';
 import { Atelier } from '@/components/Writing/Atelier';
 import { QuestionsWorkspace } from '@/components/Questions/QuestionsWorkspace';
 import { EvolutionTimeline } from '@/components/Evolution/EvolutionTimeline';
+import { PracticesWorkspace } from '@/components/Practices/PracticesWorkspace';
 import { Toaster } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MEDIA_LABELS, MEDIA_TYPES, conceptKey, ensureConceptTerms, normalizeConceptTags, today } from '@/lib/readex';
 import { DEFAULT_ATLAS_NODE_SETTINGS, DEFAULT_ATLAS_VIEW_SETTINGS, DEFAULT_GOAL_SETTINGS, PROTOTYPE_USER_ID, readexRefs, readexSchemaDoc } from '@/lib/firestore-schema';
-import type { Concept, Draft, GoalSettings, Insight, Media, MediaType, Question, TimelineEvent, VaultEntry } from '@/lib/types';
+import type { Concept, Draft, GoalSettings, Insight, Media, MediaType, Practice, Question, TimelineEvent, VaultEntry } from '@/lib/types';
 import { addDoc, deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch, type DocumentData, type DocumentReference } from 'firebase/firestore';
 
 function ReadexApp() {
@@ -48,6 +49,7 @@ function ReadexApp() {
   const { data: questions = [] } = useCollection<Question>(refs.questions as any);
   const { data: timeline = [] } = useCollection<TimelineEvent>(refs.timeline as any);
   const { data: drafts = [] } = useCollection<Draft>(refs.drafts as any);
+  const { data: practices = [] } = useCollection<Practice>(refs.practices as any);
   const { data: goalDoc } = useDoc<GoalSettings>(refs.settingsGoal as any);
   const goal = { ...DEFAULT_GOAL_SETTINGS, ...(goalDoc || {}) };
 
@@ -140,7 +142,7 @@ function ReadexApp() {
     const tags = normalizeConceptTags(data.tags);
     await ensureConcepts(tags);
     const created = await addDoc(refs.vault, {
-      title: data.title || 'Untitled Claim',
+      title: data.title || 'Untitled Position',
       type: data.type || 'belief',
       statement: data.statement || data.description || '',
       description: data.description || data.statement || '',
@@ -155,12 +157,12 @@ function ReadexApp() {
       dateCreated: today(),
       dateUpdated: today(),
     });
-    await createTimelineEvent({ entityId: created.id, entityType: 'vault', entityTitle: data.title, eventType: 'created', reason: 'Claim formed', influencedBy: data.sourceIds });
+    await createTimelineEvent({ entityId: created.id, entityType: 'vault', entityTitle: data.title, eventType: 'created', reason: 'Position formed', influencedBy: data.sourceIds });
   };
   const updateVaultEntry = async (entry: VaultEntry) => {
     await ensureConcepts(entry.tags || []);
     await updateDoc(doc(refs.vault, entry.id), entry as any);
-    await createTimelineEvent({ entityId: entry.id, entityType: 'vault', entityTitle: entry.title, eventType: 'refined', reason: 'Claim refined', influencedBy: entry.sourceIds });
+    await createTimelineEvent({ entityId: entry.id, entityType: 'vault', entityTitle: entry.title, eventType: 'refined', reason: 'Position refined', influencedBy: entry.sourceIds });
   };
   const deleteVaultEntry = (id: string) => deleteDoc(doc(refs.vault, id));
 
@@ -199,7 +201,7 @@ function ReadexApp() {
       dateUpdated: today(),
     });
     const eventRef = doc(refs.timeline);
-    batch.set(eventRef, { entityId: beliefRef.id, entityType: 'vault', entityTitle: data.title, eventType: 'created', reason: 'Idea formed as claim', influencedBy: data.sourceIds || [], date: today() });
+    batch.set(eventRef, { entityId: beliefRef.id, entityType: 'vault', entityTitle: data.title, eventType: 'created', reason: 'Idea formed as position', influencedBy: data.sourceIds || [], date: today() });
     await batch.commit();
     setView('vault');
   };
@@ -234,13 +236,44 @@ function ReadexApp() {
       dateCreated: today(),
       dateUpdated: today(),
     });
-    await createTimelineEvent({ entityId: created.id, entityType: 'draft', entityTitle: data.title, eventType: 'created', reason: 'Writing draft created' });
+    await createTimelineEvent({ entityId: created.id, entityType: 'draft', entityTitle: data.title, eventType: 'created', reason: 'Work draft created' });
   };
   const updateDraft = async (draft: Draft) => {
     await ensureConcepts(draft.conceptTags || []);
     await updateDoc(doc(refs.drafts, draft.id), draft as any);
   };
   const deleteDraft = (id: string) => deleteDoc(doc(refs.drafts, id));
+
+  const addPractice = async (data: Partial<Practice>) => {
+    const conceptTags = normalizeConceptTags(data.conceptTags);
+    await ensureConcepts(conceptTags);
+    const created = await addDoc(refs.practices, {
+      title: data.title || 'Untitled Practice',
+      description: data.description || '',
+      type: data.type || 'experiment',
+      status: data.status || 'planned',
+      durationDays: data.durationDays || 7,
+      startDate: data.startDate || '',
+      endDate: data.endDate || '',
+      conceptTags,
+      sourceIds: data.sourceIds || [],
+      questionIds: data.questionIds || [],
+      positionIds: data.positionIds || [],
+      draftIds: data.draftIds || [],
+      notes: data.notes || '',
+      dateCreated: today(),
+      dateUpdated: today(),
+    });
+    await createTimelineEvent({ entityId: created.id, entityType: 'practice', entityTitle: data.title, eventType: 'created', reason: 'Practice created', influencedBy: [...(data.sourceIds || []), ...(data.positionIds || []), ...(data.draftIds || [])] });
+  };
+
+  const updatePractice = async (practice: Practice) => {
+    await ensureConcepts(practice.conceptTags || []);
+    await updateDoc(doc(refs.practices, practice.id), { ...practice, dateUpdated: today() } as any);
+    await createTimelineEvent({ entityId: practice.id, entityType: 'practice', entityTitle: practice.title, eventType: practice.status === 'completed' ? 'revised' : 'refined', reason: 'Practice updated', influencedBy: [...(practice.sourceIds || []), ...(practice.positionIds || []), ...(practice.draftIds || [])] });
+  };
+
+  const deletePractice = (id: string) => deleteDoc(doc(refs.practices, id));
 
   const saveGoal = async () => {
     await setDoc(refs.settingsGoal, goalDraft, { merge: true });
@@ -253,11 +286,9 @@ function ReadexApp() {
   }, {} as Record<MediaType, number>);
 
   const renderContent = () => {
-    const commonOnAddConcept = (name: string) => addConcept({ name, description: '', createdFrom: 'tag' });
-    
     switch (view) {
       case 'atlas':
-        return <ConceptAtlas concepts={concepts} media={media} insights={insights} vault={vault} drafts={drafts} questions={questions} timeline={timeline} onAddConcept={addConcept} onUpdateConcept={updateConcept} />;
+        return <ConceptAtlas concepts={concepts} media={media} insights={insights} vault={vault} drafts={drafts} practices={practices} questions={questions} timeline={timeline} onAddConcept={addConcept} onUpdateConcept={updateConcept} />;
       case 'concepts':
         return (
           <ConceptEncyclopedia 
@@ -266,6 +297,7 @@ function ReadexApp() {
             insights={insights} 
             vault={vault} 
             drafts={drafts} 
+            practices={practices}
             questions={questions} 
             timeline={timeline} 
             onAddConcept={addConcept} 
@@ -275,7 +307,7 @@ function ReadexApp() {
           />
         );
       case 'library':
-        return <MediaLibrary media={media} concepts={concepts} vault={vault} onAddMedia={addMedia} onUpdateMedia={updateMedia} onDeleteMedia={deleteMedia} onAddConcept={commonOnAddConcept} />;
+        return <MediaLibrary media={media} concepts={concepts} vault={vault} onAddMedia={addMedia} onUpdateMedia={updateMedia} onDeleteMedia={deleteMedia} onAddConcept={addConcept} />;
       case 'vault':
         return (
           <BeliefVault 
@@ -286,13 +318,15 @@ function ReadexApp() {
             onAddEntry={addVaultEntry} 
             onUpdateEntry={updateVaultEntry} 
             onDeleteEntry={deleteVaultEntry} 
-            onAddConcept={commonOnAddConcept} 
+            onAddConcept={addConcept} 
           />
         );
       case 'questions':
         return <QuestionsWorkspace questions={questions} media={media} vault={vault} drafts={drafts} concepts={concepts} onAddQuestion={addQuestion} onUpdateQuestion={updateQuestion} />;
       case 'writing':
-        return <Atelier drafts={drafts} media={media} vault={vault} questions={questions} concepts={concepts} onAddDraft={addDraft} onUpdateDraft={updateDraft} onDeleteDraft={deleteDraft} onAddConcept={commonOnAddConcept} />;
+        return <Atelier drafts={drafts} media={media} vault={vault} questions={questions} concepts={concepts} onAddDraft={addDraft} onUpdateDraft={updateDraft} onDeleteDraft={deleteDraft} onAddConcept={addConcept} />;
+      case 'practices':
+        return <PracticesWorkspace practices={practices} media={media} questions={questions} positions={vault} drafts={drafts} concepts={concepts} onAddPractice={addPractice} onUpdatePractice={updatePractice} onDeletePractice={deletePractice} onAddConcept={(data) => addConcept(data)} />;
       case 'evolution':
         return <EvolutionTimeline events={timeline} media={media} />;
       default:
@@ -310,7 +344,7 @@ function ReadexApp() {
     <Shell
       activeView={view}
       onViewChange={setView}
-      counts={{ concepts: concepts.length, questions: questions.length, media: media.length, vault: vault.length, drafts: drafts.length, timeline: timeline.length }}
+      counts={{ concepts: concepts.length, questions: questions.length, media: media.length, vault: vault.length, drafts: drafts.length, practices: practices.length, timeline: timeline.length }}
       goal={goal}
       goalProgress={goalProgress}
       onEditGoal={() => setGoalOpen(true)}
