@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from 'react';
-import { GitBranch, Maximize2, Minimize2, Plus, Search, X } from 'lucide-react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { GitBranch, Maximize2, Minimize2, Plus, Search, X, Maximize, Minimize } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Concept, Draft, Insight, Media, Question, TimelineEvent, VaultEntry } from '@/lib/types';
 import { conceptKey, conceptRelated, conceptTerms, taggedItemsForConcept } from '@/lib/readex';
 import { cn } from '@/lib/utils';
+import { useFirebase } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 interface ConceptAtlasProps {
   concepts: Concept[];
@@ -23,20 +25,27 @@ interface ConceptAtlasProps {
   timeline: TimelineEvent[];
   onAddConcept: (data: Partial<Concept>) => void;
   onUpdateConcept: (concept: Concept) => void;
+  uid?: string;
 }
 
-export function ConceptAtlas({ concepts, media, insights, vault, drafts, questions, timeline, onAddConcept, onUpdateConcept }: ConceptAtlasProps) {
+export function ConceptAtlas({ concepts, media, insights, vault, drafts, questions, timeline, onAddConcept, onUpdateConcept, uid }: ConceptAtlasProps) {
+  const { db } = useFirebase();
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [search, setSearch] = useState('');
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [branchTarget, setBranchTarget] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const [newConcept, setNewConcept] = useState({ name: '', description: '' });
   const [draftPositions, setDraftPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [draggingName, setDraggingName] = useState<string | null>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const mapRef = useRef<HTMLDivElement | null>(null);
 
   const terms = useMemo(() => conceptTerms(concepts, media, insights, vault, drafts), [concepts, media, insights, vault, drafts]);
+  
   const nodes = useMemo(() => {
     const filtered = terms.filter((name) => !search || name.toLowerCase().includes(search.toLowerCase()));
     return filtered.map((name, index) => {
@@ -54,9 +63,9 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
     });
   }, [concepts, drafts, draftPositions, insights, media, search, terms, vault]);
 
-  const selected = nodes.find((node) => conceptKey(node.name) === conceptKey(selectedName || '')) || nodes[0];
-  const selectedConcept = selected?.concept;
-  const related = selected ? conceptRelated(selected.name, { media, insights, vault, drafts, questions, timeline }) : null;
+  const selectedNode = nodes.find((node) => conceptKey(node.name) === conceptKey(selectedName || ''));
+  const selectedConcept = selectedNode?.concept;
+  const related = selectedName ? conceptRelated(selectedName, { media, insights, vault, drafts, questions, timeline }) : null;
 
   const edges = useMemo(() => {
     const result: { from: string; to: string; type: 'manual' | 'shared'; label: string }[] = [];
@@ -89,11 +98,32 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
     setBranchTarget('');
   };
 
+  const startPanning = (event: React.MouseEvent | React.PointerEvent) => {
+    if (draggingName) return;
+    setIsPanning(true);
+    setLastMousePos({ x: event.clientX, y: event.clientY });
+    setSelectedName(null); // Clear selected node on background click
+  };
+
+  const handleMouseMove = (event: React.MouseEvent) => {
+    if (isPanning) {
+      const dx = event.clientX - lastMousePos.x;
+      const dy = event.clientY - lastMousePos.y;
+      setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      setLastMousePos({ x: event.clientX, y: event.clientY });
+    }
+  };
+
+  const stopPanning = () => {
+    setIsPanning(false);
+  };
+
   const moveNode = (name: string, clientX: number, clientY: number) => {
     const rect = mapRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const x = Math.min(94, Math.max(6, ((clientX - rect.left) / rect.width) * 100));
-    const y = Math.min(92, Math.max(8, ((clientY - rect.top) / rect.height) * 100));
+    // Account for pan and zoom when calculating new position
+    const x = Math.min(94, Math.max(6, ((clientX - rect.left - pan.x) / (rect.width * zoom)) * 100));
+    const y = Math.min(92, Math.max(8, ((clientY - rect.top - pan.y) / (rect.height * zoom)) * 100));
     setDraftPositions((prev) => ({ ...prev, [conceptKey(name)]: { x, y } }));
   };
 
@@ -123,16 +153,16 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
   };
 
   const atlasCards = [
-    { label: 'Map Nodes', value: nodes.length, sub: 'Visible concepts in this search.' },
-    { label: 'Branches', value: edges.filter((edge) => edge.type === 'manual').length, sub: 'Manual concept links.' },
-    { label: 'Shared Lines', value: edges.filter((edge) => edge.type === 'shared').length, sub: 'Auto links from shared evidence.' },
-    { label: 'Selected', value: selected?.name || 'None', sub: 'Click or drag a node.' },
+    { label: 'Map Nodes', value: nodes.length, sub: 'Visible concepts' },
+    { label: 'Branches', value: edges.filter((edge) => edge.type === 'manual').length, sub: 'Manual links' },
+    { label: 'Shared Lines', value: edges.filter((edge) => edge.type === 'shared').length, sub: 'Auto links' },
+    { label: 'Active', value: selectedName || 'None', sub: 'Selected concept' },
   ];
 
   return (
     <div className="relative w-full h-full bg-background flex flex-col overflow-hidden">
       <div className="px-6 pt-6 pb-4">
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-3">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
           {atlasCards.map((card) => (
             <Card key={card.label} className="readex-header-card">
               <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground">{card.label}</div>
@@ -140,12 +170,6 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
               <p className="mt-1 text-xs text-muted-foreground">{card.sub}</p>
             </Card>
           ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge>Atlas is the map</Badge>
-          <Badge variant="outline">Drag nodes to arrange</Badge>
-          <Badge variant="outline">Click stays in Atlas</Badge>
-          <Badge variant="outline">Branching lives here</Badge>
         </div>
       </div>
 
@@ -156,69 +180,83 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
         </div>
         <div className="flex flex-col gap-2 pointer-events-auto items-end">
           <div className="flex bg-white/80 backdrop-blur rounded-md border border-border/50 p-1 shadow-sm">
-            <Button variant="ghost" size="icon" onClick={() => setZoom((z) => Math.max(0.55, z - 0.1))}><Minimize2 className="size-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} className="font-bold text-lg">-</Button>
             <div className="w-12 flex items-center justify-center font-code text-[11px] font-bold text-primary/60">{Math.round(zoom * 100)}%</div>
-            <Button variant="ghost" size="icon" onClick={() => setZoom((z) => Math.min(1.8, z + 0.1))}><Maximize2 className="size-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => setZoom((z) => Math.min(2.0, z + 0.1))} className="font-bold text-lg">+</Button>
+            <div className="w-px bg-border mx-1 my-1" />
+            <Button variant="ghost" size="icon" onClick={() => setIsFullScreen(!isFullScreen)}>
+              {isFullScreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
+            </Button>
           </div>
           <Button onClick={() => setIsAddOpen(true)} className="shadow-lg"><Plus className="size-4 mr-2" /> Concept</Button>
         </div>
       </div>
 
       <div className="flex-1 overflow-hidden flex px-6 pb-6 gap-4">
-      <div className="flex-1 overflow-hidden">
-        <div
+        <div 
           ref={mapRef}
-          className="w-full h-full relative transition-transform duration-200 rounded-lg border border-border overflow-hidden"
-          style={{
-            transform: `scale(${zoom})`,
-            backgroundImage: 'radial-gradient(circle at 20% 10%, hsl(var(--accent) / .08), transparent 25%), radial-gradient(circle at 82% 18%, hsl(160 87% 20% / .08), transparent 24%), radial-gradient(hsl(var(--muted-foreground) / 0.12) 1px, transparent 0)',
-            backgroundSize: '32px 32px',
-          }}
+          className="flex-1 overflow-hidden relative transition-transform duration-200 rounded-lg border border-border bg-muted/5 cursor-grab active:cursor-grabbing"
+          onMouseDown={startPanning}
+          onMouseMove={handleMouseMove}
+          onMouseUp={stopPanning}
+          onMouseLeave={stopPanning}
         >
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            {edges.map((edge, index) => {
-              const from = nodes.find((node) => conceptKey(node.name) === conceptKey(edge.from));
-              const to = nodes.find((node) => conceptKey(node.name) === conceptKey(edge.to));
-              if (!from || !to) return null;
-              const points = edgePoints(from, to);
-              return (
-                <line
-                  key={`${edge.from}-${edge.to}-${index}`}
-                  x1={`${points.x1}%`}
-                  y1={`${points.y1}%`}
-                  x2={`${points.x2}%`}
-                  y2={`${points.y2}%`}
-                  stroke={edge.type === 'manual' ? 'hsl(var(--accent))' : 'hsl(var(--muted-foreground) / .35)'}
-                  strokeWidth={edge.type === 'manual' ? 3 : 2}
-                  strokeDasharray={edge.type === 'manual' ? '0' : '6 6'}
-                  strokeLinecap="round"
-                />
-              );
-            })}
-          </svg>
+          <div
+            className="w-full h-full absolute inset-0"
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: '0 0',
+              backgroundImage: 'radial-gradient(circle at 20% 10%, hsl(var(--accent) / .08), transparent 25%), radial-gradient(circle at 82% 18%, hsl(160 87% 20% / .08), transparent 24%), radial-gradient(hsl(var(--muted-foreground) / 0.12) 1px, transparent 0)',
+              backgroundSize: '32px 32px',
+            }}
+          >
+            <svg className="absolute inset-0 w-full h-full pointer-events-none">
+              {edges.map((edge, index) => {
+                const from = nodes.find((node) => conceptKey(node.name) === conceptKey(edge.from));
+                const to = nodes.find((node) => conceptKey(node.name) === conceptKey(edge.to));
+                if (!from || !to) return null;
+                const points = edgePoints(from, to);
+                return (
+                  <line
+                    key={`${edge.from}-${edge.to}-${index}`}
+                    x1={`${points.x1}%`}
+                    y1={`${points.y1}%`}
+                    x2={`${points.x2}%`}
+                    y2={`${points.y2}%`}
+                    stroke={edge.type === 'manual' ? 'hsl(var(--accent))' : 'hsl(var(--muted-foreground) / .35)'}
+                    strokeWidth={edge.type === 'manual' ? 4 : 2}
+                    strokeDasharray={edge.type === 'manual' ? '0' : '6 6'}
+                    strokeLinecap="round"
+                    className="transition-all"
+                  />
+                );
+              })}
+            </svg>
 
-          {nodes.map((node) => (
-            <button
-              key={node.name}
-              className="absolute min-w-[140px] -translate-x-1/2 -translate-y-1/2 text-center cursor-grab active:cursor-grabbing"
-              style={{ left: `${node.x}%`, top: `${node.y}%` }}
-              onPointerDown={(event) => {
-                setSelectedName(node.name);
-                setDraggingName(node.name);
-                event.currentTarget.setPointerCapture(event.pointerId);
-              }}
-              onPointerMove={(event) => {
-                if (draggingName === node.name) moveNode(node.name, event.clientX, event.clientY);
-              }}
-              onPointerUp={() => persistNode(node.name)}
-              onPointerCancel={() => setDraggingName(null)}
-            >
-              <Card className={cn('rounded-lg p-3 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all border-accent/20 bg-white/95', selected?.name === node.name && 'ring-2 ring-accent border-accent shadow-2xl')}>
-                <h3 className="font-headline font-semibold text-primary">{node.name}</h3>
-                <div className="mt-1 font-code text-[9px] uppercase text-muted-foreground">{node.count} linked</div>
-              </Card>
-            </button>
-          ))}
+            {nodes.map((node) => (
+              <button
+                key={node.name}
+                className="absolute min-w-[140px] -translate-x-1/2 -translate-y-1/2 text-center cursor-grab active:cursor-grabbing transition-none"
+                style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                  setSelectedName(node.name);
+                  setDraggingName(node.name);
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+                onPointerMove={(event) => {
+                  if (draggingName === node.name) moveNode(node.name, event.clientX, event.clientY);
+                }}
+                onPointerUp={() => persistNode(node.name)}
+                onPointerCancel={() => setDraggingName(null)}
+              >
+                <Card className={cn('rounded-lg p-3 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all border-accent/20 bg-white/95', selectedName === node.name && 'ring-2 ring-accent border-accent shadow-2xl')}>
+                  <h3 className="font-headline font-semibold text-primary">{node.name}</h3>
+                  <div className="mt-1 font-code text-[9px] uppercase text-muted-foreground">{node.count} linked</div>
+                </Card>
+              </button>
+            ))}
+          </div>
 
           {nodes.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center text-center">
@@ -230,50 +268,80 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
             </div>
           )}
         </div>
-      </div>
 
-      {selected && related && (
-        <aside className="w-80 bg-white border border-border rounded-lg shadow-sm z-20 overflow-hidden">
-          <div className="p-5 border-b border-border/50 flex justify-between items-start">
-            <div>
-              <Badge variant="outline" className="mb-2 font-code text-[9px] uppercase tracking-widest">Map Node</Badge>
-              <h2 className="text-2xl font-headline font-bold italic">{selected.name}</h2>
-              {selectedConcept?.description && <p className="text-sm text-muted-foreground mt-2">{selectedConcept.description}</p>}
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => setSelectedName(null)}><X className="size-4" /></Button>
-          </div>
-          <div className="p-5 space-y-5 overflow-y-auto max-h-[calc(100vh-220px)]">
-            <section>
-              <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Branch This Concept</h4>
-              <div className="flex gap-2">
-                <select className="h-9 flex-1 rounded-md border bg-background px-2 text-sm" value={branchTarget} onChange={(event) => setBranchTarget(event.target.value)}>
-                  <option value="">Select concept...</option>
-                  {concepts.filter((concept) => conceptKey(concept.name) !== conceptKey(selected.name)).map((concept) => (
-                    <option key={concept.id} value={concept.name}>{concept.name}</option>
-                  ))}
-                </select>
-                <Button size="sm" onClick={connectBranch}><GitBranch className="size-3 mr-1" /> Connect</Button>
+        {!isFullScreen && (
+          <aside className="w-80 bg-white border border-border rounded-lg shadow-sm z-20 overflow-hidden flex flex-col">
+            {selectedName ? (
+              <>
+                <div className="p-5 border-b border-border/50 flex justify-between items-start">
+                  <div>
+                    <Badge variant="outline" className="mb-2 font-code text-[9px] uppercase tracking-widest text-accent">Map Node</Badge>
+                    <h2 className="text-2xl font-headline font-bold italic">{selectedName}</h2>
+                    {selectedConcept?.description && <p className="text-sm text-muted-foreground mt-2">{selectedConcept.description}</p>}
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedName(null)}><X className="size-4" /></Button>
+                </div>
+                <div className="flex-1 p-5 space-y-6 overflow-y-auto">
+                  <section>
+                    <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Branch This Concept</h4>
+                    <div className="flex gap-2">
+                      <select 
+                        className="h-9 flex-1 rounded-md border bg-background px-2 text-sm focus:ring-1 focus:ring-accent" 
+                        value={branchTarget} 
+                        onChange={(event) => setBranchTarget(event.target.value)}
+                      >
+                        <option value="">Select concept...</option>
+                        {concepts
+                          .filter((concept) => conceptKey(concept.name) !== conceptKey(selectedName))
+                          .map((concept) => (
+                            <option key={concept.id} value={concept.name}>{concept.name}</option>
+                          ))}
+                      </select>
+                      <Button size="sm" onClick={connectBranch}><GitBranch className="size-3 mr-1" /> Connect</Button>
+                    </div>
+                  </section>
+
+                  <section>
+                    <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Evidence And Outputs</h4>
+                    {related ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="bg-muted/30">{related.sources.length} sources</Badge>
+                        <Badge variant="outline" className="bg-muted/30">{related.beliefs.length} claims</Badge>
+                        <Badge variant="outline" className="bg-muted/30">{related.drafts.length} drafts</Badge>
+                        <Badge variant="outline" className="bg-muted/30">{related.questions.length} questions</Badge>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Gathering connections...</p>
+                    )}
+                  </section>
+
+                  {selectedConcept?.links && selectedConcept.links.length > 0 && (
+                    <section>
+                      <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Active Branches</h4>
+                      <div className="space-y-2">
+                        {selectedConcept.links.map(link => (
+                          <div key={link} className="flex items-center justify-between p-2 rounded bg-muted/20 text-sm">
+                            <span className="font-medium">{link}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                              const links = selectedConcept.links.filter(l => l !== link);
+                              onUpdateConcept({ ...selectedConcept, links });
+                            }}><X className="size-3" /></Button>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+                <MapIcon className="size-12 mb-4 opacity-10" />
+                <h3 className="font-headline text-lg italic mb-2">Mental Atlas</h3>
+                <p className="text-sm">Select a concept node on the map to inspect its connections, evidence, and branches.</p>
               </div>
-            </section>
-
-            <section>
-              <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Why Lines Exist</h4>
-              <p className="text-sm text-muted-foreground">{edges.filter((edge) => edge.type === 'manual').length} manual branches and {edges.filter((edge) => edge.type === 'shared').length} shared-evidence links.</p>
-            </section>
-
-            <section>
-              <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Evidence And Outputs</h4>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">{related.sources.length} sources</Badge>
-                <Badge variant="outline">{related.ideas.length} ideas</Badge>
-                <Badge variant="outline">{related.beliefs.length} claims</Badge>
-                <Badge variant="outline">{related.drafts.length} drafts</Badge>
-                <Badge variant="outline">{related.questions.length} questions</Badge>
-              </div>
-            </section>
-          </div>
-        </aside>
-      )}
+            )}
+          </aside>
+        )}
       </div>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -295,3 +363,11 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
     </div>
   );
 }
+
+const MapIcon = ({ className }: { className?: string }) => (
+  <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+    <line x1="9" y1="3" x2="9" y2="18" />
+    <line x1="15" y1="6" x2="15" y2="21" />
+  </svg>
+);
