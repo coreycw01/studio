@@ -169,7 +169,7 @@ export function MediaLibrary({
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <button onClick={() => setSelectedId(null)} className="font-code text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center">
-              + LIBRARY
+              &lt; LIBRARY
             </button>
             <span className="font-code text-[11px] uppercase tracking-widest text-primary/30">/</span>
             <span className="font-code text-[11px] uppercase tracking-widest text-primary/80">
