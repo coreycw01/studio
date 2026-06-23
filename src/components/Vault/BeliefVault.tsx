@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Plus, ShieldCheck, Trash2, Search } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, ShieldCheck, Trash2, Search, Triangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,18 +30,29 @@ interface BeliefVaultProps {
 
 const vaultTypes: VaultType[] = ['belief', 'principle', 'mental_model', 'life_rule', 'worldview'];
 
+const TYPE_LABELS: Record<VaultType, string> = {
+  belief: 'Belief',
+  principle: 'Principle',
+  mental_model: 'Mental Model',
+  life_rule: 'Life Rule',
+  worldview: 'Worldview',
+};
+
 export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUpdateEntry, onDeleteEntry, onAddConcept }: BeliefVaultProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | VaultType>('all');
   const [draftEntry, setDraftEntry] = useState<Partial<VaultEntry>>({ type: 'belief', title: '', statement: '', description: '', confidence: 3, status: 'active', tags: [] });
 
   const selected = entries.find((entry) => entry.id === selectedId) || null;
-  const filteredEntries = entries.filter(e => 
-    !search || 
-    e.title.toLowerCase().includes(search.toLowerCase()) || 
-    e.statement.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredEntries = entries.filter(e => {
+    const typeOk = filter === 'all' || e.type === filter;
+    const queryOk = !search || 
+      e.title.toLowerCase().includes(search.toLowerCase()) || 
+      e.statement.toLowerCase().includes(search.toLowerCase());
+    return typeOk && queryOk;
+  });
 
   const openEditor = (entry?: VaultEntry) => {
     setDraftEntry(entry ? { ...entry } : { type: 'belief', title: '', statement: '', description: '', confidence: 3, status: 'active', tags: [] });
@@ -61,7 +72,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
     return (
       <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-5xl mx-auto w-full font-body">
         <div className="flex items-center justify-between mb-8">
-          <Button variant="ghost" onClick={() => setSelectedId(null)} className="h-8 font-code text-[10px] uppercase tracking-widest"><ArrowLeft className="size-4 mr-2" /> Claims</Button>
+          <Button variant="ghost" onClick={() => setSelectedId(null)} className="h-8 font-code text-[10px] uppercase tracking-widest"><ArrowLeft className="size-4 mr-2" /> Beliefs</Button>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => openEditor(selected)} className="h-8"><Edit className="size-4 mr-2" /> Edit</Button>
             <Button variant="destructive" onClick={() => { onDeleteEntry(selected.id); setSelectedId(null); }} className="h-8"><Trash2 className="size-4 mr-2" /> Delete</Button>
@@ -72,7 +83,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
           <Badge variant="outline" className="mb-3 font-code uppercase">{selected.type.replace('_', ' ')}</Badge>
           <h1 className="font-headline text-4xl font-bold mb-3">{selected.title}</h1>
           <p className="font-body text-lg italic text-primary/80 mb-4">{selected.statement || selected.description}</p>
-          <div className="flex flex-wrap gap-2">{(selected.tags || []).map((tag) => <Badge key={tag}>{tag}</Badge>)}</div>
+          <div className="flex flex-wrap gap-2">{(selected.tags || []).map((tag) => <Badge key={tag} className="font-code text-[9px] uppercase tracking-widest">{tag}</Badge>)}</div>
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -91,33 +102,87 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
     <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-7xl mx-auto w-full font-body">
       <header className="flex justify-between items-center mb-10">
         <div>
-          <h1 className="text-[28px] font-headline font-bold italic text-foreground/80">Claims</h1>
+          <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80 leading-none">Beliefs</h1>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search claims..." className="w-64 pl-9 bg-muted/40 font-code text-[11px] h-9" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search beliefs, principles..." className="w-72 pl-9 bg-muted/40 font-code text-[11px] h-9" />
           </div>
-          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90">
-            <Plus className="size-4 mr-1.5" /> FORM CLAIM
+          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 px-6">
+            <Plus className="size-4 mr-1.5" /> NEW BELIEF
           </Button>
         </div>
       </header>
 
+      <div className="mb-10">
+        <p className="text-xl font-headline italic text-foreground/60 mb-5">Explicit claims, principles, and mental models</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setFilter('all')}
+            className={cn(
+              "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
+              filter === 'all' 
+                ? "bg-accent text-white shadow-sm" 
+                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+          >
+            ALL
+          </button>
+          {vaultTypes.map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilter(type)}
+              className={cn(
+                "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
+                filter === type 
+                  ? "bg-accent text-white shadow-sm" 
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              {TYPE_LABELS[type] === 'Belief' ? 'BELIEFS' : TYPE_LABELS[type].toUpperCase() + 'S'}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredEntries.map((entry) => (
-          <Card key={entry.id} className="group cursor-pointer hover:shadow-xl transition-all border-border/50 bg-white" onClick={() => setSelectedId(entry.id)}>
-            <CardHeader>
-              <Badge variant="secondary" className="w-fit font-code text-[10px] uppercase tracking-wider">{entry.type.replace('_', ' ')}</Badge>
-              <CardTitle className="font-headline text-xl group-hover:text-accent transition-colors mt-2">{entry.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground font-body italic line-clamp-3 mb-5">"{entry.statement || entry.description}"</p>
-              <div className="flex items-center justify-between">
-                <div className="flex gap-1">{[1,2,3,4,5].map((n) => <div key={n} className={cn('size-2 rounded-full', n <= entry.confidence ? 'bg-accent' : 'bg-muted')} />)}</div>
-                <Badge variant="outline" className="font-code text-[9px] uppercase tracking-tighter bg-muted/20 border-transparent">{entry.status}</Badge>
+          <Card 
+            key={entry.id} 
+            className="group cursor-pointer hover:shadow-xl transition-all border-border/50 bg-white p-4 flex gap-4" 
+            onClick={() => setSelectedId(entry.id)}
+          >
+            <div className="size-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/50">
+              <Triangle className="size-4 fill-current rotate-180" />
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <div className="readex-kicker opacity-50 mb-1">{TYPE_LABELS[entry.type]}</div>
+              <h3 className="font-headline text-lg font-bold italic leading-tight group-hover:text-accent transition-colors truncate">
+                {entry.title}
+              </h3>
+              
+              <div className="flex items-center gap-3 mt-4">
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <div 
+                      key={n} 
+                      className={cn(
+                        'size-1.5 rounded-full', 
+                        n <= entry.confidence ? 'bg-accent' : 'bg-muted'
+                      )} 
+                    />
+                  ))}
+                </div>
+                <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-tighter px-2 py-0 bg-emerald-100/40 text-emerald-700 border-emerald-200/50">
+                  {entry.status}
+                </Badge>
+                <div className="font-code text-[9px] text-muted-foreground/60">
+                  {(entry.sourceIds || []).length} source{(entry.sourceIds || []).length !== 1 && 's'}
+                </div>
               </div>
-            </CardContent>
+            </div>
           </Card>
         ))}
         {filteredEntries.length === 0 && (

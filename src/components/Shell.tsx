@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -43,7 +44,7 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
     { id: 'concepts', label: 'Concepts', icon: BookOpen, section: 'Mind', count: counts.concepts },
     { id: 'questions', label: 'Inquiries', icon: HelpCircle, section: 'Mind', count: counts.questions },
     { id: 'library', label: 'Sources', icon: Library, section: 'Inputs', count: counts.media },
-    { id: 'vault', label: 'Claims', icon: ShieldCheck, section: 'Outputs', count: counts.vault },
+    { id: 'vault', label: 'Beliefs', icon: ShieldCheck, section: 'Outputs', count: counts.vault },
     { id: 'writing', label: 'Writing', icon: PenTool, section: 'Outputs', count: counts.drafts },
     { id: 'evolution', label: 'Evolution', icon: History, section: 'Outputs', count: counts.timeline },
   ];
