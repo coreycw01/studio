@@ -1,9 +1,11 @@
+
 "use client";
 
 import React from 'react';
 import { BookOpen, HelpCircle, History, Library, Map as MapIcon, PenTool, Settings, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { GoalSettings, MediaType } from '@/lib/types';
 import { MEDIA_LABELS } from '@/lib/readex';
 
@@ -53,25 +55,28 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
           </div>
           <p className="font-code text-[9px] uppercase tracking-[0.14em] text-sidebar-foreground/30 font-medium">Turn thought into understanding.</p>
 
-          <button onClick={onEditGoal} className="mt-4 w-full rounded border border-white/10 bg-white/[0.05] p-3 text-left transition-colors hover:border-white/20 hover:bg-white/[0.075]">
+          <div className="mt-4 w-full rounded border border-white/10 bg-white/[0.05] p-3 text-left transition-colors hover:border-white/20 hover:bg-white/[0.075] cursor-pointer" onClick={onEditGoal}>
             <div className="flex justify-between items-end mb-2">
               <span className="font-code text-[10px] uppercase tracking-wider text-sidebar-foreground/60">Source Goals</span>
               <span className="font-code text-[10px] text-white/70">By Type</span>
             </div>
             <p className="font-code text-[9px] uppercase tracking-wider text-sidebar-foreground/45 mb-2">{goal.label}</p>
             <Progress value={totalProgress} className="h-1 bg-white/10 mb-3" />
-            <div className="space-y-1.5">
-              {goalRows.length ? goalRows.map((row) => (
-                <div key={row.type} className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-1 font-code text-[9px] uppercase tracking-wider text-sidebar-foreground/45">
-                  <span>{MEDIA_LABELS[row.type]}</span>
-                  <span className="text-white/70">{row.done} / {row.target}</span>
-                  <Progress value={(row.done / Math.max(1, row.target)) * 100} className="col-span-2 h-0.5 bg-white/10" />
-                </div>
-              )) : (
-                <div className="font-code text-[9px] uppercase text-sidebar-foreground/45">No media goals selected</div>
-              )}
-            </div>
-          </button>
+            
+            <ScrollArea className={cn("pr-2", goalRows.length > 4 ? "h-[120px]" : "h-auto")}>
+              <div className="space-y-2">
+                {goalRows.length ? goalRows.map((row) => (
+                  <div key={row.type} className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-1 font-code text-[9px] uppercase tracking-wider text-sidebar-foreground/45">
+                    <span>{MEDIA_LABELS[row.type]}</span>
+                    <span className="text-white/70">{row.done} / {row.target}</span>
+                    <Progress value={(row.done / Math.max(1, row.target)) * 100} className="col-span-2 h-0.5 bg-white/10" />
+                  </div>
+                )) : (
+                  <div className="font-code text-[9px] uppercase text-sidebar-foreground/45">No media goals selected</div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-4 scrollbar-hide">
