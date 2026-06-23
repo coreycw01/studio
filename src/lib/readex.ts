@@ -1,4 +1,5 @@
 import type { Concept, Draft, Insight, Media, MediaType, Question, QuestionStatus, TimelineEvent, VaultEntry } from './types';
+import { Book, Headphones, Mic, Play, Film, FileText, GraduationCap, School, Clapperboard, MessageSquare, Users, File, Paperclip } from 'lucide-react';
 
 export const UNSORTED_CONCEPT = 'Unsorted Ideas';
 
@@ -20,20 +21,20 @@ export const MEDIA_LABELS: Record<MediaType, string> = {
   other: 'Other',
 };
 
-export const MEDIA_ICONS: Record<MediaType, string> = {
-  book: 'Book',
-  audiobook: 'Audio',
-  podcast: 'Mic',
-  video: 'Video',
-  movie: 'Film',
-  article: 'File',
-  course: 'Course',
-  lecture: 'Lecture',
-  documentary: 'Film',
-  interview: 'Chat',
-  conversation: 'Talk',
-  paper: 'Paper',
-  other: 'Other',
+export const MEDIA_ICONS_COMP: Record<MediaType, any> = {
+  book: Book,
+  audiobook: Headphones,
+  podcast: Mic,
+  video: Play,
+  movie: Film,
+  article: FileText,
+  course: GraduationCap,
+  lecture: School,
+  documentary: Clapperboard,
+  interview: MessageSquare,
+  conversation: Users,
+  paper: File,
+  other: Paperclip,
 };
 
 export const DRAFT_LABELS = {

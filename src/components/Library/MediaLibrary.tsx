@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import type { Annotation, Concept, Media, MediaStatus, MediaType, VaultEntry } from '@/lib/types';
-import { MEDIA_LABELS, MEDIA_TYPES, normalizeConceptTags, today, uid } from '@/lib/readex';
+import { MEDIA_LABELS, MEDIA_TYPES, MEDIA_ICONS_COMP, normalizeConceptTags, today, uid, conceptKey } from '@/lib/readex';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 interface MediaLibraryProps {
   media: Media[];
@@ -29,7 +30,7 @@ const statuses: MediaStatus[] = ['Want to Read', 'Consuming', 'Finished', 'Pause
 
 export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia, onDeleteMedia, onAddConcept }: MediaLibraryProps) {
   const [filter, setFilter] = useState<MediaType | 'all'>('all');
-  const [search, setSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState<Partial<Media>>({ type: 'book', title: '', creator: '', status: 'Want to Read', tags: [] });
@@ -39,8 +40,8 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
   const filtered = useMemo(() => media.filter((item) => {
     const typeOk = filter === 'all' || item.type === filter;
     const query = `${item.title} ${item.creator} ${(item.tags || []).join(' ')}`.toLowerCase();
-    return typeOk && (!search || query.includes(search.toLowerCase()));
-  }), [filter, media, search]);
+    return typeOk && (!searchQuery || query.includes(searchQuery.toLowerCase()));
+  }), [filter, media, searchQuery]);
 
   const openEditor = (item?: Media) => {
     setDraft(item ? { ...item } : { type: 'book', title: '', creator: '', status: 'Want to Read', tags: [] });
@@ -171,7 +172,7 @@ export function MediaLibrary({ media, concepts, vault, onAddMedia, onUpdateMedia
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title, author, tags..." className="w-72 pl-9 bg-muted/40 font-code text-[11px] h-9" />
+            <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search title, author, tags..." className="w-72 pl-9 bg-muted/40 font-code text-[11px] h-9" />
           </div>
           <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90">
             <Plus className="size-4 mr-1.5" /> ADD MEDIA
@@ -273,43 +274,157 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   setDraft: React.Dispatch<React.SetStateAction<Partial<Media>>>;
   onSave: () => void;
 }) {
+  const [tagInput, setTagInput] = useState('');
+
+  const addTag = () => {
+    if (!tagInput.trim()) return;
+    const next = normalizeConceptTags([...(draft.tags || []), tagInput]);
+    setDraft(prev => ({ ...prev, tags: next }));
+    setTagInput('');
+  };
+
+  const removeTag = (tag: string) => {
+    const next = normalizeConceptTags((draft.tags || []).filter(t => conceptKey(t) !== conceptKey(tag)));
+    setDraft(prev => ({ ...prev, tags: next }));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader><DialogTitle className="font-headline text-2xl italic">{draft.id ? 'Edit Source Metadata' : 'New Source Record'}</DialogTitle></DialogHeader>
-        <div className="space-y-6 pt-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="readex-kicker">Media Title</Label>
-              <Input value={draft.title || ''} onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))} className="font-body italic text-lg" />
+      <DialogContent className="max-w-3xl p-0 overflow-hidden border-none rounded-2xl shadow-2xl bg-white font-body">
+        <div className="p-8">
+          <DialogHeader className="mb-8">
+            <DialogTitle className="text-4xl font-headline italic mb-2">Add to Library</DialogTitle>
+            <p className="text-muted-foreground text-[15px] font-body">Books and videos: search or paste URL. Other types: enter manually.</p>
+          </DialogHeader>
+
+          <div className="space-y-8">
+            <section>
+              <Label className="readex-kicker block mb-4">TYPE</Label>
+              <div className="flex flex-wrap gap-2">
+                {MEDIA_TYPES.map((type) => {
+                  const Icon = MEDIA_ICONS_COMP[type];
+                  const isActive = draft.type === type;
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => setDraft(prev => ({ ...prev, type }))}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all font-code text-[10px] font-bold uppercase tracking-widest",
+                        isActive 
+                          ? "bg-accent text-white border-accent shadow-md" 
+                          : "bg-white text-muted-foreground border-border hover:border-accent hover:text-accent"
+                      )}
+                    >
+                      <Icon className="size-3.5" />
+                      {MEDIA_LABELS[type]}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section>
+              <Label className="readex-kicker block mb-4 uppercase">SEARCH {MEDIA_LABELS[draft.type || 'book']?.toUpperCase()}S</Label>
+              <div className="flex gap-2">
+                <Input placeholder="Title or author..." className="h-12 flex-1 text-base font-body border-border/60 bg-white shadow-sm" />
+                <Button className="h-12 px-8 bg-accent font-code text-xs font-bold uppercase tracking-[0.14em]">SEARCH</Button>
+              </div>
+            </section>
+
+            <div className="relative flex items-center py-4">
+              <div className="flex-grow border-t border-border/40"></div>
+              <span className="flex-shrink mx-4 font-code text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40">DETAILS</span>
+              <div className="flex-grow border-t border-border/40"></div>
             </div>
-            <div className="space-y-2">
-              <Label className="readex-kicker">Creator / Author</Label>
-              <Input value={draft.creator || ''} onChange={(event) => setDraft((prev) => ({ ...prev, creator: event.target.value }))} className="font-code text-xs uppercase" />
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label className="readex-kicker uppercase opacity-50">TITLE</Label>
+                <Input 
+                  value={draft.title || ''} 
+                  onChange={(e) => setDraft(prev => ({ ...prev, title: e.target.value }))}
+                  className="h-12 text-base font-body border-border/60"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="readex-kicker uppercase opacity-50">AUTHOR</Label>
+                <Input 
+                  value={draft.creator || ''} 
+                  onChange={(e) => setDraft(prev => ({ ...prev, creator: e.target.value }))}
+                  className="h-12 text-base font-body border-border/60"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="readex-kicker uppercase opacity-50">YEAR</Label>
+                  <Input 
+                    value={draft.year || ''} 
+                    onChange={(e) => setDraft(prev => ({ ...prev, year: e.target.value }))}
+                    className="h-12 text-base font-body border-border/60"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="readex-kicker uppercase opacity-50">GENRE / TOPIC</Label>
+                  <Input 
+                    value={draft.genre || ''} 
+                    onChange={(e) => setDraft(prev => ({ ...prev, genre: e.target.value }))}
+                    className="h-12 text-base font-body border-border/60"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="readex-kicker uppercase opacity-50">CONCEPT TAGS</Label>
+                <div className="flex flex-wrap gap-2">
+                  {(draft.tags || []).map(tag => (
+                    <Badge key={tag} variant="secondary" className="px-3 py-1 font-code text-[10px] uppercase tracking-wider rounded-md border-border bg-muted/30">
+                      {tag}
+                      <button onClick={() => removeTag(tag)} className="ml-2 hover:text-destructive"><X className="size-3" /></button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="New concept tag..." 
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addTag()}
+                    className="h-12 flex-1 text-base font-body border-border/60"
+                  />
+                  <Button variant="outline" onClick={addTag} className="h-12 font-code text-xs font-bold uppercase tracking-widest">ADD</Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="readex-kicker uppercase opacity-50">NOTES</Label>
+                <Textarea 
+                  placeholder="Quick notes about why you added this..."
+                  value={draft.description || ''}
+                  onChange={(e) => setDraft(prev => ({ ...prev, description: e.target.value }))}
+                  className="min-h-[120px] text-base font-body border-border/60 resize-none p-4"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="readex-kicker uppercase opacity-50">STATUS</Label>
+                <select 
+                  value={draft.status || 'Want to Read'}
+                  onChange={(e) => setDraft(prev => ({ ...prev, status: e.target.value as MediaStatus }))}
+                  className="w-full h-14 rounded-md border border-border/60 bg-white px-4 text-base font-body appearance-none focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  {statuses.map(status => <option key={status} value={status}>{status}</option>)}
+                </select>
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="readex-kicker">Media Type</Label>
-              <Select value={draft.type || 'book'} onValueChange={(value) => setDraft((prev) => ({ ...prev, type: value as MediaType }))}>
-                <SelectTrigger className="font-code text-[10px] uppercase h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>{MEDIA_TYPES.map((type) => <SelectItem key={type} value={type} className="font-code text-[10px] uppercase">{MEDIA_LABELS[type]}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="readex-kicker">Consumption Status</Label>
-              <Select value={draft.status || 'Want to Read'} onValueChange={(value) => setDraft((prev) => ({ ...prev, status: value as MediaStatus }))}>
-                <SelectTrigger className="font-code text-[10px] uppercase h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>{statuses.map((status) => <SelectItem key={status} value={status} className="font-code text-[10px] uppercase">{status}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="readex-kicker">Thumbnail / Cover URL</Label>
-            <Input value={draft.thumbnailUrl || ''} onChange={(event) => setDraft((prev) => ({ ...prev, thumbnailUrl: event.target.value }))} placeholder="https://..." className="font-code text-[10px]" />
           </div>
         </div>
-        <DialogFooter className="pt-4"><Button onClick={onSave} className="w-full">Archive Source Metadata</Button></DialogFooter>
+
+        <div className="p-8 pt-4 bg-muted/10 border-t flex justify-end gap-3">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="h-12 px-8 font-code text-xs font-bold uppercase tracking-widest text-muted-foreground hover:bg-transparent">CANCEL</Button>
+          <Button onClick={onSave} className="h-12 px-10 bg-accent font-code text-xs font-bold uppercase tracking-widest shadow-lg shadow-accent/20">ADD TO LIBRARY</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
