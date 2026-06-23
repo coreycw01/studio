@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo, useState } from 'react';
@@ -51,7 +50,9 @@ export function ConceptTagPicker({ concepts, value, onChange, onCreateConcept, c
   const addNew = () => {
     const name = conceptKey(search);
     if (!name || allConceptNames.includes(name)) return;
-    onCreateConcept?.(name);
+    if (onCreateConcept) {
+      onCreateConcept(name);
+    }
     toggle(name);
     setSearch('');
   };
@@ -65,7 +66,7 @@ export function ConceptTagPicker({ concepts, value, onChange, onCreateConcept, c
           className="flex items-center gap-1 font-code text-[10px] uppercase tracking-wider py-0.5"
         >
           {tag}
-          <button onClick={() => toggle(tag)} className="hover:text-destructive transition-colors">
+          <button onClick={(e) => { e.preventDefault(); toggle(tag); }} className="hover:text-destructive transition-colors">
             <X className="size-2.5" />
           </button>
         </Badge>
@@ -125,7 +126,7 @@ export function ConceptTagPicker({ concepts, value, onChange, onCreateConcept, c
               {search && !allConceptNames.includes(conceptKey(search)) && (
                 <button
                   onClick={addNew}
-                  className="w-full flex items-center gap-2 p-2 rounded-sm text-left hover:bg-accent/10 text-accent transition-colors"
+                  className="w-full flex items-center gap-2 p-2 rounded-sm text-left hover:bg-accent/10 text-accent transition-colors border-t border-border mt-1"
                 >
                   <Plus className="size-3" />
                   <span className="font-code text-[10px] uppercase tracking-wider">Create "{search}"</span>

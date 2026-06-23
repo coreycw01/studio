@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -250,6 +249,8 @@ function ReadexApp() {
   }, {} as Record<MediaType, number>);
 
   const renderContent = () => {
+    const commonOnAddConcept = (name: string) => addConcept({ name, description: '', createdFrom: 'tag' });
+    
     switch (view) {
       case 'atlas':
         return <ConceptAtlas concepts={concepts} media={media} insights={insights} vault={vault} drafts={drafts} questions={questions} timeline={timeline} onAddConcept={addConcept} onUpdateConcept={updateConcept} />;
@@ -270,7 +271,7 @@ function ReadexApp() {
           />
         );
       case 'library':
-        return <MediaLibrary media={media} concepts={concepts} vault={vault} onAddMedia={addMedia} onUpdateMedia={updateMedia} onDeleteMedia={deleteMedia} onAddConcept={addConcept} />;
+        return <MediaLibrary media={media} concepts={concepts} vault={vault} onAddMedia={addMedia} onUpdateMedia={updateMedia} onDeleteMedia={deleteMedia} onAddConcept={commonOnAddConcept} />;
       case 'vault':
         return (
           <BeliefVault 
@@ -281,13 +282,13 @@ function ReadexApp() {
             onAddEntry={addVaultEntry} 
             onUpdateEntry={updateVaultEntry} 
             onDeleteEntry={deleteVaultEntry} 
-            onAddConcept={addConcept} 
+            onAddConcept={commonOnAddConcept} 
           />
         );
       case 'questions':
         return <QuestionsWorkspace questions={questions} media={media} vault={vault} drafts={drafts} concepts={concepts} onAddQuestion={addQuestion} onUpdateQuestion={updateQuestion} />;
       case 'writing':
-        return <Atelier drafts={drafts} media={media} vault={vault} questions={questions} concepts={concepts} onAddDraft={addDraft} onUpdateDraft={updateDraft} onDeleteDraft={deleteDraft} onAddConcept={addConcept} />;
+        return <Atelier drafts={drafts} media={media} vault={vault} questions={questions} concepts={concepts} onAddDraft={addDraft} onUpdateDraft={updateDraft} onDeleteDraft={deleteDraft} onAddConcept={commonOnAddConcept} />;
       case 'evolution':
         return <EvolutionTimeline events={timeline} />;
       default:
