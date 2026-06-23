@@ -197,6 +197,23 @@ export function ConceptAtlas({
     return families.size;
   }, [edges]);
 
+  const availableNodeTerms = useMemo(() => {
+    const existingNames = new Set(nodes.map(n => conceptKey(n.name)));
+    return terms.filter(t => !existingNames.has(conceptKey(t)));
+  }, [nodes, terms]);
+
+  const selectedMapLinks = useMemo(() => {
+    if (!selectedName || mode !== 'custom' || !activeMap) return [];
+    const key = conceptKey(selectedName);
+    return (activeMap.manualLinks || []).filter(l => conceptKey(l.from) === key || conceptKey(l.to) === key);
+  }, [selectedName, mode, activeMap]);
+
+  const linkTargets = useMemo(() => {
+    if (!selectedName) return [];
+    const key = conceptKey(selectedName);
+    return visibleTerms.filter(t => conceptKey(t) !== key);
+  }, [selectedName, visibleTerms]);
+
   const addConcept = () => {
     if (!newConcept.name?.trim()) return;
     onAddConcept({ ...newConcept, name: conceptKey(newConcept.name), createdFrom: 'manual' });
@@ -294,16 +311,6 @@ export function ConceptAtlas({
     if (!selectedConcept) return;
     const links = (selectedConcept.links || []).filter((link) => conceptKey(link) !== conceptKey(targetName));
     onUpdateConcept({ ...selectedConcept, links, dateUpdated: today() });
-  };
-
-  const toggleFilter = (key: keyof AtlasAutoLinkFilters) => {
-    if (!activeMap) return;
-    updateActiveMap({
-      autoLinkFilters: {
-        ...(activeMap.autoLinkFilters || defaultAutoLinkFilters),
-        [key]: !(activeMap.autoLinkFilters || defaultAutoLinkFilters)[key],
-      },
-    });
   };
 
   const startPanning = (event: React.MouseEvent | React.PointerEvent) => {
