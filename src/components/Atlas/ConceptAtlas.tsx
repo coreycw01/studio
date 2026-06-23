@@ -63,10 +63,6 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
     });
   }, [concepts, drafts, draftPositions, insights, media, search, terms, vault]);
 
-  const selectedNode = nodes.find((node) => conceptKey(node.name) === conceptKey(selectedName || ''));
-  const selectedConcept = selectedNode?.concept;
-  const related = selectedName ? conceptRelated(selectedName, { media, insights, vault, drafts, questions, timeline }) : null;
-
   const edges = useMemo(() => {
     const result: { from: string; to: string; type: 'manual' | 'shared'; label: string }[] = [];
     concepts.forEach((concept) => (concept.links || []).forEach((link) => {
@@ -102,7 +98,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
     if (draggingName) return;
     setIsPanning(true);
     setLastMousePos({ x: event.clientX, y: event.clientY });
-    setSelectedName(null); // Clear selected node on background click
+    setSelectedName(null);
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
@@ -121,7 +117,6 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
   const moveNode = (name: string, clientX: number, clientY: number) => {
     const rect = mapRef.current?.getBoundingClientRect();
     if (!rect) return;
-    // Account for pan and zoom when calculating new position
     const x = Math.min(94, Math.max(6, ((clientX - rect.left - pan.x) / (rect.width * zoom)) * 100));
     const y = Math.min(92, Math.max(8, ((clientY - rect.top - pan.y) / (rect.height * zoom)) * 100));
     setDraftPositions((prev) => ({ ...prev, [conceptKey(name)]: { x, y } }));
@@ -152,23 +147,26 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
     };
   };
 
-  const atlasCards = [
-    { label: 'Map Nodes', value: nodes.length, sub: 'Visible concepts' },
-    { label: 'Branches', value: edges.filter((edge) => edge.type === 'manual').length, sub: 'Manual links' },
-    { label: 'Shared Lines', value: edges.filter((edge) => edge.type === 'shared').length, sub: 'Auto links' },
-    { label: 'Active', value: selectedName || 'None', sub: 'Selected concept' },
+  const selectedNode = nodes.find((node) => conceptKey(node.name) === conceptKey(selectedName || ''));
+  const selectedConcept = selectedNode?.concept;
+  const related = selectedName ? conceptRelated(selectedName, { media, insights, vault, drafts, questions, timeline }) : null;
+
+  const atlasStats = [
+    { label: 'Nodes', value: nodes.length },
+    { label: 'Manual', value: edges.filter((edge) => edge.type === 'manual').length },
+    { label: 'Auto', value: edges.filter((edge) => edge.type === 'shared').length },
+    { label: 'Active', value: selectedName || 'None' },
   ];
 
   return (
     <div className="relative w-full h-full bg-background flex flex-col overflow-hidden">
-      <div className="px-6 pt-6 pb-4">
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-          {atlasCards.map((card) => (
-            <Card key={card.label} className="readex-header-card">
-              <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground">{card.label}</div>
-              <div className="mt-2 font-headline text-2xl font-bold italic truncate">{card.value}</div>
-              <p className="mt-1 text-xs text-muted-foreground">{card.sub}</p>
-            </Card>
+      <div className="px-6 pt-4 pb-2">
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+          {atlasStats.map((stat) => (
+            <div key={stat.label} className="flex items-center gap-3 bg-white border border-border rounded-md px-3 py-1.5 shadow-sm whitespace-nowrap">
+              <div className="font-code text-[8px] uppercase tracking-widest text-muted-foreground/60">{stat.label}</div>
+              <div className="font-headline text-lg font-bold italic text-primary">{stat.value}</div>
+            </div>
           ))}
         </div>
       </div>
@@ -185,7 +183,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
             <Button variant="ghost" size="icon" onClick={() => setZoom((z) => Math.min(2.0, z + 0.1))} className="font-bold text-lg">+</Button>
             <div className="w-px bg-border mx-1 my-1" />
             <Button variant="ghost" size="icon" onClick={() => setIsFullScreen(!isFullScreen)}>
-              {isFullScreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
+              {isFullScreen ? <Maximize className="size-4" /> : <Minimize className="size-4" />}
             </Button>
           </div>
           <Button onClick={() => setIsAddOpen(true)} className="shadow-lg"><Plus className="size-4 mr-2" /> Concept</Button>
@@ -195,7 +193,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
       <div className="flex-1 overflow-hidden flex px-6 pb-6 gap-4">
         <div 
           ref={mapRef}
-          className="flex-1 overflow-hidden relative transition-transform duration-200 rounded-lg border border-border bg-muted/5 cursor-grab active:cursor-grabbing"
+          className="flex-1 overflow-hidden relative rounded-lg border border-border bg-muted/5 cursor-grab active:cursor-grabbing"
           onMouseDown={startPanning}
           onMouseMove={handleMouseMove}
           onMouseUp={stopPanning}
@@ -252,7 +250,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
               >
                 <Card className={cn('rounded-lg p-3 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all border-accent/20 bg-white/95', selectedName === node.name && 'ring-2 ring-accent border-accent shadow-2xl')}>
                   <h3 className="font-headline font-semibold text-primary">{node.name}</h3>
-                  <div className="mt-1 font-code text-[9px] uppercase text-muted-foreground">{node.count} linked</div>
+                  <div className="font-code text-[9px] uppercase text-muted-foreground">{node.count} linked</div>
                 </Card>
               </button>
             ))}
@@ -270,7 +268,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
         </div>
 
         {!isFullScreen && (
-          <aside className="w-80 bg-white border border-border rounded-lg shadow-sm z-20 overflow-hidden flex flex-col">
+          <aside className="w-80 bg-white border border-border rounded-lg shadow-sm z-20 overflow-hidden flex flex-col shrink-0">
             {selectedName ? (
               <>
                 <div className="p-5 border-b border-border/50 flex justify-between items-start">
@@ -314,23 +312,6 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
                       <p className="text-xs text-muted-foreground italic">Gathering connections...</p>
                     )}
                   </section>
-
-                  {selectedConcept?.links && selectedConcept.links.length > 0 && (
-                    <section>
-                      <h4 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Active Branches</h4>
-                      <div className="space-y-2">
-                        {selectedConcept.links.map(link => (
-                          <div key={link} className="flex items-center justify-between p-2 rounded bg-muted/20 text-sm">
-                            <span className="font-medium">{link}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
-                              const links = selectedConcept.links.filter(l => l !== link);
-                              onUpdateConcept({ ...selectedConcept, links });
-                            }}><X className="size-3" /></Button>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
                 </div>
               </>
             ) : (

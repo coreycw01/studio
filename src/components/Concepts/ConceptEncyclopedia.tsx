@@ -45,17 +45,17 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
   const filteredTerms = useMemo(() => {
     return allTerms.filter((name) => {
       const isUnsorted = conceptKey(name) === conceptKey(UNSORTED_CONCEPT);
-      // Unsorted Ideas always goes to "ideas" mode
-      if (mode === 'concepts' && isUnsorted) return false;
-      if (mode === 'ideas' && !isUnsorted) {
-        // Only show items that have associated vault entries (claims) or insights (ideas)
+      
+      if (mode === 'concepts') {
+        if (isUnsorted) return false;
+        // Formal concepts must have a recorded document
+        const conceptDoc = concepts.find(c => conceptKey(c.name) === conceptKey(name));
+        if (!conceptDoc) return false;
+      } else {
+        // Ideas mode: show Unsorted Ideas or anything with linked ideas/beliefs
+        if (isUnsorted) return true;
         const related = conceptRelated(name, { media, insights, vault, drafts, questions, timeline });
         if (related.beliefs.length === 0 && related.ideas.length === 0) return false;
-      }
-      if (mode === 'concepts' && !isUnsorted) {
-        // Show formal concepts
-        const conceptDoc = concepts.find(c => conceptKey(c.name) === conceptKey(name));
-        if (!conceptDoc && !isUnsorted) return false;
       }
 
       const related = conceptRelated(name, { media, insights, vault, drafts, questions, timeline });
@@ -95,7 +95,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-7 max-w-7xl mx-auto w-full">
+    <div className="flex-1 overflow-y-auto p-7 max-w-7xl mx-auto w-full font-body">
       <header className="flex flex-col gap-4 mb-7 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-[28px] font-headline font-semibold mb-2 italic">Encyclopedia</h1>
@@ -143,26 +143,28 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         {filteredTerms.map((name) => {
           const related = conceptRelated(name, { media, insights, vault, drafts, questions, timeline });
           const concept = concepts.find((item) => conceptKey(item.name) === conceptKey(name));
+          const isUnsorted = conceptKey(name) === conceptKey(UNSORTED_CONCEPT);
+          
           return (
             <Card key={name} className="rounded-lg p-4 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all border-border/50 group" onClick={() => setSelectedName(name)}>
               <div className="flex items-start gap-3">
                 <div className={cn(
                   "size-9 rounded-md flex items-center justify-center transition-colors",
-                  mode === 'ideas' || conceptKey(name) === conceptKey(UNSORTED_CONCEPT) ? "bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
+                  mode === 'ideas' || isUnsorted ? "bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
                 )}>
-                  {mode === 'ideas' || conceptKey(name) === conceptKey(UNSORTED_CONCEPT) ? <Lightbulb className="size-4" /> : <BookOpen className="size-4" />}
+                  {mode === 'ideas' || isUnsorted ? <Lightbulb className="size-4" /> : <BookOpen className="size-4" />}
                 </div>
                 <div className="flex-1">
                   <div className="flex gap-2 items-start">
                     <h3 className="font-headline text-xl font-bold flex-1 group-hover:text-accent transition-colors">{name}</h3>
-                    {concept && concept.name !== UNSORTED_CONCEPT && (
+                    {concept && !isUnsorted && (
                       <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(event) => { event.stopPropagation(); openEditor(concept); }}>
                         <Edit className="size-3" />
                       </Button>
                     )}
                   </div>
                   <p className="text-[13px] leading-6 text-muted-foreground font-body mt-1 line-clamp-2 italic">
-                    {concept?.description || 'Inspect linked sources, claims, writing, and inquiries.'}
+                    {concept?.description || (isUnsorted ? 'Catch-all for nascent thoughts and untagged observations.' : 'Inspect linked sources, claims, writing, and inquiries.')}
                   </p>
                 </div>
               </div>
@@ -251,10 +253,10 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
 
 function Stat({ value, label, sub }: { value: number; label: string; sub: string }) {
   return (
-    <Card className="readex-header-card">
+    <Card className="readex-header-card min-h-24">
       <div className="font-code text-[9px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="mt-2 text-3xl font-headline font-bold text-accent">{value}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{sub}</div>
+      <div className="mt-2 text-2xl font-headline font-bold text-accent">{value}</div>
+      <div className="mt-1 text-[10px] text-muted-foreground">{sub}</div>
     </Card>
   );
 }
