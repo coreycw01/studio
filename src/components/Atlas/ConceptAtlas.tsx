@@ -176,16 +176,7 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input placeholder="Search map..." value={search} onChange={(event) => setSearch(event.target.value)} className="w-64 pl-9 bg-white/80 backdrop-blur border-border/50 font-body italic h-9" />
-          </div>
-          <div className="flex bg-white/80 backdrop-blur rounded-md border border-border/50 p-1 shadow-sm h-9">
-            <Button variant="ghost" size="icon" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} className="font-bold h-7 w-7">-</Button>
-            <div className="w-10 flex items-center justify-center font-code text-[10px] font-bold text-primary/60">{Math.round(zoom * 100)}%</div>
-            <Button variant="ghost" size="icon" onClick={() => setZoom((z) => Math.min(2.0, z + 0.1))} className="font-bold h-7 w-7">+</Button>
-            <div className="w-px bg-border mx-1 my-1" />
-            <Button variant="ghost" size="icon" onClick={() => setIsFullScreen(!isFullScreen)} className="h-7 w-7">
-              {isFullScreen ? <Maximize className="size-3.5" /> : <Minimize className="size-3.5" />}
-            </Button>
+            <Input placeholder="Search map..." value={search} onChange={(event) => setSearch(event.target.value)} className="w-64 pl-9 bg-muted/40 font-code text-[11px] h-9" />
           </div>
           <Button onClick={() => setIsAddOpen(true)} size="sm" className="bg-accent hover:bg-accent/90">
             <Plus className="size-4 mr-1.5" /> NEW CONCEPT
@@ -211,6 +202,17 @@ export function ConceptAtlas({ concepts, media, insights, vault, drafts, questio
           onMouseUp={stopPanning}
           onMouseLeave={stopPanning}
         >
+          {/* Map Controls Overlay */}
+          <div className="absolute top-4 right-4 z-30 flex bg-white/90 backdrop-blur rounded-md border border-border/50 p-1 shadow-md h-9">
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.max(0.5, z - 0.1)) }} className="font-bold h-7 w-7">-</Button>
+            <div className="w-10 flex items-center justify-center font-code text-[10px] font-bold text-primary/60">{Math.round(zoom * 100)}%</div>
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(2.0, z + 0.1)) }} className="font-bold h-7 w-7">+</Button>
+            <div className="w-px bg-border mx-1 my-1" />
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setIsFullScreen(!isFullScreen) }} className="h-7 w-7">
+              {isFullScreen ? <Maximize className="size-3.5" /> : <Minimize className="size-3.5" />}
+            </Button>
+          </div>
+
           <div
             className="w-full h-full absolute inset-0"
             style={{
