@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -74,16 +73,16 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
         <div className="flex items-center justify-between mb-8">
           <Button variant="ghost" onClick={() => setSelectedId(null)} className="h-8 font-code text-[10px] uppercase tracking-widest"><ArrowLeft className="size-4 mr-2" /> Positions</Button>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => openEditor(selected)} className="h-8"><Edit className="size-4 mr-2" /> Edit</Button>
-            <Button variant="destructive" onClick={() => { onDeleteEntry(selected.id); setSelectedId(null); }} className="h-8"><Trash2 className="size-4 mr-2" /> Delete</Button>
+            <Button variant="outline" onClick={() => openEditor(selected)} className="h-8 bg-white border-border/60 shadow-sm"><Edit className="size-4 mr-2" /> Edit</Button>
+            <Button variant="destructive" onClick={() => { onDeleteEntry(selected.id); setSelectedId(null); }} className="h-8 shadow-sm"><Trash2 className="size-4 mr-2" /> Delete</Button>
           </div>
         </div>
 
-        <Card className="p-6 mb-6">
-          <Badge variant="outline" className="mb-3 font-code uppercase">{selected.type.replace('_', ' ')}</Badge>
+        <Card className="p-6 mb-6 bg-white border-border/50 shadow-sm">
+          <Badge variant="outline" className="mb-3 font-code uppercase bg-white border-border/60 shadow-sm">{selected.type.replace('_', ' ')}</Badge>
           <h1 className="font-headline text-4xl font-bold mb-3">{selected.title}</h1>
           <p className="font-body text-lg italic text-primary/80 mb-4">{selected.statement || selected.description}</p>
-          <div className="flex flex-wrap gap-2">{(selected.tags || []).map((tag) => <Badge key={tag} className="font-code text-[9px] uppercase tracking-widest">{tag}</Badge>)}</div>
+          <div className="flex flex-wrap gap-2">{(selected.tags || []).map((tag) => <Badge key={tag} className="font-code text-[9px] uppercase tracking-widest bg-white border-border/60 shadow-sm">{tag}</Badge>)}</div>
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -108,9 +107,9 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search positions, principles..." className="w-72 pl-9 bg-muted/40 font-code text-[11px] h-9" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search positions, principles..." className="w-72 pl-9 h-9" />
           </div>
-          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 px-6">
+          <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 px-6 shadow-md shadow-accent/20">
             <Plus className="size-4 mr-1.5" /> NEW BELIEF
           </Button>
         </div>
@@ -125,7 +124,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
               "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all",
               filter === 'all' 
                 ? "bg-accent text-white shadow-sm" 
-                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
             )}
           >
             ALL
@@ -138,7 +137,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
                 "px-3 py-1.5 rounded text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
                 filter === type 
                   ? "bg-accent text-white shadow-sm" 
-                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
               )}
             >
               {TYPE_LABELS[type] === 'Belief' ? 'BELIEFS' : TYPE_LABELS[type].toUpperCase() + 'S'}
@@ -151,7 +150,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
         {filteredEntries.map((entry) => (
           <Card 
             key={entry.id} 
-            className="group cursor-pointer hover:shadow-xl transition-all border-border/50 bg-white p-4 flex gap-4" 
+            className="group cursor-pointer hover:shadow-xl transition-all border-border/50 bg-white p-4 flex gap-4 shadow-sm" 
             onClick={() => setSelectedId(entry.id)}
           >
             <div className="size-10 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100/50">
@@ -203,16 +202,25 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
 function EvidencePanel({ title, items, onAdd }: { title: string; items: string[]; onAdd: (text: string) => void }) {
   const [text, setText] = useState('');
   return (
-    <Card className="p-5">
+    <Card className="p-5 bg-white border-border/40 shadow-sm">
       <h3 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">{title}</h3>
-      <div className="space-y-2 mb-3">{items.map((item, index) => <div key={`${item}-${index}`} className="rounded bg-muted/30 p-3 text-sm">{item}</div>)}</div>
-      <div className="flex gap-2"><Input value={text} onChange={(event) => setText(event.target.value)} placeholder="Add evidence..." className="h-9" /><Button onClick={() => { if (text.trim()) { onAdd(text.trim()); setText(''); } }} size="sm">Add</Button></div>
+      <div className="space-y-2 mb-3">{items.map((item, index) => <div key={`${item}-${index}`} className="rounded bg-muted/30 p-3 text-sm italic shadow-sm">{item}</div>)}</div>
+      <div className="flex gap-2"><Input value={text} onChange={(event) => setText(event.target.value)} placeholder="Add evidence..." className="h-9" /><Button onClick={() => { if (text.trim()) { onAdd(text.trim()); setText(''); } }} size="sm" className="h-9 px-4">Add</Button></div>
     </Card>
   );
 }
 
 function InfoPanel({ title, items, empty }: { title: string; items: string[]; empty: string }) {
-  return <Card className="p-5"><h3 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">{title}</h3>{items.length ? items.map((item) => <div key={item} className="rounded bg-muted/30 p-3 text-sm mb-2">{item}</div>) : <p className="text-sm text-muted-foreground italic">{empty}</p>}</Card>;
+  return (
+    <Card className="p-5 bg-white border-border/40 shadow-sm">
+      <h3 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3">{title}</h3>
+      {items.length ? items.map((item) => (
+        <div key={item} className="rounded bg-muted/30 p-3 text-sm mb-2 italic shadow-sm">{item}</div>
+      )) : (
+        <p className="text-sm text-muted-foreground italic px-2">{empty}</p>
+      )}
+    </Card>
+  );
 }
 
 function BeliefEditor({ open, onOpenChange, draft, setDraft, concepts, media, onAddConcept, onSave }: {
@@ -235,32 +243,32 @@ function BeliefEditor({ open, onOpenChange, draft, setDraft, concepts, media, on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto bg-white border-none shadow-2xl rounded-2xl">
         <DialogHeader><DialogTitle className="font-headline text-2xl italic">{draft.id ? 'Edit Position' : 'Form Position'}</DialogTitle></DialogHeader>
-        <div className="space-y-6">
+        <div className="space-y-6 pt-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Title</Label>
+              <Label className="readex-kicker">Title</Label>
               <Input value={draft.title || ''} onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>Type</Label>
+              <Label className="readex-kicker">Type</Label>
               <Select value={draft.type || 'belief'} onValueChange={(value) => setDraft((prev) => ({ ...prev, type: value as VaultType }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-10 border-border/60 bg-white shadow-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{vaultTypes.map((type) => <SelectItem key={type} value={type}>{type.replace('_', ' ')}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Statement</Label>
-            <Textarea value={draft.statement || ''} onChange={(event) => setDraft((prev) => ({ ...prev, statement: event.target.value, description: prev.description || event.target.value }))} placeholder="The core position in one clear sentence..." />
+            <Label className="readex-kicker">Statement</Label>
+            <Textarea value={draft.statement || ''} onChange={(event) => setDraft((prev) => ({ ...prev, statement: event.target.value, description: prev.description || event.target.value }))} placeholder="The core position in one clear sentence..." className="min-h-[60px]" />
           </div>
           <div className="space-y-2">
-            <Label>Description</Label>
-            <Textarea value={draft.description || ''} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder="Elaborate on the reasoning, assumptions, or evidence..." />
+            <Label className="readex-kicker">Description</Label>
+            <Textarea value={draft.description || ''} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} placeholder="Elaborate on the reasoning, assumptions, or evidence..." className="min-h-[120px]" />
           </div>
           <div className="space-y-2">
-            <Label>Concept Tags</Label>
+            <Label className="readex-kicker">Concept Tags</Label>
             <ConceptTagPicker concepts={concepts} value={draft.tags || []} onChange={(tags) => setDraft((prev) => ({ ...prev, tags }))} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
           </div>
           
@@ -271,7 +279,7 @@ function BeliefEditor({ open, onOpenChange, draft, setDraft, concepts, media, on
             label="Supporting Sources"
           />
         </div>
-        <DialogFooter><Button onClick={onSave}>Save Position</Button></DialogFooter>
+        <DialogFooter className="pt-4"><Button onClick={onSave} className="bg-accent shadow-md shadow-accent/20 h-10 px-8">Save Position</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
