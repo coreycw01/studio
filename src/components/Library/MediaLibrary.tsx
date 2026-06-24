@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText, Check, Globe } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -43,25 +43,6 @@ interface MediaLibraryProps {
 }
 
 const statuses: MediaStatus[] = ['Want to Read', 'Consuming', 'Finished', 'Paused', 'Abandoned'];
-
-const SEARCH_SUPPORTED_TYPES: MediaType[] = ['book', 'audiobook', 'paper'];
-const URL_SUPPORTED_TYPES: MediaType[] = ['video', 'podcast', 'article', 'course', 'lecture', 'documentary', 'interview', 'paper', 'movie', 'other'];
-
-const TYPE_TERMINOLOGY: Record<MediaType, { creator: string; genre: string; publisher: string; id1: string; id2: string }> = {
-  book: { creator: 'Author', genre: 'Genre', publisher: 'Publisher', id1: 'ISBN', id2: 'LCCN / URL' },
-  audiobook: { creator: 'Author / Narrator', genre: 'Genre', publisher: 'Publisher / App', id1: 'Identifier', id2: 'URL' },
-  video: { creator: 'Creator / Director', genre: 'Topic', publisher: 'Platform / Channel', id1: 'URL', id2: 'Identifier' },
-  podcast: { creator: 'Host / Producer', genre: 'Topic', publisher: 'Network / Platform', id1: 'URL / Feed', id2: 'Identifier' },
-  movie: { creator: 'Director / Writer', genre: 'Genre', publisher: 'Studio', id1: 'Identifier', id2: 'IMDb / URL' },
-  article: { creator: 'Author', genre: 'Topic', publisher: 'Publication', id1: 'URL / DOI', id2: 'Identifier' },
-  course: { creator: 'Instructor / Institution', genre: 'Subject', publisher: 'Platform', id1: 'URL', id2: 'Identifier' },
-  lecture: { creator: 'Speaker / Lecturer', genre: 'Subject', publisher: 'Institution / Event', id1: 'URL', id2: 'Identifier' },
-  documentary: { creator: 'Director / Producer', genre: 'Topic', publisher: 'Studio / Network', id1: 'URL', id2: 'Identifier' },
-  interview: { creator: 'Interviewee / Host', genre: 'Topic', publisher: 'Source', id1: 'URL', id2: 'Identifier' },
-  conversation: { creator: 'Participants', genre: 'Topic', publisher: 'Context / Setting', id1: 'Identifier', id2: 'Date' },
-  paper: { creator: 'Authors', genre: 'Field of Study', publisher: 'Journal / Conference', id1: 'DOI', id2: 'ISSN' },
-  other: { creator: 'Creator', genre: 'Category', publisher: 'Source', id1: 'Identifier', id2: 'URL' },
-};
 
 export function MediaLibrary({ 
   media, 
@@ -458,7 +439,7 @@ export function MediaLibrary({
                           />
                         ))}
                       </div>
-                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-widest px-2 py-0.5 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full font-bold">
+                      <Badge variant="secondary" className="font-code text-[9px] uppercase tracking-widest px-3 py-1 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full font-bold">
                         {entry.status || 'active'}
                       </Badge>
                       <div className="font-code text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest">
@@ -632,11 +613,36 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   onSave: () => void;
 }) {
   const [tagInput, setTagInput] = useState('');
-  const [locatorQuery, setLocatorQuery] = useState('');
-  const [locatorResults, setLocatorResults] = useState<any[]>([]);
-  const [isLocating, setIsLocating] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const terms = TYPE_TERMINOLOGY[draft.type || 'book'];
+  const [intakeMode, setIntakeMode] = useState<'search' | 'url' | 'manual'>('search');
+  const [sourceQuery, setSourceQuery] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [sourceResults, setSourceResults] = useState<NormalizedSourceResult[]>([]);
+  const [sourceError, setSourceError] = useState('');
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const searchableTypes: MediaType[] = ['book', 'audiobook', 'paper', 'movie', 'documentary'];
+  const isSearchableType = searchableTypes.includes((draft.type || 'book') as MediaType);
+  const searchPlaceholder = (() => {
+    if (draft.type === 'paper') return 'Search academic paper title, author, DOI, or concept...';
+    if (draft.type === 'movie' || draft.type === 'documentary') return 'Search movie or documentary title...';
+    if (draft.type === 'book' || draft.type === 'audiobook') return 'Search book title, author, or ISBN...';
+    return 'Search is not available for this media type yet.';
+  })();
+  const searchHelp = (() => {
+    if (draft.type === 'paper') return 'Academic search uses OpenAlex for papers, authors, venues, DOI, and scholarly concepts.';
+    if (draft.type === 'movie' || draft.type === 'documentary') return 'Movie search uses TMDB. Add TMDB_API_KEY or TMDB_READ_ACCESS_TOKEN to enable results.';
+    if (draft.type === 'book' || draft.type === 'audiobook') return 'Book search uses Google Books first, then Open Library as fallback.';
+    return 'Use Paste URL for public pages or Manual for this source type.';
+  })();
+
+  useEffect(() => {
+    if (!open) return;
+    setSourceQuery('');
+    setSourceUrl('');
+    setSourceResults([]);
+    setSourceError('');
+    setSourceLoading(false);
+    setIntakeMode(draft.id ? 'manual' : 'search');
+  }, [open, draft.id]);
 
   const addTag = () => {
     if (!tagInput.trim()) return;
@@ -650,76 +656,59 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
     setDraft(prev => ({ ...prev, tags: next }));
   };
 
-  const handleLocateSource = useCallback(async (query: string) => {
-    if (!query.trim() || !draft.type) return;
-    setIsLocating(true);
+  const applySourceResult = (result: NormalizedSourceResult) => {
+    const patch = sourceResultToMediaPatch(result);
+    setDraft((prev) => ({
+      ...prev,
+      ...patch,
+      status: prev.status || 'Want to Read',
+      tags: normalizeConceptTags([...(prev.tags || []), ...(patch.tags || [])]),
+    }));
+    setSourceError('');
+    setIntakeMode('manual');
+  };
+
+  const searchSources = async () => {
+    if (sourceQuery.trim().length < 2) return;
+    if (!isSearchableType) {
+      setSourceResults([]);
+      setSourceError('Search is not available for this media type yet. Use Paste URL or Manual entry.');
+      return;
+    }
+    setSourceLoading(true);
+    setSourceError('');
     try {
-      const { results } = await locateMediaMetadata({
-        query: query,
-        mediaType: draft.type,
-      });
-      setLocatorResults(results || []);
-      setShowDropdown(true);
+      const response = await fetch(`/api/source-search?query=${encodeURIComponent(sourceQuery.trim())}&type=${encodeURIComponent(draft.type || 'book')}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Source search failed.');
+      setSourceResults(data.results || []);
+      if (!(data.results || []).length) setSourceError('No provider results found. Manual entry is still available.');
     } catch (error) {
-      console.error("Locator failed", error);
-      const isQuotaError = error.message?.includes('RESOURCE_EXHAUSTED') || error.message?.includes('429');
-      toast({
-        variant: "destructive",
-        title: "AI Locator Interrupted",
-        description: isQuotaError 
-          ? "AI search limit reached. Please fill in details manually or check your AI Studio billing."
-          : "Unable to search online databases at this time. Manual archival is still available."
-      });
-      setShowDropdown(false);
+      setSourceResults([]);
+      setSourceError(error instanceof Error ? error.message : 'Source search failed.');
     } finally {
       setSourceLoading(false);
     }
-  }, [toast]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (locatorQuery.trim().length >= 3) {
-        handleLocateSource(locatorQuery);
-      } else {
-        setLocatorResults([]);
-        setShowDropdown(false);
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [locatorQuery, handleLocateSource]);
-
-  const selectLocatedSource = (item: any) => {
-    const info = item.volumeInfo;
-    const year = info.publishedDate ? info.publishedDate.substring(0, 4) : '';
-    const isbn = info.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier || info.industryIdentifiers?.[0]?.identifier || '';
-    
-    setDraft(prev => ({
-      ...prev,
-      title: info.title || prev.title,
-      creator: info.authors?.join(', ') || prev.creator,
-      year: year || prev.year,
-      genre: info.categories?.join(', ') || prev.genre,
-      publisher: info.publisher || prev.publisher,
-      description: info.description || prev.description,
-      thumbnailUrl: info.imageLinks?.thumbnail?.replace('http:', 'https:') || prev.thumbnailUrl,
-      isbn: isbn || prev.isbn,
-    }));
-    
-    setLocatorResults([]);
-    setShowDropdown(false);
-    setLocatorQuery('');
   };
 
-  const addTag = () => {
-    if (!tagInput.trim()) return;
-    const next = normalizeConceptTags([...(draft.tags || []), tagInput]);
-    setDraft(prev => ({ ...prev, tags: next }));
-    setTagInput('');
-  };
-
-  const removeTag = (tag: string) => {
-    const next = normalizeConceptTags((draft.tags || []).filter(t => conceptKey(t) !== conceptKey(tag)));
-    setDraft(prev => ({ ...prev, tags: next }));
+  const fetchUrlMetadata = async () => {
+    if (!sourceUrl.trim()) return;
+    setSourceLoading(true);
+    setSourceError('');
+    try {
+      const response = await fetch('/api/source-metadata', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: sourceUrl.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to read source metadata.');
+      applySourceResult(data.result);
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : 'Unable to read source metadata.');
+    } finally {
+      setSourceLoading(false);
+    }
   };
 
   return (
@@ -729,58 +718,98 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
           <div className="p-8">
             <DialogHeader className="mb-8">
               <DialogTitle className="text-4xl font-headline italic mb-2">Add to Library</DialogTitle>
-              <p className="text-muted-foreground text-sm font-body italic">
-                {draft.id ? 'Refining archival metadata for this scholarly source.' : 'Archiving a new source of knowledge.'}
-              </p>
+              <p className="text-muted-foreground text-sm font-body italic">Search by title, paste a public URL, or enter source details manually.</p>
             </DialogHeader>
 
             <div className="space-y-8">
-              <section className="bg-muted/5 p-5 rounded-xl border border-dashed border-border/60">
-                <Label className="readex-kicker block mb-4 font-bold text-[10px] text-accent flex items-center gap-2">
-                  <Globe className="size-3" /> INTELLECTUAL LOCATOR
-                </Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40" />
-                    <Input 
-                      placeholder={`Search ${MEDIA_LABELS[draft.type || 'book']} databases...`} 
-                      value={locatorQuery}
-                      onChange={(e) => setLocatorQuery(e.target.value)}
-                      className="pl-9 h-11 text-sm italic rounded-full bg-white pr-10"
-                      onFocus={() => locatorResults.length > 0 && setShowDropdown(true)}
-                    />
-                    {isLocating && <Loader2 className="absolute right-4 size-4 animate-spin text-accent" />}
-                  </div>
-                  <Button variant="outline" onClick={handleLocateSource} disabled={isLocating} className="h-10 px-6 rounded-full font-bold">
-                    {isLocating ? <Loader2 className="size-4 animate-spin" /> : 'LOCATE'}
-                  </Button>
+              <section>
+                <Label className="readex-kicker block mb-4 font-bold text-[10px]">SOURCE INTAKE</Label>
+                <div className="grid grid-cols-3 gap-2 rounded-xl border border-border/50 bg-muted/10 p-1">
+                  {[
+                    { id: 'search', label: 'Search Title' },
+                    { id: 'url', label: 'Paste URL' },
+                    { id: 'manual', label: 'Manual' },
+                  ].map((mode) => (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      onClick={() => setIntakeMode(mode.id as typeof intakeMode)}
+                      className={cn(
+                        "h-9 rounded-lg font-code text-[9px] font-bold uppercase tracking-widest transition-colors",
+                        intakeMode === mode.id ? "bg-white text-accent shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {mode.label}
+                    </button>
+                  ))}
                 </div>
-                {locatorResults.length > 0 && (
-                  <div className="mt-4 space-y-2 border-t border-border/20 pt-4 animate-fade-in-up">
-                    {locatorResults.map((item, idx) => (
+              </section>
+
+              {intakeMode === 'search' && (
+                <section className="space-y-4 rounded-xl border border-border/40 bg-white p-5 shadow-sm">
+                  <div className="flex gap-3">
+                    <Input
+                      value={sourceQuery}
+                      onChange={(e) => setSourceQuery(e.target.value)}
+                      onKeyDown={(event) => event.key === 'Enter' && searchSources()}
+                      placeholder={searchPlaceholder}
+                      className="h-11 text-sm rounded-full"
+                      disabled={!isSearchableType}
+                    />
+                    <Button type="button" onClick={searchSources} disabled={sourceLoading || !isSearchableType || sourceQuery.trim().length < 2} className="h-11 rounded-full px-6 font-code text-[10px] font-bold uppercase tracking-widest">
+                      {sourceLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Search className="mr-2 size-4" />}
+                      Search
+                    </Button>
+                  </div>
+                  <p className="text-xs italic text-muted-foreground">
+                    {searchHelp}
+                  </p>
+                  {sourceError && <p className="text-xs text-destructive">{sourceError}</p>}
+                  <div className="space-y-3">
+                    {sourceResults.map((result) => (
                       <button
-                        key={idx}
-                        onClick={() => selectLocatedSource(item)}
-                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white hover:shadow-md transition-all text-left group border border-transparent hover:border-border/40"
+                        key={`${result.provider}-${result.externalId}`}
+                        type="button"
+                        onClick={() => applySourceResult(result)}
+                        className="flex w-full gap-4 rounded-xl border border-border/50 bg-muted/5 p-3 text-left transition hover:border-accent/30 hover:bg-accent/5"
                       >
-                        <div className="size-12 bg-muted/20 rounded shrink-0 overflow-hidden border border-border/20 flex items-center justify-center">
-                          {item.thumbnailUrl ? (
-                            <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <Globe className="size-5 text-muted-foreground/30" />
-                          )}
+                        <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-muted">
+                          {result.thumbnailUrl ? <img src={result.thumbnailUrl} alt="" className="h-full w-full object-cover" /> : null}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-headline font-bold italic truncate group-hover:text-accent">{item.title}</div>
-                          <div className="text-[10px] text-muted-foreground truncate uppercase font-code tracking-tighter">{item.creator} {item.year && `(${item.year})`}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-body text-sm font-semibold italic">{result.title}</div>
+                          <div className="mt-1 truncate text-xs text-muted-foreground">{result.creators.join(', ') || result.publisher || 'Unknown creator'}</div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            <Badge variant="outline" className="rounded-full bg-white font-code text-[8px] uppercase">{result.year || 'n.d.'}</Badge>
+                            <Badge variant="outline" className="rounded-full bg-white font-code text-[8px] uppercase">{result.type}</Badge>
+                            <Badge variant="outline" className="rounded-full bg-white font-code text-[8px] uppercase">{result.provider.replace('_', ' ')}</Badge>
+                          </div>
                         </div>
-                        <Check className="size-3.5 opacity-0 group-hover:opacity-100 text-accent" />
                       </button>
                     ))}
-                    <Button variant="ghost" size="sm" onClick={() => setLocatorResults([])} className="w-full text-[10px] uppercase font-bold tracking-widest text-muted-foreground/40">Clear Results</Button>
                   </div>
-                )}
-              </section>
+                </section>
+              )}
+
+              {intakeMode === 'url' && (
+                <section className="space-y-4 rounded-xl border border-border/40 bg-white p-5 shadow-sm">
+                  <div className="flex gap-3">
+                    <Input
+                      value={sourceUrl}
+                      onChange={(e) => setSourceUrl(e.target.value)}
+                      onKeyDown={(event) => event.key === 'Enter' && fetchUrlMetadata()}
+                      placeholder="https://example.com/article"
+                      className="h-11 text-sm rounded-full"
+                    />
+                    <Button type="button" onClick={fetchUrlMetadata} disabled={sourceLoading || !sourceUrl.trim()} className="h-11 rounded-full px-6 font-code text-[10px] font-bold uppercase tracking-widest">
+                      {sourceLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Search className="mr-2 size-4" />}
+                      Fill
+                    </Button>
+                  </div>
+                  <p className="text-xs italic text-muted-foreground">Noesis reads public metadata only. Local, private, and internal URLs are blocked.</p>
+                  {sourceError && <p className="text-xs text-destructive">{sourceError}</p>}
+                </section>
+              )}
 
               <section>
                 <Label className="readex-kicker block mb-4 font-bold text-[10px]">MEDIA TYPE</Label>
@@ -818,7 +847,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.creator.toUpperCase()}</Label>
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">CREATOR / AUTHOR</Label>
                   <Input 
                     value={draft.creator || ''} 
                     onChange={(e) => setDraft(prev => ({ ...prev, creator: e.target.value }))}
@@ -836,7 +865,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.genre.toUpperCase()}</Label>
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">GENRE / TOPIC</Label>
                     <Input 
                       value={draft.genre || ''} 
                       onChange={(e) => setDraft(prev => ({ ...prev, genre: e.target.value }))}
@@ -846,7 +875,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.publisher.toUpperCase()}</Label>
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">PUBLISHER / PLATFORM</Label>
                   <Input 
                     value={draft.publisher || ''} 
                     onChange={(e) => setDraft(prev => ({ ...prev, publisher: e.target.value }))}
@@ -856,15 +885,15 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.id1.toUpperCase()}</Label>
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">ISBN / ISSN</Label>
                     <Input 
-                      value={draft.isbn || draft.url || ''} 
-                      onChange={(e) => setDraft(prev => ({ ...prev, isbn: e.target.value, url: e.target.value }))}
+                      value={draft.isbn || ''} 
+                      onChange={(e) => setDraft(prev => ({ ...prev, isbn: e.target.value }))}
                       className="h-11 text-base"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.id2.toUpperCase()}</Label>
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">DOI</Label>
                     <Input 
                       value={draft.doi || ''} 
                       onChange={(e) => setDraft(prev => ({ ...prev, doi: e.target.value, externalIds: { ...prev.externalIds, doi: e.target.value } }))}
@@ -931,7 +960,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
 
         <div className="p-8 pt-4 bg-muted/10 border-t flex justify-end gap-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="h-11 px-8 font-code text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:bg-transparent rounded-full">CANCEL</Button>
-          <Button onClick={onSave} className="h-11 px-10 bg-accent font-code text-[11px] font-bold uppercase tracking-widest shadow-xl shadow-accent/20 rounded-full font-bold">ADD TO LIBRARY</Button>
+          <Button onClick={onSave} className="h-11 px-10 bg-accent font-code text-[11px] font-bold uppercase tracking-widest shadow-xl shadow-accent/20 rounded-full">ADD TO LIBRARY</Button>
         </div>
       </DialogContent>
     </Dialog>

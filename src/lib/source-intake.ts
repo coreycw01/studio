@@ -19,6 +19,7 @@ export interface NormalizedSourceResult {
     googleBooksId?: string;
     openLibraryId?: string;
     openAlexId?: string;
+    tmdbId?: string;
     isbn?: string;
     doi?: string;
     url?: string;

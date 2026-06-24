@@ -138,6 +138,59 @@ function normalizeOpenAlexWork(work: any): NormalizedSourceResult | null {
   };
 }
 
+function tmdbHeaders() {
+  const bearer = process.env.TMDB_READ_ACCESS_TOKEN;
+  const apiKey = process.env.TMDB_API_KEY;
+  if (!bearer && !apiKey) {
+    throw new Error('TMDB search requires TMDB_API_KEY or TMDB_READ_ACCESS_TOKEN in the server environment.');
+  }
+
+  return {
+    headers: {
+      accept: 'application/json',
+      'user-agent': USER_AGENT,
+      ...(bearer ? { authorization: `Bearer ${bearer}` } : {}),
+    },
+    apiKey,
+  };
+}
+
+async function fetchTmdbJson(path: string, params: Record<string, string>) {
+  const { headers, apiKey } = tmdbHeaders();
+  const searchParams = new URLSearchParams(params);
+  if (apiKey) searchParams.set('api_key', apiKey);
+  const response = await fetch(`https://api.themoviedb.org/3${path}?${searchParams.toString()}`, {
+    headers,
+    cache: 'no-store',
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) throw new Error(`TMDB request failed (${response.status}).`);
+  return response.json();
+}
+
+function normalizeTmdbMovie(movie: any, forcedType: MediaType): NormalizedSourceResult | null {
+  if (!movie?.title) return null;
+  const tmdbId = String(movie.id || '');
+  return {
+    provider: 'tmdb',
+    externalId: tmdbId,
+    type: forcedType,
+    title: cleanText(movie.title),
+    creators: [],
+    year: yearFromDate(movie.release_date),
+    description: cleanText(movie.overview),
+    thumbnailUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '',
+    sourceUrl: tmdbId ? `https://www.themoviedb.org/movie/${tmdbId}` : '',
+    publisher: 'TMDB',
+    platform: 'TMDB',
+    tags: [],
+    externalIds: {
+      tmdbId,
+      url: tmdbId ? `https://www.themoviedb.org/movie/${tmdbId}` : '',
+    },
+  };
+}
+
 export async function searchBooks(query: string) {
   const googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=8&printType=books`;
   let results: NormalizedSourceResult[] = [];
@@ -162,6 +215,16 @@ export async function searchBooks(query: string) {
 export async function searchPapers(query: string) {
   const data = await fetchJson(`https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=8`);
   return (data.results || []).map(normalizeOpenAlexWork).filter(Boolean).slice(0, 8);
+}
+
+export async function searchMovies(query: string, type: MediaType) {
+  const data = await fetchTmdbJson('/search/movie', {
+    query,
+    include_adult: 'false',
+    language: 'en-US',
+    page: '1',
+  });
+  return (data.results || []).map((movie: any) => normalizeTmdbMovie(movie, type)).filter(Boolean).slice(0, 8);
 }
 
 function metaContent(html: string, selector: RegExp) {
@@ -252,6 +315,7 @@ export async function metadataFromUrl(rawUrl: string): Promise<NormalizedSourceR
 
 export async function searchSources(query: string, type: MediaType) {
   if (type === 'paper') return searchPapers(query);
+  if (type === 'movie' || type === 'documentary') return searchMovies(query, type);
   if (type === 'book' || type === 'audiobook') return searchBooks(query);
   return [];
 }

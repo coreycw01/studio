@@ -15,7 +15,7 @@ export type ExternalDocSyncStatus = 'connected' | 'syncing' | 'synced' | 'error'
 export type PracticeType = 'habit' | 'experiment' | 'discipline' | 'reflection_prompt' | 'commitment' | 'observation' | 'rule' | 'challenge';
 export type PracticeStatus = 'planned' | 'active' | 'completed' | 'paused' | 'abandoned';
 export type AtlasMapLinkType = 'supports' | 'challenges' | 'examples' | 'causes' | 'questions' | 'practices' | 'relates' | 'custom';
-export type SourceProvider = 'google_books' | 'open_library' | 'openalex' | 'url_metadata' | 'manual';
+export type SourceProvider = 'google_books' | 'open_library' | 'openalex' | 'tmdb' | 'url_metadata' | 'manual';
 
 export interface SecurityRuleContext {
   operation: 'create' | 'update' | 'delete' | 'list' | 'get' | 'write';
@@ -76,6 +76,7 @@ export interface Media {
     googleBooksId?: string;
     openLibraryId?: string;
     openAlexId?: string;
+    tmdbId?: string;
     isbn?: string;
     doi?: string;
     url?: string;
