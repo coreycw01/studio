@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
 try {
@@ -23,8 +26,10 @@ try {
   var accent = saved.accentTheme || 'violet';
   var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.classList.toggle('dark', dark);
-  document.documentElement.dataset.theme = accent;
-} catch (error) {}
+  document.documentElement.setAttribute('data-theme', accent);
+} catch (error) {
+  console.warn('Theme init failed', error);
+}
             `.trim(),
           }}
         />

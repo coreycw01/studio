@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -607,7 +606,13 @@ function ReadexApp() {
 }
 
 export default function Home() {
-  if (!firebaseInstances) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !firebaseInstances) {
     return (
       <div className="grid min-h-screen place-items-center bg-background text-foreground">
         <div className="font-code text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Initializing Noesis...</div>
