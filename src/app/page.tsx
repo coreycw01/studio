@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -30,6 +31,8 @@ import type { Annotation, AtlasMap, Concept, Draft, GoalSettings, Insight, Media
 import { doc, getDoc, setDoc, updateDoc, writeBatch, deleteDoc, type DocumentData, type DocumentReference } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 // Initialize Firebase once at the top level
 const firebaseInstances = typeof window !== 'undefined' ? initializeFirebase() : null;
@@ -74,30 +77,36 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
 
   useEffect(() => {
     const setDefaultIfMissing = async (ref: DocumentReference<DocumentData>, data: DocumentData) => {
-      const snapshot = await getDoc(ref);
-      if (!snapshot.exists()) await setDoc(ref, data);
+      try {
+        const snapshot = await getDoc(ref);
+        if (!snapshot.exists()) await setDoc(ref, data);
+      } catch (err) {
+        console.warn('Silent skip: settings init error', ref.path);
+      }
     };
 
     const scaffoldFirestore = async () => {
-      await setDoc(refs.user, { uid: effectiveUid, app: 'readex', updatedAt: today() }, { merge: true });
-      await setDefaultIfMissing(refs.settingsGoal, DEFAULT_GOAL_SETTINGS);
-      await setDefaultIfMissing(refs.settingsAtlasView, DEFAULT_ATLAS_VIEW_SETTINGS);
-      await setDefaultIfMissing(refs.settingsAtlasNodes, DEFAULT_ATLAS_NODE_SETTINGS);
-      await setDefaultIfMissing(refs.settingsPreferences, DEFAULT_USER_PREFERENCES);
-      await setDoc(refs.settingsProfile, {
-        ...DEFAULT_USER_PROFILE,
-        displayName: user?.displayName || '',
-        email: user?.email || '',
-        photoURL: user?.photoURL || '',
-        dateUpdated: today(),
-      }, { merge: true });
-      await setDoc(refs.settingsSchema, readexSchemaDoc(effectiveUid), { merge: true });
+      try {
+        await setDoc(refs.user, { uid: effectiveUid, app: 'readex', updatedAt: today() }, { merge: true });
+        await setDefaultIfMissing(refs.settingsGoal, DEFAULT_GOAL_SETTINGS);
+        await setDefaultIfMissing(refs.settingsAtlasView, DEFAULT_ATLAS_VIEW_SETTINGS);
+        await setDefaultIfMissing(refs.settingsAtlasNodes, DEFAULT_ATLAS_NODE_SETTINGS);
+        await setDefaultIfMissing(refs.settingsPreferences, DEFAULT_USER_PREFERENCES);
+        await setDoc(refs.settingsProfile, {
+          ...DEFAULT_USER_PROFILE,
+          displayName: user?.displayName || '',
+          email: user?.email || '',
+          photoURL: user?.photoURL || '',
+          dateUpdated: today(),
+        }, { merge: true });
+        await setDoc(refs.settingsSchema, readexSchemaDoc(effectiveUid), { merge: true });
+      } catch (err) {
+        console.warn('Silent skip: scaffold error', err);
+      }
     };
 
-    scaffoldFirestore().catch((error) => {
-      console.warn('Unable to scaffold Noesis Firestore settings', error);
-    });
-  }, [effectiveUid, refs.settingsAtlasNodes, refs.settingsAtlasView, refs.settingsGoal, refs.settingsPreferences, refs.settingsProfile, refs.settingsSchema, refs.user, user?.displayName, user?.email, user?.photoURL]);
+    scaffoldFirestore();
+  }, [effectiveUid, refs, user]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -588,7 +597,10 @@ function ReadexApp() {
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-background text-foreground">
-        <div className="font-code text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Loading Noesis</div>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="size-8 animate-spin text-accent" />
+          <div className="font-code text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Syncing Mind</div>
+        </div>
       </div>
     );
   }
@@ -615,7 +627,12 @@ export default function Home() {
   if (!mounted || !firebaseInstances) {
     return (
       <div className="grid min-h-screen place-items-center bg-background text-foreground">
-        <div className="font-code text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Initializing Noesis...</div>
+        <div className="flex flex-col items-center gap-6">
+          <div className="font-code text-[10px] uppercase tracking-[0.2em] text-muted-foreground animate-pulse">Initializing Noesis...</div>
+          <Button variant="outline" onClick={() => window.location.reload()} size="sm" className="rounded-full">
+            <RefreshCw className="size-3.5 mr-2" /> Reload Page
+          </Button>
+        </div>
       </div>
     );
   }

@@ -11,7 +11,7 @@ import {
   signInWithPopup,
   updateProfile,
 } from 'firebase/auth';
-import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, AlertCircle, ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,7 @@ function authMessage(error: unknown) {
   if (code.includes('auth/user-not-found')) return 'No account found with this email.';
   if (code.includes('auth/wrong-password')) return 'Incorrect password.';
   if (code.includes('auth/unauthorized-domain')) {
-    return `ACTION REQUIRED: This domain ("${hostname}") is not authorized in Firebase. Please add it to "Authorized Domains" in the Firebase Console (Authentication > Settings).`;
+    return `DOMAIN_ERROR: ${hostname}`;
   }
   return 'Authentication failed. Check your details or Firebase configuration and try again.';
 }
@@ -71,14 +71,15 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
     } catch (error: any) {
-      console.error('Auth error:', error);
       const msg = authMessage(error);
       setErrorStatus(msg);
-      toast({ 
-        variant: 'destructive',
-        title: mode === 'signup' ? 'Account not created' : 'Sign in failed', 
-        description: msg
-      });
+      if (!msg.startsWith('DOMAIN_ERROR')) {
+        toast({ 
+          variant: 'destructive',
+          title: mode === 'signup' ? 'Account not created' : 'Sign in failed', 
+          description: msg
+        });
+      }
     } finally {
       setBusy(null);
     }
@@ -92,14 +93,15 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
       provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
     } catch (error: any) {
-      console.error('Google Auth error:', error);
       const msg = authMessage(error);
       setErrorStatus(msg);
-      toast({ 
-        variant: 'destructive',
-        title: 'Google sign in failed', 
-        description: msg
-      });
+      if (!msg.startsWith('DOMAIN_ERROR')) {
+        toast({ 
+          variant: 'destructive',
+          title: 'Google sign in failed', 
+          description: msg
+        });
+      }
     } finally {
       setBusy(null);
     }
@@ -116,18 +118,22 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
       await sendPasswordResetEmail(auth, email.trim());
       toast({ title: 'Reset email sent', description: 'Check your inbox for a password reset link.' });
     } catch (error) {
-      console.error('Reset error:', error);
       const msg = authMessage(error);
       setErrorStatus(msg);
-      toast({ 
-        variant: 'destructive',
-        title: 'Reset failed', 
-        description: msg
-      });
+      if (!msg.startsWith('DOMAIN_ERROR')) {
+        toast({ 
+          variant: 'destructive',
+          title: 'Reset failed', 
+          description: msg
+        });
+      }
     } finally {
       setBusy(null);
     }
   };
+
+  const isDomainError = errorStatus?.startsWith('DOMAIN_ERROR');
+  const unauthorizedHostname = isDomainError ? errorStatus?.split(': ')[1] : '';
 
   return (
     <div className="min-h-screen bg-background text-foreground grid lg:grid-cols-[1.05fr_.95fr] overflow-hidden">
@@ -170,7 +176,7 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
       </section>
 
       <section className="flex min-h-screen items-center justify-center p-6">
-        <div className="w-full max-md">
+        <div className="w-full max-w-md">
           <div className="mb-10 lg:hidden">
             <div className="flex items-center gap-4 mb-6">
               <div className="relative size-10 overflow-hidden rounded-lg bg-accent/10">
@@ -187,21 +193,30 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
               </div>
               <h1 className="font-headline text-4xl font-bold">Noesis<span className="text-accent">.</span></h1>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">Turn thought into understanding.</p>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-8 shadow-xl">
             <div className="mb-8">
               <h2 className="font-headline text-3xl font-semibold italic">{mode === 'signup' ? 'Create your account' : 'Welcome back'}</h2>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {mode === 'signup' ? 'Start a private Noesis workspace backed by Firebase.' : 'Sign in to continue testing your Noesis workspace.'}
+                {mode === 'signup' ? 'Start a private Noesis workspace.' : 'Sign in to continue your research.'}
               </p>
             </div>
 
-            {errorStatus && errorStatus.includes('ACTION REQUIRED') && (
-              <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 font-body italic flex gap-3">
-                <AlertCircle className="size-5 shrink-0" />
-                <p>{errorStatus}</p>
+            {isDomainError && (
+              <div className="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-amber-900 font-body shadow-sm">
+                <div className="flex items-center gap-2 mb-3 text-amber-700 font-bold uppercase font-code text-[10px] tracking-wider">
+                  <ShieldAlert className="size-4" /> Action Required
+                </div>
+                <p className="italic leading-relaxed">
+                  Firebase is blocking authentication from this domain. To fix this:
+                </p>
+                <ol className="mt-3 space-y-2 list-decimal list-inside opacity-90">
+                  <li>Go to your <strong>Firebase Console</strong>.</li>
+                  <li>Navigate to <strong>Authentication &gt; Settings</strong>.</li>
+                  <li>Click <strong>Authorized Domains</strong>.</li>
+                  <li>Add this domain: <code className="bg-white/50 px-1.5 py-0.5 rounded font-code text-[11px] select-all">{unauthorizedHostname}</code></li>
+                </ol>
               </div>
             )}
 
@@ -209,7 +224,7 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
               {mode === 'signup' && (
                 <div className="space-y-2">
                   <Label>Name</Label>
-                  <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Corey" className="h-11" />
+                  <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Full Name" className="h-11" />
                 </div>
               )}
               <div className="space-y-2">
@@ -243,7 +258,7 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
                 </div>
               </div>
 
-              <Button type="submit" className="h-11 w-full rounded-full font-bold" disabled={busy !== null}>
+              <Button type="submit" className="h-11 w-full rounded-full font-bold shadow-lg shadow-accent/20" disabled={busy !== null}>
                 {busy === 'email' && <Loader2 className="mr-2 size-4 animate-spin" />}
                 {mode === 'signup' ? 'Create Account' : 'Sign In'}
               </Button>
@@ -255,22 +270,22 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
               <div className="h-px flex-1 bg-border" />
             </div>
 
-            <Button type="button" variant="outline" onClick={signInGoogle} disabled={busy !== null} className="h-11 w-full rounded-full bg-card font-bold border-border/60">
+            <Button type="button" variant="outline" onClick={signInGoogle} disabled={busy !== null} className="h-11 w-full rounded-full bg-card font-bold border-border/60 shadow-sm">
               {busy === 'google' && <Loader2 className="mr-2 size-4 animate-spin" />}
               Continue with Google
             </Button>
 
-            <div className="mt-7 flex flex-col gap-3 text-center text-sm">
+            <div className="mt-8 flex flex-col gap-3 text-center text-sm">
               <button
                 type="button"
                 onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground font-medium"
               >
                 {mode === 'signup' ? 'Already have an account? Sign in.' : 'New to Noesis? Create an account.'}
               </button>
               {allowDemo && (
-                <button type="button" onClick={onDemo} className="text-xs text-muted-foreground hover:text-accent">
-                  Continue in prototype demo mode
+                <button type="button" onClick={onDemo} className="text-xs text-muted-foreground hover:text-accent font-code tracking-widest uppercase mt-2">
+                  Demo Prototype
                 </button>
               )}
             </div>

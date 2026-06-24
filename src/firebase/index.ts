@@ -1,29 +1,34 @@
 
 'use client';
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
-let firebaseApp;
+let firebaseApp: FirebaseApp;
 let firestore: Firestore;
 let auth: Auth;
 
 export function initializeFirebase() {
-  if (getApps().length > 0) {
-    firebaseApp = getApp();
-  } else {
-    firebaseApp = initializeApp(firebaseConfig);
-  }
-  
-  firestore = getFirestore(firebaseApp);
-  auth = getAuth(firebaseApp);
+  try {
+    if (getApps().length > 0) {
+      firebaseApp = getApp();
+    } else {
+      firebaseApp = initializeApp(firebaseConfig);
+    }
+    
+    firestore = getFirestore(firebaseApp);
+    auth = getAuth(firebaseApp);
 
-  return { firebaseApp, firestore, auth };
+    return { firebaseApp, firestore, auth };
+  } catch (error) {
+    console.error('Firebase initialization failed', error);
+    throw error;
+  }
 }
 
-// Initialize immediately on the client
+// Initialize immediately on the client if possible
 const instances = typeof window !== 'undefined' ? initializeFirebase() : null;
 
 export const db = instances?.firestore;
