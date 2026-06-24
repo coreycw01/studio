@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -22,7 +23,6 @@ import type { NormalizedSourceResult } from '@/lib/source-intake';
 import { sourceResultToMediaPatch } from '@/lib/source-intake';
 import { distillInsightsFromMedia } from '@/ai/flows/distill-insights-from-media';
 import { generateReflectiveQuestions } from '@/ai/flows/generate-reflective-questions-flow';
-import { locateMediaMetadata } from '@/ai/flows/locate-media-metadata-flow';
 
 interface MediaLibraryProps {
   media: Media[];
@@ -650,22 +650,31 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
     setDraft(prev => ({ ...prev, tags: next }));
   };
 
-  const handleLocateSource = async () => {
-    if (!locatorQuery.trim() || !draft.type) return;
+  const handleLocateSource = useCallback(async (query: string) => {
+    if (!query.trim() || !draft.type) return;
     setIsLocating(true);
     try {
       const { results } = await locateMediaMetadata({
-        query: locatorQuery,
+        query: query,
         mediaType: draft.type,
       });
       setLocatorResults(results || []);
       setShowDropdown(true);
     } catch (error) {
       console.error("Locator failed", error);
+      const isQuotaError = error.message?.includes('RESOURCE_EXHAUSTED') || error.message?.includes('429');
+      toast({
+        variant: "destructive",
+        title: "AI Locator Interrupted",
+        description: isQuotaError 
+          ? "AI search limit reached. Please fill in details manually or check your AI Studio billing."
+          : "Unable to search online databases at this time. Manual archival is still available."
+      });
+      setShowDropdown(false);
     } finally {
       setSourceLoading(false);
     }
-  }, [draft.type, toast]);
+  }, [toast]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -675,7 +684,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
         setLocatorResults([]);
         setShowDropdown(false);
       }
-    }, 600);
+    }, 500);
     return () => clearTimeout(timer);
   }, [locatorQuery, handleLocateSource]);
 
@@ -734,7 +743,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40" />
                     <Input 
-                      placeholder="Search by title, author, or ISBN..." 
+                      placeholder={`Search ${MEDIA_LABELS[draft.type || 'book']} databases...`} 
                       value={locatorQuery}
                       onChange={(e) => setLocatorQuery(e.target.value)}
                       className="pl-9 h-11 text-sm italic rounded-full bg-white pr-10"
