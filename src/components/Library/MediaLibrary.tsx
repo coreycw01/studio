@@ -458,7 +458,7 @@ export function MediaLibrary({
                           />
                         ))}
                       </div>
-                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-widest px-3 py-1 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full font-bold">
+                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-widest px-2 py-0.5 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full font-bold">
                         {entry.status || 'active'}
                       </Badge>
                       <div className="font-code text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest">
@@ -659,15 +659,13 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
         mediaType: draft.type,
       });
       setLocatorResults(results || []);
-      if (!results?.length) {
-        toast({ title: "No results found", description: "Try refining your search terms." });
-      }
+      setShowDropdown(true);
     } catch (error) {
-      toast({ variant: "destructive", title: "Locator failed", description: "AI could not search for media at this time." });
+      console.error("Locator failed", error);
     } finally {
       setSourceLoading(false);
     }
-  }, [draft.type]);
+  }, [draft.type, toast]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -924,7 +922,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
 
         <div className="p-8 pt-4 bg-muted/10 border-t flex justify-end gap-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="h-11 px-8 font-code text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:bg-transparent rounded-full">CANCEL</Button>
-          <Button onClick={onSave} className="h-11 px-10 bg-accent font-code text-[11px] font-bold uppercase tracking-widest shadow-xl shadow-accent/20 rounded-full">ADD TO LIBRARY</Button>
+          <Button onClick={onSave} className="h-11 px-10 bg-accent font-code text-[11px] font-bold uppercase tracking-widest shadow-xl shadow-accent/20 rounded-full font-bold">ADD TO LIBRARY</Button>
         </div>
       </DialogContent>
     </Dialog>
