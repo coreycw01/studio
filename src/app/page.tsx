@@ -32,7 +32,7 @@ import { doc, getDoc, setDoc, updateDoc, writeBatch, deleteDoc, type DocumentDat
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Loader2 } from 'lucide-react';
 
 // Initialize Firebase once at the top level
 const firebaseInstances = typeof window !== 'undefined' ? initializeFirebase() : null;
