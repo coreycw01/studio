@@ -44,6 +44,22 @@ interface MediaLibraryProps {
 
 const statuses: MediaStatus[] = ['Want to Read', 'Consuming', 'Finished', 'Paused', 'Abandoned'];
 
+const TYPE_TERMINOLOGY: Record<MediaType, { creator: string; genre: string; publisher: string; id1: string; id2: string }> = {
+  book: { creator: 'Author', genre: 'Genre', publisher: 'Publisher', id1: 'ISBN', id2: 'LCCN / URL' },
+  audiobook: { creator: 'Author / Narrator', genre: 'Genre', publisher: 'Publisher / App', id1: 'Identifier', id2: 'URL' },
+  video: { creator: 'Creator / Director', genre: 'Topic', publisher: 'Platform / Channel', id1: 'URL', id2: 'Identifier' },
+  podcast: { creator: 'Host / Producer', genre: 'Topic', publisher: 'Network / Platform', id1: 'URL / Feed', id2: 'Identifier' },
+  movie: { creator: 'Director / Writer', genre: 'Genre', publisher: 'Studio', id1: 'Identifier', id2: 'IMDb / URL' },
+  article: { creator: 'Author', genre: 'Topic', publisher: 'Publication', id1: 'URL / DOI', id2: 'Identifier' },
+  course: { creator: 'Instructor / Institution', genre: 'Subject', publisher: 'Platform', id1: 'URL', id2: 'Identifier' },
+  lecture: { creator: 'Speaker / Lecturer', genre: 'Subject', publisher: 'Institution / Event', id1: 'URL', id2: 'Identifier' },
+  documentary: { creator: 'Director / Producer', genre: 'Topic', publisher: 'Studio / Network', id1: 'URL', id2: 'Identifier' },
+  interview: { creator: 'Interviewee / Host', genre: 'Topic', publisher: 'Source', id1: 'URL', id2: 'Identifier' },
+  conversation: { creator: 'Participants', genre: 'Topic', publisher: 'Context / Setting', id1: 'Identifier', id2: 'Date' },
+  paper: { creator: 'Authors', genre: 'Field of Study', publisher: 'Journal / Conference', id1: 'DOI', id2: 'ISSN' },
+  other: { creator: 'Creator', genre: 'Category', publisher: 'Source', id1: 'Identifier', id2: 'URL' },
+};
+
 export function MediaLibrary({ 
   media, 
   concepts, 
@@ -61,7 +77,7 @@ export function MediaLibrary({
   focusedSourceId,
   onFocusedSourceHandled
 }: MediaLibraryProps) {
-  const [filter, setFilter] = useState<MediaType | 'all'>('all');
+  const [filter, setFilter] = setStatusFilter ?? useState<MediaType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -439,7 +455,7 @@ export function MediaLibrary({
                           />
                         ))}
                       </div>
-                      <Badge variant="secondary" className="font-code text-[9px] uppercase tracking-widest px-3 py-1 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full font-bold">
+                      <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-widest px-3 py-1 bg-emerald-100/40 text-emerald-700 border-emerald-200/50 rounded-full font-bold">
                         {entry.status || 'active'}
                       </Badge>
                       <div className="font-code text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest">
@@ -620,6 +636,8 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   const [sourceError, setSourceError] = useState('');
   const [sourceLoading, setSourceLoading] = useState(false);
 
+  const terms = TYPE_TERMINOLOGY[draft.type || 'book'];
+
   useEffect(() => {
     if (!open) return;
     setSourceQuery('');
@@ -699,7 +717,9 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
           <div className="p-8">
             <DialogHeader className="mb-8">
               <DialogTitle className="text-4xl font-headline italic mb-2">Add to Library</DialogTitle>
-              <p className="text-muted-foreground text-sm font-body italic">Search by title, paste a public URL, or enter source details manually.</p>
+              <p className="text-muted-foreground text-sm font-body italic">
+                Search by title, paste a URL, or manually archive this {MEDIA_LABELS[draft.type || 'book']}.
+              </p>
             </DialogHeader>
 
             <div className="space-y-8">
@@ -827,7 +847,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">CREATOR / AUTHOR</Label>
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.creator.toUpperCase()}</Label>
                   <Input 
                     value={draft.creator || ''} 
                     onChange={(e) => setDraft(prev => ({ ...prev, creator: e.target.value }))}
@@ -845,7 +865,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">GENRE / TOPIC</Label>
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.genre.toUpperCase()}</Label>
                     <Input 
                       value={draft.genre || ''} 
                       onChange={(e) => setDraft(prev => ({ ...prev, genre: e.target.value }))}
@@ -855,7 +875,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">PUBLISHER / PLATFORM</Label>
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.publisher.toUpperCase()}</Label>
                   <Input 
                     value={draft.publisher || ''} 
                     onChange={(e) => setDraft(prev => ({ ...prev, publisher: e.target.value }))}
@@ -865,15 +885,15 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">ISBN / ISSN</Label>
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.id1.toUpperCase()}</Label>
                     <Input 
-                      value={draft.isbn || ''} 
-                      onChange={(e) => setDraft(prev => ({ ...prev, isbn: e.target.value }))}
+                      value={draft.isbn || draft.url || ''} 
+                      onChange={(e) => setDraft(prev => ({ ...prev, isbn: e.target.value, url: e.target.value }))}
                       className="h-11 text-base"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">DOI</Label>
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.id2.toUpperCase()}</Label>
                     <Input 
                       value={draft.doi || ''} 
                       onChange={(e) => setDraft(prev => ({ ...prev, doi: e.target.value, externalIds: { ...prev.externalIds, doi: e.target.value } }))}
