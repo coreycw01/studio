@@ -5,11 +5,11 @@ import React from 'react';
 import { 
   MonitorPlay, 
   FileBox, 
-  Columns, 
   Layers,
   Settings2,
   Check,
-  Type
+  Palette,
+  LayoutGrid
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { PageViewMode, PageSize, PaperStyle } from './Atelier';
+import type { PageViewMode, PageSize, PaperColor, PaperPattern } from './Atelier';
 import { cn } from '@/lib/utils';
 
 interface PageViewControlsProps {
@@ -28,8 +28,10 @@ interface PageViewControlsProps {
   onViewModeChange: (mode: PageViewMode) => void;
   pageSize: PageSize;
   onPageSizeChange: (size: PageSize) => void;
-  paperStyle: PaperStyle;
-  onPaperStyleChange: (style: PaperStyle) => void;
+  paperColor: PaperColor;
+  onPaperColorChange: (color: PaperColor) => void;
+  paperPattern: PaperPattern;
+  onPaperPatternChange: (pattern: PaperPattern) => void;
 }
 
 export function PageViewControls({ 
@@ -37,23 +39,28 @@ export function PageViewControls({
   onViewModeChange, 
   pageSize, 
   onPageSizeChange,
-  paperStyle,
-  onPaperStyleChange
+  paperColor,
+  onPaperColorChange,
+  paperPattern,
+  onPaperPatternChange
 }: PageViewControlsProps) {
   const modes: { id: PageViewMode; label: string; icon: any }[] = [
     { id: 'vertical-continuous', label: 'Vertical Continuous', icon: MonitorPlay },
     { id: 'vertical-single', label: 'Vertical Single Page', icon: FileBox },
-    { id: 'horizontal-continuous', label: 'Horizontal Continuous', icon: Columns },
-    { id: 'horizontal-single', label: 'Horizontal Single Page', icon: Layers },
+    { id: 'horizontal-single', label: 'Horizontal Spread', icon: Layers },
   ];
 
-  const paperStyles: { id: PaperStyle; label: string; color: string }[] = [
-    { id: 'blank', label: 'Blank Page', color: 'bg-white' },
-    { id: 'notebook', label: 'Notebook Lined', color: 'bg-blue-50/30' },
-    { id: 'grid', label: 'Drafting Grid', color: 'bg-slate-50' },
-    { id: 'warm', label: 'Parchment (Warm)', color: 'bg-amber-50/50' },
-    { id: 'sepia', label: 'Aged (Sepia)', color: 'bg-[#f4ecd8]' },
-    { id: 'dark', label: 'Dark Archive', color: 'bg-slate-900' },
+  const colors: { id: PaperColor; label: string; bg: string }[] = [
+    { id: 'blank', label: 'Blank', bg: 'bg-white' },
+    { id: 'warm', label: 'Warm', bg: 'bg-amber-50/50' },
+    { id: 'sepia', label: 'Sepia', bg: 'bg-[#f4ecd8]' },
+    { id: 'dark', label: 'Dark', bg: 'bg-slate-900' },
+  ];
+
+  const patterns: { id: PaperPattern; label: string; icon: any }[] = [
+    { id: 'none', label: 'Plain', icon: Palette },
+    { id: 'notebook', label: 'Lined', icon: LayoutGrid },
+    { id: 'grid', label: 'Grid', icon: LayoutGrid },
   ];
 
   return (
@@ -90,19 +97,38 @@ export function PageViewControls({
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
-          <DropdownMenuLabel className="font-code text-[9px] uppercase tracking-widest opacity-40">Paper Style</DropdownMenuLabel>
-          <div className="grid grid-cols-2 gap-1 p-2">
-            {paperStyles.map((style) => (
+          <DropdownMenuLabel className="font-code text-[9px] uppercase tracking-widest opacity-40">Paper Color</DropdownMenuLabel>
+          <div className="grid grid-cols-4 gap-2 p-2">
+            {colors.map((color) => (
               <button
-                key={style.id}
-                onClick={() => onPaperStyleChange(style.id)}
+                key={color.id}
+                onClick={() => onPaperColorChange(color.id)}
+                title={color.label}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 p-2 rounded border transition-all hover:border-accent/40",
-                  paperStyle === style.id ? "border-accent bg-accent/5" : "border-border/40"
+                  "size-8 rounded-full border transition-all hover:scale-110 flex items-center justify-center",
+                  color.bg,
+                  paperColor === color.id ? "border-accent ring-2 ring-accent/20" : "border-border/40"
                 )}
               >
-                <div className={cn("size-6 rounded shadow-inner border border-border/20", style.color)} />
-                <span className="text-[10px] italic leading-none text-center">{style.label}</span>
+                {paperColor === color.id && <Check className={cn("size-3", color.id === 'dark' ? "text-white" : "text-accent")} />}
+              </button>
+            ))}
+          </div>
+
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="font-code text-[9px] uppercase tracking-widest opacity-40">Pattern Overlay</DropdownMenuLabel>
+          <div className="grid grid-cols-3 gap-1 p-2">
+            {patterns.map((pattern) => (
+              <button
+                key={pattern.id}
+                onClick={() => onPaperPatternChange(pattern.id)}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 p-2 rounded border transition-all hover:border-accent/40",
+                  paperPattern === pattern.id ? "border-accent bg-accent/5" : "border-border/40"
+                )}
+              >
+                <pattern.icon className="size-3.5 opacity-40" />
+                <span className="text-[10px] italic leading-none text-center">{pattern.label}</span>
               </button>
             ))}
           </div>

@@ -33,9 +33,10 @@ import { DRAFT_LABELS, normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-export type PageViewMode = 'vertical-continuous' | 'vertical-single' | 'horizontal-continuous' | 'horizontal-single';
+export type PageViewMode = 'vertical-continuous' | 'vertical-single' | 'horizontal-single';
 export type PageSize = 'letter' | 'a4';
-export type PaperStyle = 'blank' | 'notebook' | 'grid' | 'warm' | 'sepia' | 'dark';
+export type PaperColor = 'blank' | 'warm' | 'sepia' | 'dark';
+export type PaperPattern = 'none' | 'notebook' | 'grid';
 
 interface AtelierProps {
   drafts: Draft[];
@@ -61,7 +62,8 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
   // Page View & Style State
   const [viewMode, setViewMode] = useState<PageViewMode>('vertical-continuous');
   const [pageSize, setPageSize] = useState<PageSize>('letter');
-  const [paperStyle, setPaperStyle] = useState<PaperStyle>('blank');
+  const [paperColor, setPaperColor] = useState<PaperColor>('blank');
+  const [paperPattern, setPaperPattern] = useState<PaperPattern>('none');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   
   const { toast } = useToast();
@@ -106,7 +108,6 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
   if (active) {
     return (
       <div className="flex-1 flex flex-col h-full bg-background overflow-hidden font-body">
-        {/* Persistent Header */}
         <header className="px-8 pt-8 pb-4 border-b border-border/30 bg-background/80 backdrop-blur z-50">
           <div className="max-w-7xl mx-auto flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -172,8 +173,10 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                   onViewModeChange={setViewMode}
                   pageSize={pageSize}
                   onPageSizeChange={setPageSize}
-                  paperStyle={paperStyle}
-                  onPaperStyleChange={setPaperStyle}
+                  paperColor={paperColor}
+                  onPaperColorChange={setPaperColor}
+                  paperPattern={paperPattern}
+                  onPaperPatternChange={setPaperPattern}
                 />
               </div>
             </div>
@@ -188,7 +191,8 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
             onContentChange={handleUpdateContent}
             viewMode={viewMode}
             pageSize={pageSize}
-            paperStyle={paperStyle}
+            paperColor={paperColor}
+            paperPattern={paperPattern}
             title={active.title}
           />
         </div>
