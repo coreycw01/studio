@@ -252,7 +252,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
   if (active) {
     return (
       <div className="flex-1 flex flex-col overflow-hidden bg-background font-body">
-        <header className="px-8 pt-8 pb-6 border-b border-border/30 bg-background/80 backdrop-blur z-30">
+        <header className="px-8 pt-8 pb-8 border-b border-border/30 bg-background/80 backdrop-blur z-30">
           <div className="max-w-6xl mx-auto flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <button 
@@ -288,21 +288,39 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4">
               <Input 
-                className="bg-transparent border-none text-4xl font-headline font-bold focus-visible:ring-0 italic p-0 h-auto rounded-none shadow-none text-primary placeholder:text-muted-foreground/20 flex-1" 
+                className="bg-transparent border-none text-4xl font-headline font-bold focus-visible:ring-0 italic p-0 h-auto rounded-none shadow-none text-primary placeholder:text-muted-foreground/20 w-full" 
                 value={active.title} 
                 onChange={(event) => updateActive({ title: event.target.value })}
                 placeholder="Enter Manuscript Title..."
               />
-              <div className="flex items-center gap-6 px-6 border-l border-border/40">
-                <div className="text-right">
-                  <div className="font-code text-[8px] uppercase tracking-widest opacity-40 font-bold">WORDS</div>
-                  <div className="font-code text-[10px] font-bold text-primary/70">{wordCount}</div>
+              
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border/10">
+                <div className="flex items-center gap-4">
+                   <span className="font-code text-[10px] uppercase tracking-widest opacity-40 font-bold">CONCEPTS</span>
+                   <ConceptTagPicker 
+                    concepts={concepts} 
+                    value={active.conceptTags || []} 
+                    onChange={(tags) => updateActive({ conceptTags: normalizeConceptTags(tags) })} 
+                    onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} 
+                    compact
+                  />
                 </div>
-                <div className="text-right">
-                  <div className="font-code text-[8px] uppercase tracking-widest opacity-40 font-bold">READ TIME</div>
-                  <div className="font-code text-[10px] font-bold text-primary/70">{readingTime}m</div>
+                
+                <div className="flex items-center gap-6 opacity-60">
+                  <div className="text-right flex items-center gap-2">
+                    <span className="font-code text-[9px] uppercase tracking-widest opacity-40 font-bold">WORDS</span>
+                    <span className="font-code text-[10px] font-bold text-primary">{wordCount}</span>
+                  </div>
+                  <div className="text-right flex items-center gap-2">
+                    <span className="font-code text-[9px] uppercase tracking-widest opacity-40 font-bold">READ TIME</span>
+                    <span className="font-code text-[10px] font-bold text-primary">{readingTime}m</span>
+                  </div>
+                  <div className="text-right flex items-center gap-2">
+                    <span className="font-code text-[9px] uppercase tracking-widest opacity-40 font-bold">UPDATED</span>
+                    <span className="font-code text-[10px] font-bold text-primary">{new Date(active.dateUpdated).toLocaleDateString()}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -344,33 +362,6 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                   </div>
                 </div>
               )}
-
-              {/* Manuscript Metadata & Concepts Section - Moved to top */}
-              <div className="flex flex-col gap-8 pb-12 border-b border-border/20">
-                <section>
-                  <h4 className="font-code text-[10px] uppercase tracking-widest opacity-40 mb-6 font-bold">Linked Concepts</h4>
-                  <ConceptTagPicker 
-                    concepts={concepts} 
-                    value={active.conceptTags || []} 
-                    onChange={(tags) => updateActive({ conceptTags: normalizeConceptTags(tags) })} 
-                    onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} 
-                  />
-                </section>
-                
-                <div className="flex justify-between items-center opacity-40">
-                  <div className="flex items-center gap-6">
-                    <div className="font-code text-[10px] uppercase tracking-[0.2em] font-bold">
-                      {wordCount} WORDS
-                    </div>
-                    <div className="flex items-center gap-1.5 font-code text-[10px] uppercase tracking-[0.2em] font-bold">
-                      <Clock className="size-3" /> {readingTime}m READ
-                    </div>
-                  </div>
-                  <div className="font-code text-[9px] uppercase tracking-widest font-bold">
-                    UPDATED {new Date(active.dateUpdated).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
 
               <Textarea 
                 className={cn(
