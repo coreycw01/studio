@@ -34,6 +34,7 @@ function authMessage(error: unknown) {
   if (code.includes('auth/operation-not-allowed')) return 'This sign-in method is not enabled in Firebase Auth. Please enable it in your Firebase Console.';
   if (code.includes('auth/user-not-found')) return 'No account found with this email.';
   if (code.includes('auth/wrong-password')) return 'Incorrect password.';
+  if (code.includes('auth/unauthorized-domain')) return 'This domain is not authorized for sign-in. Please add your current URL to "Authorized Domains" in the Firebase Console (Authentication > Settings).';
   return 'Authentication failed. Check your details or Firebase configuration and try again.';
 }
 
