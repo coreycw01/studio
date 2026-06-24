@@ -163,7 +163,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search..." className="w-64 pl-9 h-9" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search..." className="w-64 pl-9 h-9 rounded-full" />
           </div>
           <Button variant="outline" onClick={() => setIdeaOpen(true)} size="sm" className="bg-white border-border/60 shadow-sm rounded-full h-9">
             <Plus className="size-4 mr-1.5" /> NEW IDEA
@@ -213,8 +213,8 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
             <Card 
               key={name} 
               className={cn(
-                "rounded-xl p-5 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all group bg-white shadow-md border border-accent/10",
-                isIdea ? "border-accent/20" : "border-primary/10"
+                "rounded-xl p-5 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all group bg-white/95 shadow-md border border-accent/20",
+                isIdea ? "border-accent/30" : "border-accent/20"
               )} 
               onClick={() => setSelectedName(name)}
             >
@@ -245,9 +245,9 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
               </p>
 
               <div className="flex flex-wrap gap-1.5 border-t border-border/30 pt-4">
-                <Badge variant="outline" className="text-[8px] font-code uppercase tracking-tighter bg-muted/20 border-transparent rounded-full px-2 py-0.5">{related.sources.length} SOURCES</Badge>
-                <Badge variant="outline" className="text-[8px] font-code uppercase tracking-tighter bg-muted/20 border-transparent rounded-full px-2 py-0.5">{related.beliefs.length} POSITIONS</Badge>
-                <Badge variant="outline" className="text-[8px] font-code uppercase tracking-tighter bg-muted/20 border-transparent rounded-full px-2 py-0.5">{related.drafts.length} WORKS</Badge>
+                <Badge variant="outline" className="text-[8px] font-code uppercase tracking-tighter bg-muted/10 border-transparent rounded-full px-2.5 py-0.5 font-bold shadow-sm">{related.sources.length} SOURCES</Badge>
+                <Badge variant="outline" className="text-[8px] font-code uppercase tracking-tighter bg-muted/10 border-transparent rounded-full px-2.5 py-0.5 font-bold shadow-sm">{related.beliefs.length} POSITIONS</Badge>
+                <Badge variant="outline" className="text-[8px] font-code uppercase tracking-tighter bg-muted/10 border-transparent rounded-full px-2.5 py-0.5 font-bold shadow-sm">{related.drafts.length} WORKS</Badge>
               </div>
             </Card>
           );
@@ -303,7 +303,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
           <div className="space-y-6 pt-2">
             <div className="space-y-2">
               <Label className="readex-kicker">Concept Name</Label>
-              <Input value={draftConcept.name} onChange={(event) => setDraftConcept((prev) => ({ ...prev, name: event.target.value }))} />
+              <Input value={draftConcept.name} onChange={(event) => setDraftConcept((prev) => ({ ...prev, name: event.target.value }))} className="rounded-full" />
             </div>
             <div className="space-y-2">
               <Label className="readex-kicker">Description</Label>
@@ -333,7 +333,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
           <div className="space-y-6 pt-2">
             <div className="space-y-2">
               <Label className="readex-kicker">Idea Statement</Label>
-              <Input value={ideaDraft.title} onChange={(event) => setIdeaDraft((prev) => ({ ...prev, title: event.target.value }))} placeholder="Brief title or central statement..." />
+              <Input value={ideaDraft.title} onChange={(event) => setIdeaDraft((prev) => ({ ...prev, title: event.target.value }))} placeholder="Brief title or central statement..." className="rounded-full" />
             </div>
             <div className="space-y-2">
               <Label className="readex-kicker">Description / Reasoning</Label>

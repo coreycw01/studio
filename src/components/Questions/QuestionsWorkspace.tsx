@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo, useState } from 'react';
@@ -91,7 +92,7 @@ export function QuestionsWorkspace({ questions, media, vault, drafts, concepts, 
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search questions..." className="w-64 pl-9 h-9" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search questions..." className="w-64 pl-9 h-9 rounded-full" />
           </div>
           <Button onClick={() => setIsAddOpen(true)} size="sm" className="bg-accent hover:bg-accent/90 rounded-full h-9 px-6 font-bold">
             <Plus className="size-4 mr-1.5" /> ADD INQUIRY
@@ -134,7 +135,7 @@ export function QuestionsWorkspace({ questions, media, vault, drafts, concepts, 
           return (
             <Card 
               key={question.id} 
-              className="cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border border-accent/10 bg-white/95 p-6 rounded-xl shadow-md group" 
+              className="cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border border-accent/20 bg-white/95 p-6 rounded-xl shadow-md group" 
               onClick={() => setSelectedId(question.id)}
             >
               <div className="flex items-center justify-between mb-4">

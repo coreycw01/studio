@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -380,7 +381,7 @@ export function ConceptAtlas({
         <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search map..." value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 w-64 pl-9" />
+            <Input placeholder="Search map..." value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 w-64 pl-9 rounded-full" />
           </div>
           <Button onClick={() => setIsAddOpen(true)} size="sm" className="bg-accent hover:bg-accent/90 rounded-full">
             <Plus className="mr-1.5 size-4" /> New Concept
@@ -596,7 +597,7 @@ export function ConceptAtlas({
           <div className="space-y-6 pt-2">
             <div className="space-y-2">
               <Label className="readex-kicker">Concept Name</Label>
-              <Input value={newConcept.name} onChange={(event) => setNewConcept((prev) => ({ ...prev, name: event.target.value }))} />
+              <Input value={newConcept.name} onChange={(event) => setNewConcept((prev) => ({ ...prev, name: event.target.value }))} className="rounded-full" />
             </div>
             <div className="space-y-2">
               <Label className="readex-kicker">Description</Label>
@@ -614,7 +615,7 @@ export function ConceptAtlas({
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
               <Label className="readex-kicker">Map Name</Label>
-              <Input value={newMap.title} onChange={(event) => setNewMap((prev) => ({ ...prev, title: event.target.value }))} placeholder="Discipline and Avoidance" />
+              <Input value={newMap.title} onChange={(event) => setNewMap((prev) => ({ ...prev, title: event.target.value }))} placeholder="Discipline and Avoidance" className="rounded-full" />
             </div>
             <div className="space-y-2">
               <Label className="readex-kicker">Purpose</Label>
@@ -629,7 +630,7 @@ export function ConceptAtlas({
         <DialogContent className="max-w-lg border-none shadow-2xl rounded-2xl">
           <DialogHeader><DialogTitle className="font-headline text-2xl italic">Add Node To Map</DialogTitle></DialogHeader>
           <div className="space-y-3 pt-2">
-            <Input value={linkSearch} onChange={(event) => setLinkSearch(event.target.value)} placeholder="Search concepts..." />
+            <Input value={linkSearch} onChange={(event) => setLinkSearch(event.target.value)} placeholder="Search concepts..." className="rounded-full" />
             <div className="max-h-80 space-y-1 overflow-y-auto rounded-xl border border-border/60 p-2">
               {availableNodeTerms
                 .filter((name) => !linkSearch || name.toLowerCase().includes(linkSearch.toLowerCase()))
@@ -650,7 +651,7 @@ export function ConceptAtlas({
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
               <Label className="readex-kicker">From</Label>
-              <Input value={selectedName || ''} disabled />
+              <Input value={selectedName || ''} disabled className="rounded-full" />
             </div>
             <div className="space-y-2">
               <Label className="readex-kicker">To</Label>
@@ -676,7 +677,7 @@ export function ConceptAtlas({
               </div>
               <div className="space-y-2">
                 <Label className="readex-kicker">Label</Label>
-                <Input value={linkDraft.label} onChange={(event) => setLinkDraft((prev) => ({ ...prev, label: event.target.value }))} placeholder="tests, explains, challenges..." />
+                <Input value={linkDraft.label} onChange={(event) => setLinkDraft((prev) => ({ ...prev, label: event.target.value }))} placeholder="tests, explains, challenges..." className="rounded-full" />
               </div>
             </div>
             <div className="space-y-2">

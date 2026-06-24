@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -321,7 +322,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
               </div>
               <div className="space-y-2">
                 <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">Document Name</Label>
-                <Input value={docDraft.title} onChange={(event) => setDocDraft((prev) => ({ ...prev, title: event.target.value }))} className="h-11" />
+                <Input value={docDraft.title} onChange={(event) => setDocDraft((prev) => ({ ...prev, title: event.target.value }))} className="h-11 rounded-full" />
               </div>
               <div className="space-y-2">
                 <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">Document URL</Label>
@@ -332,7 +333,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                     setDocDraft((prev) => ({ ...prev, url, provider: detectProvider(url) }));
                   }}
                   placeholder="Paste a Google Doc, Notion, or Markdown link..."
-                  className="h-11"
+                  className="h-11 rounded-full"
                 />
               </div>
               <label className="flex items-center gap-3 rounded-lg border border-border/40 bg-muted/5 p-4 cursor-pointer">
@@ -365,11 +366,11 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
               value={search} 
               onChange={(event) => setSearch(event.target.value)} 
               placeholder="Search manuscripts..." 
-              className="w-72 pl-9 h-9" 
+              className="w-72 pl-9 h-9 rounded-full" 
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => openNewDraft('field_note')} size="sm" className="h-9 px-5 font-code text-[10px] tracking-widest rounded-full uppercase font-bold border-border/60 bg-white">+ FIELD NOTE</Button>
+            <Button variant="outline" onClick={() => openNewDraft('field_note')} size="sm" className="h-9 px-5 font-code text-[10px] tracking-widest rounded-full uppercase font-bold border-border/60 bg-white">Notes</Button>
             <Button variant="outline" onClick={() => openNewDraft('script')} size="sm" className="h-9 px-5 font-code text-[10px] tracking-widest rounded-full uppercase font-bold border-border/60 bg-white">+ SCRIPT</Button>
             <Button onClick={() => openNewDraft('essay')} size="sm" className="bg-accent hover:bg-accent/90 h-9 px-7 font-code text-[10px] tracking-widest shadow-lg shadow-accent/20 text-white border-accent rounded-full uppercase font-bold">+ ESSAY</Button>
           </div>
@@ -464,7 +465,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                 value={newDraft.title} 
                 onChange={(event) => setNewDraft((prev) => ({ ...prev, title: event.target.value }))} 
                 placeholder="Enter a working title..."
-                className="h-12 text-base font-body italic"
+                className="h-12 text-base font-body italic rounded-full"
               />
             </div>
           </div>

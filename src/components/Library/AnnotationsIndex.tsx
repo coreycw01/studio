@@ -50,10 +50,13 @@ export function AnnotationsIndex({
   const filtered = useMemo(() => {
     return annotations
       .filter((annotation) => {
-        const typeOk = filterType === 'all' || (filterType === 'unanswered' ? annotation.type === 'question' && !annotation.answer : annotation.type === filterType);
+        // Exclude questions as requested
+        if (annotation.type === 'question') return false;
+        
+        const typeOk = filterType === 'all' || annotation.type === filterType;
         const conceptOk = filterConcept === 'all' || (annotation.conceptTags || annotation.source.tags || []).map(conceptKey).includes(filterConcept);
         const sourceOk = filterSource === 'all' || annotation.source.id === filterSource;
-        const query = `${annotation.text} ${annotation.answer || ''} ${annotation.source.title} ${annotation.source.creator} ${(annotation.conceptTags || annotation.source.tags || []).join(' ')}`.toLowerCase();
+        const query = `${annotation.text} ${annotation.source.title} ${annotation.source.creator} ${(annotation.conceptTags || annotation.source.tags || []).join(' ')}`.toLowerCase();
         return typeOk && conceptOk && sourceOk && (!search || query.includes(search.toLowerCase()));
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -61,16 +64,18 @@ export function AnnotationsIndex({
 
   const allConcepts = useMemo(() => {
     const tags = new Set<string>();
-    annotations.forEach((annotation) => (annotation.conceptTags || annotation.source.tags || []).forEach((tag) => tags.add(conceptKey(tag))));
+    annotations.forEach((annotation) => {
+      if (annotation.type !== 'question') {
+        (annotation.conceptTags || annotation.source.tags || []).forEach((tag) => tags.add(conceptKey(tag)));
+      }
+    });
     return Array.from(tags).sort();
   }, [annotations]);
 
   const typeCounts = useMemo(() => ({
-    total: annotations.length,
+    total: annotations.filter(a => a.type !== 'question').length,
     highlight: annotations.filter((annotation) => annotation.type === 'highlight').length,
     thought: annotations.filter((annotation) => annotation.type === 'thought').length,
-    question: annotations.filter((annotation) => annotation.type === 'question').length,
-    unanswered: annotations.filter((annotation) => annotation.type === 'question' && !annotation.answer).length,
     connection: annotations.filter((annotation) => annotation.type === 'connection').length,
   }), [annotations]);
 
@@ -95,23 +100,11 @@ export function AnnotationsIndex({
     });
   };
 
-  const createInquiry = (annotation: FlatAnnotation) => {
-    onCreateInquiry({
-      text: annotation.text,
-      conceptIds: normalizeConceptTags(annotation.conceptTags || annotation.source.tags),
-      sourceIds: [annotation.source.id],
-      evidenceIds: [annotation.source.id],
-      type: 'annotation',
-    });
-  };
-
   const filterButtons: { id: AnnotationFilter; label: string; count: number }[] = [
     { id: 'all', label: 'All', count: typeCounts.total },
     { id: 'highlight', label: 'Highlights', count: typeCounts.highlight },
     { id: 'thought', label: 'Thoughts', count: typeCounts.thought },
-    { id: 'question', label: 'Questions', count: typeCounts.question },
     { id: 'connection', label: 'Connections', count: typeCounts.connection },
-    { id: 'unanswered', label: 'Unanswered', count: typeCounts.unanswered },
   ];
 
   return (
@@ -119,12 +112,10 @@ export function AnnotationsIndex({
       <header className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Annotations</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground font-body">Review and refine captured highlights, thoughts, questions, and connections across all sources.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground font-body">Review and refine captured highlights, thoughts, and connections across all sources.</p>
         </div>
         <div className="flex items-center gap-6">
-          <Stat label="Total" value={typeCounts.total} />
-          <Stat label="Questions" value={typeCounts.question} />
-          <Stat label="Unanswered" value={typeCounts.unanswered} />
+          <Stat label="Total Excerpts" value={typeCounts.total} />
         </div>
       </header>
 
@@ -161,7 +152,7 @@ export function AnnotationsIndex({
           </Select>
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search annotation text..." className="pl-9 h-10 rounded-full" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search excerpt text..." className="pl-9 h-10 rounded-full" />
           </div>
         </div>
       </div>
@@ -170,7 +161,7 @@ export function AnnotationsIndex({
         {filtered.map((annotation) => (
           <Card key={`${annotation.source.id}:${annotation.id}`} className="p-8 bg-white border border-accent/10 shadow-md rounded-2xl group hover:shadow-xl transition-all">
             <div className="flex justify-between items-start gap-4 mb-6">
-              <Badge variant="outline" className={cn("font-code text-[9px] uppercase tracking-widest bg-muted/5 border-border/40 rounded-full font-bold px-3 py-1", annotation.type === 'question' && 'border-accent/30 text-accent')}>
+              <Badge variant="outline" className="font-code text-[9px] uppercase tracking-widest bg-muted/5 border-border/40 rounded-full font-bold px-3 py-1">
                 {annotation.type}
               </Badge>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -191,15 +182,9 @@ export function AnnotationsIndex({
               <p className="font-body italic leading-relaxed text-[18px] text-primary/90 relative z-10">"{annotation.text}"</p>
             </div>
 
-            {annotation.type === 'question' && (
-              <div className="mb-6 rounded-lg border-l-2 border-accent/30 bg-muted/10 p-4 text-sm text-muted-foreground">
-                {annotation.answer || 'No answer yet.'}
-              </div>
-            )}
-
             <div className="flex flex-wrap gap-2 mb-6">
               {normalizeConceptTags(annotation.conceptTags || annotation.source.tags).map((tag) => (
-                <Badge key={tag} variant="secondary" className="font-code text-[8px] uppercase tracking-wider rounded-full bg-muted/20 text-muted-foreground">{tag}</Badge>
+                <Badge key={tag} variant="secondary" className="font-code text-[8px] uppercase tracking-wider rounded-full bg-muted/20 text-muted-foreground font-bold">{tag}</Badge>
               ))}
             </div>
 
@@ -217,11 +202,6 @@ export function AnnotationsIndex({
                 <Button variant="outline" size="sm" onClick={() => createPosition(annotation)} className="h-8 rounded-full font-code text-[9px] uppercase tracking-widest">
                   <Lightbulb className="mr-1.5 size-3.5" /> Position
                 </Button>
-                {annotation.type === 'question' && (
-                  <Button variant="outline" size="sm" onClick={() => createInquiry(annotation)} className="h-8 rounded-full font-code text-[9px] uppercase tracking-widest">
-                    <HelpCircle className="mr-1.5 size-3.5" /> Inquiry
-                  </Button>
-                )}
               </div>
             </div>
           </Card>
@@ -230,14 +210,14 @@ export function AnnotationsIndex({
         {filtered.length === 0 && (
           <div className="col-span-full py-32 text-center opacity-30">
             <Highlighter className="size-16 mx-auto mb-6 text-muted-foreground" />
-            <h3 className="font-headline text-3xl italic">No annotations found</h3>
+            <h3 className="font-headline text-3xl italic">No excerpts found</h3>
             <p className="font-body text-base mt-3 max-w-sm mx-auto">As you extract text and anchor thoughts in your library, they will aggregate here for synthesis.</p>
           </div>
         )}
       </div>
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl border-none shadow-2xl rounded-2xl">
           <DialogHeader><DialogTitle className="font-headline text-2xl italic">Edit Annotation</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-5 pt-2">
@@ -245,30 +225,23 @@ export function AnnotationsIndex({
                 <div className="space-y-2">
                   <Label>Type</Label>
                   <Select value={editing.type} onValueChange={(value) => setEditing((prev) => prev ? { ...prev, type: value as AnnotationType } : prev)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="rounded-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="highlight">Highlight</SelectItem>
                       <SelectItem value="thought">Thought</SelectItem>
-                      <SelectItem value="question">Question</SelectItem>
                       <SelectItem value="connection">Connection</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Source</Label>
-                  <Input value={editing.source.title} disabled />
+                  <Input value={editing.source.title} disabled className="rounded-full" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Text</Label>
                 <Textarea value={editing.text} onChange={(event) => setEditing((prev) => prev ? { ...prev, text: event.target.value } : prev)} className="min-h-[140px]" />
               </div>
-              {editing.type === 'question' && (
-                <div className="space-y-2">
-                  <Label>Answer</Label>
-                  <Textarea value={editing.answer || ''} onChange={(event) => setEditing((prev) => prev ? { ...prev, answer: event.target.value } : prev)} className="min-h-[100px]" />
-                </div>
-              )}
               <div className="space-y-2">
                 <Label>Concept Tags</Label>
                 <ConceptTagPicker
@@ -280,9 +253,9 @@ export function AnnotationsIndex({
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button onClick={saveEditing}>Save Annotation</Button>
+          <DialogFooter className="pt-4">
+            <Button variant="ghost" onClick={() => setEditing(null)} className="rounded-full">Cancel</Button>
+            <Button onClick={saveEditing} className="rounded-full px-8">Save Annotation</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -64,10 +64,6 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
     return { type, done, target, percent };
   }).sort((a, b) => b.percent - a.percent);
 
-  const doneTotal = sortedActiveGoals.reduce((sum, row) => sum + row.done, 0);
-  const targetTotal = sortedActiveGoals.reduce((sum, row) => sum + row.target, 0);
-  const totalProgress = targetTotal ? (doneTotal / targetTotal) * 100 : 0;
-
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
       <aside className="w-[252px] bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border shadow-2xl z-20">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -107,7 +108,7 @@ export function BeliefVault({ entries, media, drafts, concepts, onAddEntry, onUp
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search positions, principles..." className="w-72 pl-9 h-9" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search positions, principles..." className="w-72 pl-9 h-9 rounded-full" />
           </div>
           <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 px-6 shadow-md shadow-accent/20 rounded-full h-9 font-bold">
             <Plus className="size-4 mr-1.5" /> NEW POSITION
@@ -212,7 +213,7 @@ function EvidencePanel({ title, items, onAdd }: { title: string; items: string[]
     <Card className="p-5 bg-white border-border/40 shadow-sm rounded-xl">
       <h3 className="font-code text-[10px] uppercase tracking-widest text-muted-foreground mb-3 font-bold">{title}</h3>
       <div className="space-y-2 mb-3">{items.map((item, index) => <div key={`${item}-${index}`} className="rounded-lg bg-muted/30 p-3 text-sm italic shadow-sm border border-border/10 leading-relaxed text-primary/80">{item}</div>)}</div>
-      <div className="flex gap-2"><Input value={text} onChange={(event) => setText(event.target.value)} placeholder="Add evidence..." className="h-9" /><Button onClick={() => { if (text.trim()) { onAdd(text.trim()); setText(''); } }} size="sm" className="h-9 px-4 rounded-full">Add</Button></div>
+      <div className="flex gap-2"><Input value={text} onChange={(event) => setText(event.target.value)} placeholder="Add evidence..." className="h-9 rounded-full" /><Button onClick={() => { if (text.trim()) { onAdd(text.trim()); setText(''); } }} size="sm" className="h-9 px-4 rounded-full">Add</Button></div>
     </Card>
   );
 }
@@ -256,7 +257,7 @@ function BeliefEditor({ open, onOpenChange, draft, setDraft, concepts, media, on
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">TITLE</Label>
-              <Input value={draft.title || ''} onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))} className="italic" />
+              <Input value={draft.title || ''} onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))} className="italic rounded-full" />
             </div>
             <div className="space-y-2">
               <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">TYPE</Label>

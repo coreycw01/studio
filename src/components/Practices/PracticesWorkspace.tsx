@@ -46,7 +46,7 @@ export function PracticesWorkspace({ practices, concepts, media, questions, posi
     setEditorOpen(true);
   };
 
-  const savePractice = () => {
+  const handleSave = () => {
     if (!draft.title?.trim()) return;
     const payload = { ...draft, conceptTags: normalizeConceptTags(draft.conceptTags) };
     if (draft.id) onUpdatePractice(payload as Practice);
@@ -120,7 +120,7 @@ export function PracticesWorkspace({ practices, concepts, media, questions, posi
         positions={positions}
         drafts={drafts}
         onAddConcept={onAddConcept}
-        onSave={savePractice}
+        onSave={handleSave}
       />
     </div>
   );
@@ -134,8 +134,8 @@ function PracticeCard({ practice, questions, positions, onEdit, onDelete }: { pr
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap gap-2 mb-2">
-            <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-widest bg-muted/20 border-transparent text-muted-foreground/80 rounded-full font-bold px-2 py-0.5">{PRACTICE_LABELS[practice.type]}</Badge>
-            <Badge variant="outline" className="font-code text-[8px] uppercase tracking-widest border-border/60 bg-white shadow-sm rounded-full font-bold px-2 py-0.5">{practice.status}</Badge>
+            <Badge variant="secondary" className="font-code text-[8px] uppercase tracking-widest bg-muted/20 border-transparent text-muted-foreground/80 rounded-full font-bold px-2.5 py-0.5 shadow-sm">{PRACTICE_LABELS[practice.type]}</Badge>
+            <Badge variant="outline" className="font-code text-[8px] uppercase tracking-widest border-border/60 bg-white shadow-sm rounded-full font-bold px-2.5 py-0.5 shadow-sm">{practice.status}</Badge>
           </div>
           <h3 className="font-headline text-xl font-bold italic leading-tight group-hover:text-accent transition-colors text-primary truncate">{practice.title}</h3>
         </div>
@@ -157,7 +157,7 @@ function PracticeCard({ practice, questions, positions, onEdit, onDelete }: { pr
 
       <div className="flex flex-wrap gap-1.5 pt-4 border-t border-border/30">
         {(practice.conceptTags || []).slice(0, 4).map((tag) => (
-          <Badge key={tag} variant="outline" className="font-code text-[8px] uppercase tracking-tighter bg-muted/10 border-transparent rounded-full font-bold">{tag}</Badge>
+          <Badge key={tag} variant="outline" className="font-code text-[8px] uppercase tracking-tighter bg-muted/10 border-transparent rounded-full font-bold shadow-sm">{tag}</Badge>
         ))}
       </div>
     </Card>
@@ -193,8 +193,8 @@ function PracticeEditor({ open, onOpenChange, draft, setDraft, concepts, media, 
           <DialogHeader className="mb-8"><DialogTitle className="font-headline text-3xl italic">{draft.id ? 'Refine Practice' : 'Initiate Practice'}</DialogTitle></DialogHeader>
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Field label="PRACTICE TITLE"><Input value={draft.title || ''} onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))} className="italic text-base" /></Field>
-              <Field label="DURATION (DAYS)"><Input type="number" min={0} value={draft.durationDays || 0} onChange={(event) => setDraft((prev) => ({ ...prev, durationDays: Math.max(0, Number(event.target.value) || 0) }))} className="font-code" /></Field>
+              <Field label="PRACTICE TITLE"><Input value={draft.title || ''} onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))} className="italic text-base rounded-full" /></Field>
+              <Field label="DURATION (DAYS)"><Input type="number" min={0} value={draft.durationDays || 0} onChange={(event) => setDraft((prev) => ({ ...prev, durationDays: Math.max(0, Number(event.target.value) || 0) }))} className="font-code rounded-full" /></Field>
               <Field label="PRACTICE TYPE">
                 <Select value={draft.type || 'experiment'} onValueChange={(value) => setDraft((prev) => ({ ...prev, type: value as PracticeType }))}>
                   <SelectTrigger className="rounded-full bg-white border-border/60 shadow-sm font-code text-[10px] uppercase h-11"><SelectValue /></SelectTrigger>
@@ -207,8 +207,8 @@ function PracticeEditor({ open, onOpenChange, draft, setDraft, concepts, media, 
                   <SelectContent>{statuses.map((status) => <SelectItem key={status} value={status} className="font-code text-[10px] uppercase">{status}</SelectItem>)}</SelectContent>
                 </Select>
               </Field>
-              <Field label="START DATE"><Input type="date" value={draft.startDate || ''} onChange={(event) => setDraft((prev) => ({ ...prev, startDate: event.target.value }))} className="h-11 font-code" /></Field>
-              <Field label="END DATE (EXPECTED)"><Input type="date" value={draft.endDate || ''} onChange={(event) => setDraft((prev) => ({ ...prev, endDate: event.target.value }))} className="h-11 font-code" /></Field>
+              <Field label="START DATE"><Input type="date" value={draft.startDate || ''} onChange={(event) => setDraft((prev) => ({ ...prev, startDate: event.target.value }))} className="h-11 font-code rounded-full" /></Field>
+              <Field label="END DATE (EXPECTED)"><Input type="date" value={draft.endDate || ''} onChange={(event) => setDraft((prev) => ({ ...prev, endDate: event.target.value }))} className="h-11 font-code rounded-full" /></Field>
             </div>
             <Field label="CORE REQUIREMENT / CHALLENGE"><Textarea value={draft.description || ''} onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))} className="min-h-[120px] italic text-base" placeholder="What does this practice ask you to do or refrain from doing?" /></Field>
             <Field label="OBSERVATIONS AND REFLECTIONS"><Textarea value={draft.notes || ''} onChange={(event) => setDraft((prev) => ({ ...prev, notes: event.target.value }))} className="min-h-[140px] italic text-base" placeholder="Record qualitative shifts in understanding or behavior..." /></Field>
