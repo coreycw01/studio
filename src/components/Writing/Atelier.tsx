@@ -2,7 +2,30 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Cloud, ExternalLink, Link2, Plus, RefreshCw, Save, Search, Trash2, Unlink, ChevronLeft } from 'lucide-react';
+import { 
+  Cloud, 
+  ExternalLink, 
+  Link2, 
+  Plus, 
+  RefreshCw, 
+  Save, 
+  Search, 
+  Trash2, 
+  Unlink, 
+  ChevronLeft,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Type,
+  Baseline,
+  ChevronDown,
+  List,
+  ListOrdered
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -230,6 +253,8 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
             </div>
           </div>
         </header>
+
+        <FormattingToolbar />
 
         <ScrollArea className="flex-1">
           <div className="max-w-3xl mx-auto px-8 py-16">
@@ -476,5 +501,67 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function FormattingToolbar() {
+  return (
+    <div className="sticky top-0 z-40 flex items-center justify-center border-b border-border/30 bg-background/95 backdrop-blur py-2 px-8">
+      <div className="flex items-center gap-1 p-1.5 rounded-full border border-border/60 bg-white shadow-sm overflow-x-auto max-w-full">
+        {/* Font Selection */}
+        <div className="flex items-center px-3 border-r border-border/40 gap-2">
+          <Type className="size-3.5 text-muted-foreground" />
+          <span className="text-[11px] font-body italic text-primary/80">Spectral</span>
+          <ChevronDown className="size-3 text-muted-foreground/50" />
+        </div>
+
+        {/* Font Size */}
+        <div className="flex items-center px-3 border-r border-border/40 gap-2">
+          <span className="text-[11px] font-code font-bold text-primary/80">14</span>
+          <ChevronDown className="size-3 text-muted-foreground/50" />
+        </div>
+
+        {/* Styles */}
+        <div className="flex items-center gap-0.5 px-2 border-r border-border/40">
+          <ToolbarButton icon={Bold} />
+          <ToolbarButton icon={Italic} />
+          <ToolbarButton icon={Underline} />
+        </div>
+
+        {/* Alignment */}
+        <div className="flex items-center gap-0.5 px-2 border-r border-border/40">
+          <ToolbarButton icon={AlignLeft} active />
+          <ToolbarButton icon={AlignCenter} />
+          <ToolbarButton icon={AlignRight} />
+          <ToolbarButton icon={AlignJustify} />
+        </div>
+
+        {/* Lists & Others */}
+        <div className="flex items-center gap-0.5 px-2 border-r border-border/40">
+          <ToolbarButton icon={List} />
+          <ToolbarButton icon={ListOrdered} />
+        </div>
+
+        {/* Color & Spacing */}
+        <div className="flex items-center gap-0.5 px-2">
+          <ToolbarButton icon={Baseline} />
+          <div className="flex items-center gap-1.5 ml-2 mr-1 group cursor-pointer">
+            <div className="size-3.5 rounded-full bg-primary shadow-sm" />
+            <ChevronDown className="size-2.5 text-muted-foreground/50" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ToolbarButton({ icon: Icon, active }: { icon: any, active?: boolean }) {
+  return (
+    <button className={cn(
+      "size-8 rounded-full flex items-center justify-center transition-all hover:bg-muted",
+      active ? "bg-accent/10 text-accent" : "text-muted-foreground"
+    )}>
+      <Icon className="size-3.5" />
+    </button>
   );
 }
