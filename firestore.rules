@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    function validUserRoot(uid) {
+      return request.resource.data.uid == uid
+        && request.resource.data.app in ['noesis', 'readex']
+        && request.resource.data.updatedAt is string;
+    }
+    function validSettingsDoc() {
+      return request.resource.data.keys().hasOnly([
+        'id',
+        'label',
+        'types',
+        'targets',
+        'x',
+        'y',
+        'scale',
+        'positions',
+        'themeMode',
+        'accentTheme',
+        'writingDefaults',
+        'displayName',
+        'email',
+        'photoURL',
+        'bio',
+        'dateUpdated',
+        'uid',
+        'version',
+        'root',
+        'collections',
+        'settingsDocs',
+        'mediaTypes',
+        'updatedAt'
+      ]);
+    }
+    function validOwnedDocument() {
+      return request.resource.data.keys().hasAny(['id'])
+        || request.resource.data.keys().hasAny(['_schemaPlaceholder']);
+    }
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validUserRoot(uid);
+      allow delete: if false;
+      match /settings/{settingId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validSettingsDoc();
+        allow delete: if false;
+      }
+      match /{collectionId}/{docId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validOwnedDocument();
+        allow delete: if isOwner(uid);
+      }
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
