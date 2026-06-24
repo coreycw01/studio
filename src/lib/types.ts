@@ -15,6 +15,7 @@ export type ExternalDocSyncStatus = 'connected' | 'syncing' | 'synced' | 'error'
 export type PracticeType = 'habit' | 'experiment' | 'discipline' | 'reflection_prompt' | 'commitment' | 'observation' | 'rule' | 'challenge';
 export type PracticeStatus = 'planned' | 'active' | 'completed' | 'paused' | 'abandoned';
 export type AtlasMapLinkType = 'supports' | 'challenges' | 'examples' | 'causes' | 'questions' | 'practices' | 'relates' | 'custom';
+export type SourceProvider = 'google_books' | 'open_library' | 'openalex' | 'url_metadata' | 'manual';
 
 export interface SecurityRuleContext {
   operation: 'create' | 'update' | 'delete' | 'list' | 'get' | 'write';
@@ -58,6 +59,7 @@ export interface Media {
   id: string;
   title: string;
   creator: string;
+  creators?: string[];
   type: MediaType;
   status: MediaStatus;
   year?: string;
@@ -69,6 +71,15 @@ export interface Media {
   isbn?: string;
   doi?: string;
   platform?: string;
+  sourceProvider?: SourceProvider;
+  externalIds?: {
+    googleBooksId?: string;
+    openLibraryId?: string;
+    openAlexId?: string;
+    isbn?: string;
+    doi?: string;
+    url?: string;
+  };
   tags: string[];
   annotations: Annotation[];
   capture: MediaCapture;

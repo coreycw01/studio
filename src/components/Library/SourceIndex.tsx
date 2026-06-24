@@ -50,7 +50,8 @@ export function SourceIndex({ media, vault, drafts, practices, onOpenSource }: S
         const statusOk = filterStatus === 'all' || m.status === filterStatus;
         const conceptOk = filterConcept === 'all' || (m.tags || []).map(conceptKey).includes(filterConcept);
         const annotationOk = filterAnnotations === 'all' || (filterAnnotations === 'with' ? (m.annotations || []).length > 0 : (m.annotations || []).length === 0);
-        const query = `${m.title} ${m.creator} ${m.description || ''} ${m.publisher} ${m.isbn} ${m.doi} ${(m.tags || []).join(' ')}`.toLowerCase();
+        const ids = Object.values(m.externalIds || {}).join(' ');
+        const query = `${m.title} ${m.creator} ${(m.creators || []).join(' ')} ${m.description || ''} ${m.publisher} ${m.platform} ${m.isbn} ${m.doi} ${m.url} ${m.sourceProvider} ${ids} ${(m.tags || []).join(' ')}`.toLowerCase();
         return typeOk && statusOk && conceptOk && annotationOk && (!search || query.includes(search.toLowerCase()));
       })
       .sort((a, b) => {

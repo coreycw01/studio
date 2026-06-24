@@ -19,6 +19,8 @@ import type { Annotation, Concept, Media, MediaStatus, MediaType, VaultEntry, Dr
 import { MEDIA_LABELS, MEDIA_TYPES, MEDIA_ICONS_COMP, normalizeConceptTags, today, uid, conceptKey, conceptRelated } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import type { NormalizedSourceResult } from '@/lib/source-intake';
+import { sourceResultToMediaPatch } from '@/lib/source-intake';
 import { distillInsightsFromMedia } from '@/ai/flows/distill-insights-from-media';
 import { generateReflectiveQuestions } from '@/ai/flows/generate-reflective-questions-flow';
 
@@ -611,6 +613,22 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   onSave: () => void;
 }) {
   const [tagInput, setTagInput] = useState('');
+  const [intakeMode, setIntakeMode] = useState<'search' | 'url' | 'manual'>('search');
+  const [sourceQuery, setSourceQuery] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [sourceResults, setSourceResults] = useState<NormalizedSourceResult[]>([]);
+  const [sourceError, setSourceError] = useState('');
+  const [sourceLoading, setSourceLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setSourceQuery('');
+    setSourceUrl('');
+    setSourceResults([]);
+    setSourceError('');
+    setSourceLoading(false);
+    setIntakeMode(draft.id ? 'manual' : 'search');
+  }, [open, draft.id]);
 
   const addTag = () => {
     if (!tagInput.trim()) return;
@@ -624,6 +642,56 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
     setDraft(prev => ({ ...prev, tags: next }));
   };
 
+  const applySourceResult = (result: NormalizedSourceResult) => {
+    const patch = sourceResultToMediaPatch(result);
+    setDraft((prev) => ({
+      ...prev,
+      ...patch,
+      status: prev.status || 'Want to Read',
+      tags: normalizeConceptTags([...(prev.tags || []), ...(patch.tags || [])]),
+    }));
+    setSourceError('');
+    setIntakeMode('manual');
+  };
+
+  const searchSources = async () => {
+    if (sourceQuery.trim().length < 2) return;
+    setSourceLoading(true);
+    setSourceError('');
+    try {
+      const response = await fetch(`/api/source-search?query=${encodeURIComponent(sourceQuery.trim())}&type=${encodeURIComponent(draft.type || 'book')}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Source search failed.');
+      setSourceResults(data.results || []);
+      if (!(data.results || []).length) setSourceError('No provider results found. Manual entry is still available.');
+    } catch (error) {
+      setSourceResults([]);
+      setSourceError(error instanceof Error ? error.message : 'Source search failed.');
+    } finally {
+      setSourceLoading(false);
+    }
+  };
+
+  const fetchUrlMetadata = async () => {
+    if (!sourceUrl.trim()) return;
+    setSourceLoading(true);
+    setSourceError('');
+    try {
+      const response = await fetch('/api/source-metadata', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: sourceUrl.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to read source metadata.');
+      applySourceResult(data.result);
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : 'Unable to read source metadata.');
+    } finally {
+      setSourceLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl p-0 overflow-hidden border-none rounded-2xl shadow-2xl bg-white font-body">
@@ -631,10 +699,98 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
           <div className="p-8">
             <DialogHeader className="mb-8">
               <DialogTitle className="text-4xl font-headline italic mb-2">Add to Library</DialogTitle>
-              <p className="text-muted-foreground text-sm font-body italic">Books and videos: search or paste URL. Other types: enter manually.</p>
+              <p className="text-muted-foreground text-sm font-body italic">Search by title, paste a public URL, or enter source details manually.</p>
             </DialogHeader>
 
             <div className="space-y-8">
+              <section>
+                <Label className="readex-kicker block mb-4 font-bold text-[10px]">SOURCE INTAKE</Label>
+                <div className="grid grid-cols-3 gap-2 rounded-xl border border-border/50 bg-muted/10 p-1">
+                  {[
+                    { id: 'search', label: 'Search Title' },
+                    { id: 'url', label: 'Paste URL' },
+                    { id: 'manual', label: 'Manual' },
+                  ].map((mode) => (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      onClick={() => setIntakeMode(mode.id as typeof intakeMode)}
+                      className={cn(
+                        "h-9 rounded-lg font-code text-[9px] font-bold uppercase tracking-widest transition-colors",
+                        intakeMode === mode.id ? "bg-white text-accent shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {mode.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {intakeMode === 'search' && (
+                <section className="space-y-4 rounded-xl border border-border/40 bg-white p-5 shadow-sm">
+                  <div className="flex gap-3">
+                    <Input
+                      value={sourceQuery}
+                      onChange={(e) => setSourceQuery(e.target.value)}
+                      onKeyDown={(event) => event.key === 'Enter' && searchSources()}
+                      placeholder={draft.type === 'paper' ? 'Search paper title or DOI...' : 'Search book title or author...'}
+                      className="h-11 text-sm rounded-full"
+                    />
+                    <Button type="button" onClick={searchSources} disabled={sourceLoading || sourceQuery.trim().length < 2} className="h-11 rounded-full px-6 font-code text-[10px] font-bold uppercase tracking-widest">
+                      {sourceLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Search className="mr-2 size-4" />}
+                      Search
+                    </Button>
+                  </div>
+                  <p className="text-xs italic text-muted-foreground">
+                    Title search currently supports books, audiobooks, and papers. Use Paste URL or Manual for articles, websites, videos, podcasts, and other source types.
+                  </p>
+                  {sourceError && <p className="text-xs text-destructive">{sourceError}</p>}
+                  <div className="space-y-3">
+                    {sourceResults.map((result) => (
+                      <button
+                        key={`${result.provider}-${result.externalId}`}
+                        type="button"
+                        onClick={() => applySourceResult(result)}
+                        className="flex w-full gap-4 rounded-xl border border-border/50 bg-muted/5 p-3 text-left transition hover:border-accent/30 hover:bg-accent/5"
+                      >
+                        <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-muted">
+                          {result.thumbnailUrl ? <img src={result.thumbnailUrl} alt="" className="h-full w-full object-cover" /> : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-body text-sm font-semibold italic">{result.title}</div>
+                          <div className="mt-1 truncate text-xs text-muted-foreground">{result.creators.join(', ') || result.publisher || 'Unknown creator'}</div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            <Badge variant="outline" className="rounded-full bg-white font-code text-[8px] uppercase">{result.year || 'n.d.'}</Badge>
+                            <Badge variant="outline" className="rounded-full bg-white font-code text-[8px] uppercase">{result.type}</Badge>
+                            <Badge variant="outline" className="rounded-full bg-white font-code text-[8px] uppercase">{result.provider.replace('_', ' ')}</Badge>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {intakeMode === 'url' && (
+                <section className="space-y-4 rounded-xl border border-border/40 bg-white p-5 shadow-sm">
+                  <div className="flex gap-3">
+                    <Input
+                      value={sourceUrl}
+                      onChange={(e) => setSourceUrl(e.target.value)}
+                      onKeyDown={(event) => event.key === 'Enter' && fetchUrlMetadata()}
+                      placeholder="https://example.com/article"
+                      className="h-11 text-sm rounded-full"
+                    />
+                    <Button type="button" onClick={fetchUrlMetadata} disabled={sourceLoading || !sourceUrl.trim()} className="h-11 rounded-full px-6 font-code text-[10px] font-bold uppercase tracking-widest">
+                      {sourceLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Search className="mr-2 size-4" />}
+                      Fill
+                    </Button>
+                  </div>
+                  <p className="text-xs italic text-muted-foreground">Noesis reads public metadata only. Local, private, and internal URLs are blocked.</p>
+                  {sourceError && <p className="text-xs text-destructive">{sourceError}</p>}
+                </section>
+              )}
+
               <section>
                 <Label className="readex-kicker block mb-4 font-bold text-[10px]">MEDIA TYPE</Label>
                 <div className="flex flex-wrap gap-2">
@@ -717,13 +873,22 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">DOI / URL</Label>
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">DOI</Label>
                     <Input 
-                      value={draft.doi || draft.url || ''} 
-                      onChange={(e) => setDraft(prev => ({ ...prev, doi: e.target.value, url: e.target.value }))}
+                      value={draft.doi || ''} 
+                      onChange={(e) => setDraft(prev => ({ ...prev, doi: e.target.value, externalIds: { ...prev.externalIds, doi: e.target.value } }))}
                       className="h-11 text-base"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">SOURCE URL</Label>
+                  <Input
+                    value={draft.url || ''}
+                    onChange={(e) => setDraft(prev => ({ ...prev, url: e.target.value, externalIds: { ...prev.externalIds, url: e.target.value } }))}
+                    className="h-11 text-base"
+                  />
                 </div>
 
                 <div className="space-y-4">
