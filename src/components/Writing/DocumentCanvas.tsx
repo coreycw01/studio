@@ -4,7 +4,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { DocsPage } from './DocsPage';
 import { PageNavigation } from './PageNavigation';
-import type { PageViewMode, PageSize } from './Atelier';
+import type { PageViewMode, PageSize, PaperStyle } from './Atelier';
 import { cn } from '@/lib/utils';
 
 interface DocumentCanvasProps {
@@ -12,17 +12,14 @@ interface DocumentCanvasProps {
   onContentChange: (content: string) => void;
   viewMode: PageViewMode;
   pageSize: PageSize;
+  paperStyle: PaperStyle;
   title: string;
 }
 
-export function DocumentCanvas({ content, onContentChange, viewMode, pageSize, title }: DocumentCanvasProps) {
+export function DocumentCanvas({ content, onContentChange, viewMode, pageSize, paperStyle, title }: DocumentCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  
-  // Calculate virtual pages based on content height
-  // In a real word processor, this would be highly complex.
-  // Here we use a visual-first approach where the scroll area represents the "stack".
   
   useEffect(() => {
     // Basic logic to guess page count for UI purposes
@@ -57,14 +54,13 @@ export function DocumentCanvas({ content, onContentChange, viewMode, pageSize, t
     <div className="flex flex-col h-full w-full">
       <div className={containerClasses} onScroll={handleScroll} ref={canvasRef}>
         <div className={canvasClasses}>
-          {/* We render a sequence of pages. In continuous modes, we might render all. 
-              In single modes, we render based on state. */}
           {viewMode.includes('continuous') ? (
             Array.from({ length: totalPages }).map((_, i) => (
               <DocsPage 
                 key={i}
                 pageNumber={i + 1}
                 pageSize={pageSize}
+                paperStyle={paperStyle}
                 isEditable={i === 0} // For prototype, first page is the input
                 content={i === 0 ? content : ""}
                 onContentChange={onContentChange}
@@ -75,6 +71,7 @@ export function DocumentCanvas({ content, onContentChange, viewMode, pageSize, t
             <DocsPage 
               pageNumber={currentPage}
               pageSize={pageSize}
+              paperStyle={paperStyle}
               isEditable={true}
               content={content}
               onContentChange={onContentChange}
@@ -89,7 +86,6 @@ export function DocumentCanvas({ content, onContentChange, viewMode, pageSize, t
         totalPages={totalPages} 
         onPageChange={(p) => {
           setCurrentPage(p);
-          // Scroll logic here if continuous
         }}
       />
     </div>

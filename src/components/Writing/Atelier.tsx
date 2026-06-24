@@ -28,13 +28,14 @@ import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import { FormattingToolbar } from './FormattingToolbar';
 import { DocumentCanvas } from './DocumentCanvas';
 import { PageViewControls } from './PageViewControls';
-import type { Concept, Draft, DraftStatus, DraftType, ExternalDocProvider } from '@/lib/types';
+import type { Concept, Draft, DraftStatus, DraftType, ExternalDocProvider, Media, VaultEntry, Question } from '@/lib/types';
 import { DRAFT_LABELS, normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 export type PageViewMode = 'vertical-continuous' | 'vertical-single' | 'horizontal-continuous' | 'horizontal-single';
 export type PageSize = 'letter' | 'a4';
+export type PaperStyle = 'blank' | 'notebook' | 'grid' | 'warm' | 'sepia' | 'dark';
 
 interface AtelierProps {
   drafts: Draft[];
@@ -57,9 +58,10 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newDraft, setNewDraft] = useState({ title: '', type: 'essay' as DraftType });
   
-  // Page View State
+  // Page View & Style State
   const [viewMode, setViewMode] = useState<PageViewMode>('vertical-continuous');
   const [pageSize, setPageSize] = useState<PageSize>('letter');
+  const [paperStyle, setPaperStyle] = useState<PaperStyle>('blank');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   
   const { toast } = useToast();
@@ -76,7 +78,6 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
   const handleUpdateContent = useCallback((newContent: string) => {
     if (!active) return;
     setSaveStatus('saving');
-    // Debounced or direct save logic
     onUpdateDraft({ ...active, body: newContent, dateUpdated: today() });
     setTimeout(() => setSaveStatus('saved'), 1000);
   }, [active, onUpdateDraft]);
@@ -95,6 +96,11 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
     URL.revokeObjectURL(url);
     
     toast({ title: "Manuscript Exported", description: "Your synthesis is ready as a Markdown file." });
+  };
+
+  const openNewDraft = (type: DraftType) => {
+    setNewDraft({ title: '', type });
+    setIsAddOpen(true);
   };
 
   if (active) {
@@ -166,6 +172,8 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                   onViewModeChange={setViewMode}
                   pageSize={pageSize}
                   onPageSizeChange={setPageSize}
+                  paperStyle={paperStyle}
+                  onPaperStyleChange={setPaperStyle}
                 />
               </div>
             </div>
@@ -180,6 +188,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
             onContentChange={handleUpdateContent}
             viewMode={viewMode}
             pageSize={pageSize}
+            paperStyle={paperStyle}
             title={active.title}
           />
         </div>
@@ -305,9 +314,4 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
       </Dialog>
     </div>
   );
-
-  function openNewDraft(type: DraftType) {
-    setNewDraft({ title: '', type });
-    setIsAddOpen(true);
-  }
 }
