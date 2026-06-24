@@ -5,9 +5,9 @@ import { lookup } from 'node:dns/promises';
 import net from 'node:net';
 
 const MAX_IMPORTED_CHARS = 250_000;
-const MAX_RESPONSE_BYTES = 4_000_000; // Increased to 4MB
-const IMPORT_TIMEOUT_MS = 12_000; // Increased timeout for heavy docs
-const MAX_REDIRECTS = 3;
+const MAX_RESPONSE_BYTES = 10_000_000; // Increased to 10MB
+const IMPORT_TIMEOUT_MS = 15_000; // Increased timeout for heavy docs
+const MAX_REDIRECTS = 4;
 
 export const runtime = 'nodejs';
 

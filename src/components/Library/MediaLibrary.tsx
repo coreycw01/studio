@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText, Globe } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText, Globe, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -632,7 +632,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   onSave: () => void;
 }) {
   const [tagInput, setTagInput] = useState('');
-  const [intakeMode, setIntakeMode] = useState<'search' | 'url' | 'manual'>('search');
+  const [intakeMode, setIntakeMode] = useState<'search' | 'url' | 'manual'>('manual');
   const [sourceQuery, setSourceQuery] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [sourceResults, setSourceResults] = useState<NormalizedSourceResult[]>([]);
@@ -655,7 +655,9 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
     if (draft.id) {
       setIntakeMode('manual');
     } else {
-      setIntakeMode(searchSupported ? 'search' : (urlSupported ? 'url' : 'manual'));
+      if (searchSupported) setIntakeMode('search');
+      else if (urlSupported) setIntakeMode('url');
+      else setIntakeMode('manual');
     }
   }, [open, draft.id, currentType, searchSupported, urlSupported]);
 
@@ -692,7 +694,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Source search failed.');
       setSourceResults(data.results || []);
-      if (!(data.results || []).length) setSourceError('No provider results found. Manual entry is still available.');
+      if (!(data.results || []).length) setSourceError('No results found. Manual entry is still available.');
     } catch (error) {
       setSourceResults([]);
       setSourceError(error instanceof Error ? error.message : 'Source search failed.');
@@ -729,7 +731,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
             <DialogHeader className="mb-8">
               <DialogTitle className="text-4xl font-headline italic mb-2">Add to Library</DialogTitle>
               <p className="text-muted-foreground text-sm font-body italic">
-                {draft.id ? 'Refining archive metadata for this scholarly source.' : 'Archiving a new source of knowledge.'}
+                {draft.id ? 'Refining archival metadata for this scholarly source.' : 'Archiving a new source of knowledge.'}
               </p>
             </DialogHeader>
 
@@ -835,7 +837,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                       Fill
                     </Button>
                   </div>
-                  <p className="text-xs italic text-muted-foreground">Paste a URL to auto-extract metadata from the page. Heavy pages may take a few seconds.</p>
+                  <p className="text-xs italic text-muted-foreground">Paste a URL to auto-extract metadata. Heavier scholarly pages are supported up to 10MB.</p>
                   {sourceError && <p className="text-xs text-destructive">{sourceError}</p>}
                 </section>
               )}

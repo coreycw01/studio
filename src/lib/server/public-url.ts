@@ -3,9 +3,9 @@ import { Buffer } from 'node:buffer';
 import { lookup } from 'node:dns/promises';
 import net from 'node:net';
 
-const DEFAULT_MAX_RESPONSE_BYTES = 4_000_000; // Increased to 4MB to handle bloated modern pages
-const DEFAULT_TIMEOUT_MS = 10_000; // Increased to 10s for slower global providers
-const MAX_REDIRECTS = 3;
+const DEFAULT_MAX_RESPONSE_BYTES = 10_000_000; // Increased to 10MB to handle bloated modern pages and scholarly records
+const DEFAULT_TIMEOUT_MS = 12_000; // Increased to 12s for slower global providers
+const MAX_REDIRECTS = 4;
 
 function isPrivateIp(address: string) {
   if (net.isIPv4(address)) {
