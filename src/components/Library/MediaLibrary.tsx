@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,9 @@ interface MediaLibraryProps {
 }
 
 const statuses: MediaStatus[] = ['Want to Read', 'Consuming', 'Finished', 'Paused', 'Abandoned'];
+
+const SEARCH_SUPPORTED_TYPES: MediaType[] = ['book', 'audiobook', 'paper'];
+const URL_SUPPORTED_TYPES: MediaType[] = ['video', 'podcast', 'article', 'course', 'lecture', 'documentary', 'interview', 'paper', 'movie', 'other'];
 
 const TYPE_TERMINOLOGY: Record<MediaType, { creator: string; genre: string; publisher: string; id1: string; id2: string }> = {
   book: { creator: 'Author', genre: 'Genre', publisher: 'Publisher', id1: 'ISBN', id2: 'LCCN / URL' },
@@ -636,7 +639,10 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   const [sourceError, setSourceError] = useState('');
   const [sourceLoading, setSourceLoading] = useState(false);
 
-  const terms = TYPE_TERMINOLOGY[draft.type || 'book'];
+  const currentType = draft.type || 'book';
+  const terms = TYPE_TERMINOLOGY[currentType];
+  const searchSupported = SEARCH_SUPPORTED_TYPES.includes(currentType);
+  const urlSupported = URL_SUPPORTED_TYPES.includes(currentType);
 
   useEffect(() => {
     if (!open) return;
@@ -645,8 +651,13 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
     setSourceResults([]);
     setSourceError('');
     setSourceLoading(false);
-    setIntakeMode(draft.id ? 'manual' : 'search');
-  }, [open, draft.id]);
+    
+    if (draft.id) {
+      setIntakeMode('manual');
+    } else {
+      setIntakeMode(searchSupported ? 'search' : (urlSupported ? 'url' : 'manual'));
+    }
+  }, [open, draft.id, currentType, searchSupported, urlSupported]);
 
   const addTag = () => {
     if (!tagInput.trim()) return;
@@ -718,42 +729,61 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
             <DialogHeader className="mb-8">
               <DialogTitle className="text-4xl font-headline italic mb-2">Add to Library</DialogTitle>
               <p className="text-muted-foreground text-sm font-body italic">
-                Search by title, paste a URL, or manually archive this {MEDIA_LABELS[draft.type || 'book']}.
+                {draft.id ? 'Refining archive metadata for this scholarly source.' : 'Archiving a new source of knowledge.'}
               </p>
             </DialogHeader>
 
             <div className="space-y-8">
-              <section>
-                <Label className="readex-kicker block mb-4 font-bold text-[10px]">SOURCE INTAKE</Label>
-                <div className="grid grid-cols-3 gap-2 rounded-xl border border-border/50 bg-muted/10 p-1">
-                  {[
-                    { id: 'search', label: 'Search Title' },
-                    { id: 'url', label: 'Paste URL' },
-                    { id: 'manual', label: 'Manual' },
-                  ].map((mode) => (
+              {!draft.id && (
+                <section>
+                  <Label className="readex-kicker block mb-4 font-bold text-[10px]">INTAKE MODE</Label>
+                  <div className="flex gap-2 rounded-xl border border-border/50 bg-muted/10 p-1">
+                    {searchSupported && (
+                      <button
+                        type="button"
+                        onClick={() => setIntakeMode('search')}
+                        className={cn(
+                          "flex-1 h-9 rounded-lg font-code text-[9px] font-bold uppercase tracking-widest transition-colors",
+                          intakeMode === 'search' ? "bg-white text-accent shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Search Title
+                      </button>
+                    )}
+                    {urlSupported && (
+                      <button
+                        type="button"
+                        onClick={() => setIntakeMode('url')}
+                        className={cn(
+                          "flex-1 h-9 rounded-lg font-code text-[9px] font-bold uppercase tracking-widest transition-colors",
+                          intakeMode === 'url' ? "bg-white text-accent shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Paste URL
+                      </button>
+                    )}
                     <button
-                      key={mode.id}
                       type="button"
-                      onClick={() => setIntakeMode(mode.id as typeof intakeMode)}
+                      onClick={() => setIntakeMode('manual')}
                       className={cn(
-                        "h-9 rounded-lg font-code text-[9px] font-bold uppercase tracking-widest transition-colors",
-                        intakeMode === mode.id ? "bg-white text-accent shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        "flex-1 h-9 rounded-lg font-code text-[9px] font-bold uppercase tracking-widest transition-colors",
+                        intakeMode === 'manual' ? "bg-white text-accent shadow-sm" : "text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      {mode.label}
+                      Manual
                     </button>
-                  ))}
-                </div>
-              </section>
+                  </div>
+                </section>
+              )}
 
-              {intakeMode === 'search' && (
+              {intakeMode === 'search' && !draft.id && searchSupported && (
                 <section className="space-y-4 rounded-xl border border-border/40 bg-white p-5 shadow-sm">
                   <div className="flex gap-3">
                     <Input
                       value={sourceQuery}
                       onChange={(e) => setSourceQuery(e.target.value)}
                       onKeyDown={(event) => event.key === 'Enter' && searchSources()}
-                      placeholder={draft.type === 'paper' ? 'Search paper title or DOI...' : 'Search book title or author...'}
+                      placeholder={draft.type === 'paper' ? 'Search paper title or DOI...' : 'Search title or author...'}
                       className="h-11 text-sm rounded-full"
                     />
                     <Button type="button" onClick={searchSources} disabled={sourceLoading || sourceQuery.trim().length < 2} className="h-11 rounded-full px-6 font-code text-[10px] font-bold uppercase tracking-widest">
@@ -762,7 +792,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                     </Button>
                   </div>
                   <p className="text-xs italic text-muted-foreground">
-                    Title search currently supports books, audiobooks, and papers. Use Paste URL or Manual for articles, websites, videos, podcasts, and other source types.
+                    Title search queries global bibliographic indexes. Manual entry is always available.
                   </p>
                   {sourceError && <p className="text-xs text-destructive">{sourceError}</p>}
                   <div className="space-y-3">
@@ -774,7 +804,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                         className="flex w-full gap-4 rounded-xl border border-border/50 bg-muted/5 p-3 text-left transition hover:border-accent/30 hover:bg-accent/5"
                       >
                         <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-muted">
-                          {result.thumbnailUrl ? <img src={result.thumbnailUrl} alt="" className="h-full w-full object-cover" /> : null}
+                          {result.thumbnailUrl ? <img src={result.thumbnailUrl} alt="" className="h-full w-full object-cover" /> : <BookOpen className="size-6 text-muted-foreground/30 m-auto" />}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-body text-sm font-semibold italic">{result.title}</div>
@@ -782,7 +812,6 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             <Badge variant="outline" className="rounded-full bg-white font-code text-[8px] uppercase">{result.year || 'n.d.'}</Badge>
                             <Badge variant="outline" className="rounded-full bg-white font-code text-[8px] uppercase">{result.type}</Badge>
-                            <Badge variant="outline" className="rounded-full bg-white font-code text-[8px] uppercase">{result.provider.replace('_', ' ')}</Badge>
                           </div>
                         </div>
                       </button>
@@ -791,7 +820,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                 </section>
               )}
 
-              {intakeMode === 'url' && (
+              {intakeMode === 'url' && !draft.id && urlSupported && (
                 <section className="space-y-4 rounded-xl border border-border/40 bg-white p-5 shadow-sm">
                   <div className="flex gap-3">
                     <Input
@@ -802,11 +831,11 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                       className="h-11 text-sm rounded-full"
                     />
                     <Button type="button" onClick={fetchUrlMetadata} disabled={sourceLoading || !sourceUrl.trim()} className="h-11 rounded-full px-6 font-code text-[10px] font-bold uppercase tracking-widest">
-                      {sourceLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Search className="mr-2 size-4" />}
+                      {sourceLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Globe className="mr-2 size-4" />}
                       Fill
                     </Button>
                   </div>
-                  <p className="text-xs italic text-muted-foreground">Noesis reads public metadata only. Local, private, and internal URLs are blocked.</p>
+                  <p className="text-xs italic text-muted-foreground">Paste a URL to auto-extract metadata from the page. Heavy pages may take a few seconds.</p>
                   {sourceError && <p className="text-xs text-destructive">{sourceError}</p>}
                 </section>
               )}

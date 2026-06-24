@@ -1,9 +1,10 @@
+
 import { Buffer } from 'node:buffer';
 import { lookup } from 'node:dns/promises';
 import net from 'node:net';
 
-const DEFAULT_MAX_RESPONSE_BYTES = 1_000_000;
-const DEFAULT_TIMEOUT_MS = 8_000;
+const DEFAULT_MAX_RESPONSE_BYTES = 4_000_000; // Increased to 4MB to handle bloated modern pages
+const DEFAULT_TIMEOUT_MS = 10_000; // Increased to 10s for slower global providers
 const MAX_REDIRECTS = 3;
 
 function isPrivateIp(address: string) {
@@ -83,7 +84,7 @@ export async function readLimitedText(response: Response, maxBytes = DEFAULT_MAX
     if (!value) continue;
     total += value.byteLength;
     if (total > maxBytes) {
-      throw new Error('Response is too large to import safely.');
+      throw new Error('Response is too large to import safely. Some scholarly pages are heavily bloated with scripts.');
     }
     chunks.push(value);
   }
