@@ -103,10 +103,10 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
 
         <div className="max-w-lg">
           <p className="font-headline text-5xl italic leading-tight text-white/90">
-            Build the private system where sources become positions, works, practices, and change.
+            Build a workspace where study, belief, and growth become a living philosophy.
           </p>
           <p className="mt-6 max-w-md text-sm leading-7 text-white/45">
-            Sign in to keep your atlas, library, inquiries, and writing tied to your own Firebase user space.
+            Sign in to keep your library, inquiries, writing, and personal atlas connected to your private workspace.
           </p>
         </div>
 
