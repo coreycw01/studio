@@ -7,6 +7,8 @@ export type EventType = 'created' | 'refined' | 'challenged' | 'revised' | 'expa
 export type QuestionStatus = 'open' | 'investigating' | 'answered' | 'archived';
 export type DraftType = 'essay' | 'script' | 'field_note';
 export type DraftStatus = 'seed' | 'drafting' | 'revised' | 'final';
+export type ExternalDocProvider = 'google_docs' | 'notion' | 'dropbox_paper' | 'microsoft_word' | 'markdown' | 'other';
+export type ExternalDocSyncStatus = 'connected' | 'syncing' | 'synced' | 'error';
 export type PracticeType = 'habit' | 'experiment' | 'discipline' | 'reflection_prompt' | 'commitment' | 'observation' | 'rule' | 'challenge';
 export type PracticeStatus = 'planned' | 'active' | 'completed' | 'paused' | 'abandoned';
 export type AtlasMapLinkType = 'supports' | 'challenges' | 'examples' | 'causes' | 'questions' | 'practices' | 'relates' | 'custom';
@@ -155,12 +157,24 @@ export interface Draft {
   body: string;
   type: DraftType;
   status: DraftStatus;
+  externalDoc?: ExternalDraftDocument;
   conceptTags: string[];
   sourceIds: string[];
   questionIds: string[];
   beliefIds: string[];
   dateCreated: string;
   dateUpdated: string;
+}
+
+export interface ExternalDraftDocument {
+  provider: ExternalDocProvider;
+  title: string;
+  url: string;
+  documentId?: string;
+  autoSync: boolean;
+  lastSyncedAt?: string;
+  syncStatus: ExternalDocSyncStatus;
+  syncError?: string;
 }
 
 export interface Practice {

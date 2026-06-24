@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Plus, Save, Trash2, Search } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Cloud, ExternalLink, Link2, Plus, RefreshCw, Save, Search, Trash2, Unlink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
-import type { Concept, Draft, DraftStatus, DraftType, Media, Question, VaultEntry } from '@/lib/types';
+import type { Concept, Draft, DraftStatus, DraftType, ExternalDocProvider, Media, Question, VaultEntry } from '@/lib/types';
 import { DRAFT_LABELS, normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 
@@ -30,12 +30,41 @@ interface AtelierProps {
 
 const statuses: DraftStatus[] = ['seed', 'drafting', 'revised', 'final'];
 
+const providerLabels: Record<ExternalDocProvider, string> = {
+  google_docs: 'Google Docs',
+  notion: 'Notion',
+  dropbox_paper: 'Dropbox Paper',
+  microsoft_word: 'Microsoft Word',
+  markdown: 'Markdown / Text',
+  other: 'Other',
+};
+
+function detectProvider(url: string): ExternalDocProvider {
+  if (url.includes('docs.google.com/document')) return 'google_docs';
+  if (url.includes('notion.so')) return 'notion';
+  if (url.includes('paper.dropbox.com')) return 'dropbox_paper';
+  if (url.includes('office.com') || url.includes('sharepoint.com') || url.includes('onedrive.live.com')) return 'microsoft_word';
+  if (url.endsWith('.md') || url.endsWith('.txt')) return 'markdown';
+  return 'other';
+}
+
+function extractDocumentId(url: string) {
+  const google = url.match(/docs\.google\.com\/document\/d\/([^/]+)/)?.[1];
+  if (google) return google;
+  const publishedGoogle = url.match(/docs\.google\.com\/document\/d\/e\/([^/]+)/)?.[1];
+  if (publishedGoogle) return publishedGoogle;
+  return undefined;
+}
+
 export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft, onUpdateDraft, onDeleteDraft, onAddConcept }: AtelierProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | DraftType | DraftStatus>('all');
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isDocOpen, setIsDocOpen] = useState(false);
   const [newDraft, setNewDraft] = useState({ title: '', type: 'essay' as DraftType });
+  const [docDraft, setDocDraft] = useState({ title: '', url: '', provider: 'google_docs' as ExternalDocProvider, autoSync: true });
+  const [syncingId, setSyncingId] = useState<string | null>(null);
   
   const active = drafts.find((draft) => draft.id === activeId) || null;
   
@@ -58,10 +87,100 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
     onUpdateDraft({ ...active, ...patch, dateUpdated: today() });
   };
 
+  const openDocDialog = () => {
+    if (!active) return;
+    setDocDraft({
+      title: active.externalDoc?.title || active.title || '',
+      url: active.externalDoc?.url || '',
+      provider: active.externalDoc?.provider || 'google_docs',
+      autoSync: active.externalDoc?.autoSync ?? true,
+    });
+    setIsDocOpen(true);
+  };
+
+  const connectExternalDoc = () => {
+    if (!active || !docDraft.url.trim()) return;
+    const url = docDraft.url.trim();
+    const provider = docDraft.provider || detectProvider(url);
+    onUpdateDraft({
+      ...active,
+      externalDoc: {
+        provider,
+        title: docDraft.title.trim() || active.title,
+        url,
+        documentId: extractDocumentId(url),
+        autoSync: docDraft.autoSync,
+        syncStatus: 'connected',
+      },
+      dateUpdated: today(),
+    });
+    setIsDocOpen(false);
+  };
+
+  const detachExternalDoc = () => {
+    if (!active) return;
+    const { externalDoc, ...rest } = active;
+    onUpdateDraft({ ...rest, dateUpdated: today() });
+  };
+
+  const syncExternalDoc = async (draft: Draft) => {
+    if (!draft.externalDoc?.url || syncingId === draft.id) return;
+    setSyncingId(draft.id);
+    onUpdateDraft({
+      ...draft,
+      externalDoc: { ...draft.externalDoc, syncStatus: 'syncing', syncError: '' },
+      dateUpdated: today(),
+    });
+
+    try {
+      const response = await fetch('/api/import-document', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: draft.externalDoc.url, provider: draft.externalDoc.provider }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Document sync failed.');
+      onUpdateDraft({
+        ...draft,
+        body: result.text,
+        externalDoc: {
+          ...draft.externalDoc,
+          lastSyncedAt: result.importedAt || today(),
+          syncStatus: 'synced',
+          syncError: result.truncated ? 'Imported text was truncated to keep the draft responsive.' : '',
+        },
+        dateUpdated: today(),
+      });
+    } catch (error) {
+      onUpdateDraft({
+        ...draft,
+        externalDoc: {
+          ...draft.externalDoc,
+          syncStatus: 'error',
+          syncError: error instanceof Error ? error.message : 'Document sync failed.',
+        },
+        dateUpdated: today(),
+      });
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
   const openNewDraft = (type: DraftType) => {
     setNewDraft({ title: '', type });
     setIsAddOpen(true);
   };
+
+  useEffect(() => {
+    if (!active?.externalDoc?.autoSync || active.externalDoc.syncStatus === 'syncing') return;
+    const lastSynced = active.externalDoc.lastSyncedAt ? new Date(active.externalDoc.lastSyncedAt).getTime() : 0;
+    if (Date.now() - lastSynced > 60_000) void syncExternalDoc(active);
+    const interval = window.setInterval(() => {
+      const latest = drafts.find((draft) => draft.id === active.id);
+      if (latest?.externalDoc?.autoSync) void syncExternalDoc(latest);
+    }, 120_000);
+    return () => window.clearInterval(interval);
+  }, [active?.id, active?.externalDoc?.autoSync]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-background">
@@ -138,6 +257,11 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                     <p className="text-[11px] text-muted-foreground line-clamp-1 font-body italic mt-3 opacity-60">
                       {draft.conceptTags?.length ? draft.conceptTags.join(', ') : 'No concepts linked'}
                     </p>
+                    {draft.externalDoc && (
+                      <Badge variant="secondary" className="mt-3 rounded-full bg-accent/10 text-accent border-accent/20 font-code text-[8px] uppercase tracking-widest">
+                        <Cloud className="mr-1 size-3" /> {providerLabels[draft.externalDoc.provider]}
+                      </Badge>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -188,17 +312,47 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={openDocDialog} className="h-9 px-5 rounded-full font-bold shadow-sm bg-white">
+                    <Link2 className="size-4 mr-2" /> {active.externalDoc ? 'Doc' : 'Connect Doc'}
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => onUpdateDraft(active)} className="h-9 px-6 rounded-full font-bold shadow-sm bg-white"><Save className="size-4 mr-2" /> Save</Button>
                   <Button variant="destructive" size="sm" onClick={() => { onDeleteDraft(active.id); setActiveId(null); }} className="h-9 w-9 rounded-full shadow-sm"><Trash2 className="size-4" /></Button>
                 </div>
               </div>
 
+              {active.externalDoc && (
+                <div className="rounded-xl border border-accent/20 bg-accent/5 p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="font-code text-[9px] uppercase tracking-widest text-accent font-bold">External Writing Source</div>
+                    <p className="font-body text-sm italic text-primary/80">
+                      {providerLabels[active.externalDoc.provider]} · {active.externalDoc.title || active.title}
+                    </p>
+                    <p className="font-code text-[8px] uppercase tracking-widest text-muted-foreground mt-1">
+                      {active.externalDoc.lastSyncedAt ? `Last synced ${new Date(active.externalDoc.lastSyncedAt).toLocaleString()}` : 'Not synced yet'}
+                      {active.externalDoc.syncError ? ` · ${active.externalDoc.syncError}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => syncExternalDoc(active)} disabled={syncingId === active.id} className="rounded-full bg-white">
+                      <RefreshCw className={cn('mr-2 size-4', syncingId === active.id && 'animate-spin')} /> Sync Now
+                    </Button>
+                    <Button variant="outline" size="sm" asChild className="rounded-full bg-white">
+                      <a href={active.externalDoc.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 size-4" /> Open</a>
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={detachExternalDoc} className="rounded-full text-destructive hover:text-destructive">
+                      <Unlink className="mr-2 size-4" /> Detach
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex-1 overflow-y-auto pr-4 pt-6">
                 <Textarea 
                   className="w-full h-full min-h-[50vh] border-none shadow-none text-[19px] leading-[2.2] font-body focus-visible:ring-0 resize-none bg-transparent p-0 italic text-primary/90" 
-                  placeholder="Begin your synthesis..." 
+                  placeholder={active.externalDoc ? "Sync your external document to update this text..." : "Begin your synthesis..."} 
                   value={active.body} 
                   onChange={(event) => updateActive({ body: event.target.value })} 
+                  readOnly={!!active.externalDoc}
                 />
               </div>
 
@@ -251,6 +405,51 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
           <DialogFooter className="pt-8 gap-3">
             <Button variant="ghost" onClick={() => setIsAddOpen(false)} className="h-11 px-8 font-code text-[10px] tracking-widest uppercase font-bold text-muted-foreground hover:bg-transparent rounded-full">CANCEL</Button>
             <Button onClick={createDraft} className="h-11 px-10 bg-accent font-code text-[10px] tracking-widest uppercase shadow-xl shadow-accent/20 rounded-full font-bold">ANCHOR WORK</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDocOpen} onOpenChange={setIsDocOpen}>
+        <DialogContent className="max-w-xl border-none shadow-2xl rounded-2xl bg-white">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-3xl italic">Connect External Document</DialogTitle>
+            <p className="text-sm text-muted-foreground">Write in your preferred platform and let Noesis keep a synced copy when the document exposes readable text.</p>
+          </DialogHeader>
+          <div className="space-y-5 pt-4">
+            <div className="space-y-2">
+              <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">Platform</Label>
+              <Select value={docDraft.provider} onValueChange={(value) => setDocDraft((prev) => ({ ...prev, provider: value as ExternalDocProvider }))}>
+                <SelectTrigger className="h-11 rounded-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(providerLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">Document Name</Label>
+              <Input value={docDraft.title} onChange={(event) => setDocDraft((prev) => ({ ...prev, title: event.target.value }))} className="h-11" />
+            </div>
+            <div className="space-y-2">
+              <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">Document URL</Label>
+              <Input
+                value={docDraft.url}
+                onChange={(event) => {
+                  const url = event.target.value;
+                  setDocDraft((prev) => ({ ...prev, url, provider: detectProvider(url) }));
+                }}
+                placeholder="Paste a Google Doc, Notion, Word, Markdown, or text link..."
+                className="h-11"
+              />
+              <p className="text-xs text-muted-foreground italic">Auto-import works best with published Google Docs, public Markdown/text files, or pages that expose readable text.</p>
+            </div>
+            <label className="flex items-center gap-3 rounded-lg border border-border/40 bg-muted/10 p-4">
+              <input type="checkbox" checked={docDraft.autoSync} onChange={(event) => setDocDraft((prev) => ({ ...prev, autoSync: event.target.checked }))} className="size-4 accent-accent" />
+              <span className="text-sm font-body">Auto-sync while this draft is open</span>
+            </label>
+          </div>
+          <DialogFooter className="pt-6 gap-3">
+            <Button variant="ghost" onClick={() => setIsDocOpen(false)} className="rounded-full">Cancel</Button>
+            <Button onClick={connectExternalDoc} disabled={!docDraft.url.trim()} className="rounded-full bg-accent px-8">Connect Document</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

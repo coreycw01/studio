@@ -315,6 +315,7 @@ function ReadexApp() {
       body: data.body || '',
       type: data.type || 'essay',
       status: data.status || 'seed',
+      externalDoc: data.externalDoc || null,
       conceptTags,
       sourceIds: data.sourceIds || [],
       questionIds: data.questionIds || [],

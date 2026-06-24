@@ -45,7 +45,7 @@ Prototype mode uses:
 
 `vault` stores positions, principles, mental models, life rules, worldview statements, and ideas created from the Positions page.
 
-`drafts` stores Works outputs: essays, scripts, and field notes.
+`drafts` stores Works outputs: essays, scripts, and field notes. Drafts can optionally store an `externalDoc` link for writing in Google Docs, Notion, Word, Markdown/text files, or another preferred platform, with in-app sync metadata.
 
 `practices` stores behavior-facing outputs: habits, experiments, disciplines, reflection prompts, commitments, observation periods, personal rules, and challenges.
 

@@ -84,6 +84,7 @@ const collectionPlaceholders = {
     body: '',
     type: 'essay',
     status: 'seed',
+    externalDoc: null,
     conceptTags: ['Unsorted Ideas'],
     sourceIds: [],
     questionIds: [],

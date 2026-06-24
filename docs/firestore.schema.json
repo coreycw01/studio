@@ -85,12 +85,23 @@
         "body": "string",
         "type": "essay | script | field_note",
         "status": "seed | drafting | revised | final",
+        "externalDoc": "ExternalDraftDocument?",
         "conceptTags": "string[] concept names",
         "sourceIds": "string[]",
         "questionIds": "string[]",
         "beliefIds": "string[] vault ids",
         "dateCreated": "ISO string",
         "dateUpdated": "ISO string"
+      },
+      "externalDocFields": {
+        "provider": "google_docs | notion | dropbox_paper | microsoft_word | markdown | other",
+        "title": "string",
+        "url": "string",
+        "documentId": "string?",
+        "autoSync": "boolean",
+        "lastSyncedAt": "ISO string?",
+        "syncStatus": "connected | syncing | synced | error",
+        "syncError": "string?"
       }
     },
     "practices": {
