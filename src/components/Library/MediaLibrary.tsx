@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText, Check } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText, Check, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -635,6 +635,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   const [locatorQuery, setLocatorQuery] = useState('');
   const [locatorResults, setLocatorResults] = useState<any[]>([]);
   const [isLocating, setIsLocating] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const terms = TYPE_TERMINOLOGY[draft.type || 'book'];
 
   const addTag = () => {
@@ -650,18 +651,35 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   };
 
   const handleLocateSource = async () => {
-    if (!locatorQuery.trim()) return;
+    if (!locatorQuery.trim() || !draft.type) return;
     setIsLocating(true);
     try {
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(locatorQuery)}&maxResults=5`);
-      const data = await response.json();
-      setLocatorResults(data.items || []);
+      const { results } = await locateMediaMetadata({
+        query: locatorQuery,
+        mediaType: draft.type,
+      });
+      setLocatorResults(results || []);
+      if (!results?.length) {
+        toast({ title: "No results found", description: "Try refining your search terms." });
+      }
     } catch (error) {
-      console.error('Locator search failed', error);
+      toast({ variant: "destructive", title: "Locator failed", description: "AI could not search for media at this time." });
     } finally {
       setSourceLoading(false);
     }
-  };
+  }, [draft.type]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (locatorQuery.trim().length >= 3) {
+        handleLocateSource(locatorQuery);
+      } else {
+        setLocatorResults([]);
+        setShowDropdown(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [locatorQuery, handleLocateSource]);
 
   const selectLocatedSource = (item: any) => {
     const info = item.volumeInfo;
@@ -681,7 +699,20 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
     }));
     
     setLocatorResults([]);
+    setShowDropdown(false);
     setLocatorQuery('');
+  };
+
+  const addTag = () => {
+    if (!tagInput.trim()) return;
+    const next = normalizeConceptTags([...(draft.tags || []), tagInput]);
+    setDraft(prev => ({ ...prev, tags: next }));
+    setTagInput('');
+  };
+
+  const removeTag = (tag: string) => {
+    const next = normalizeConceptTags((draft.tags || []).filter(t => conceptKey(t) !== conceptKey(tag)));
+    setDraft(prev => ({ ...prev, tags: next }));
   };
 
   return (
@@ -698,7 +729,9 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
 
             <div className="space-y-8">
               <section className="bg-muted/5 p-5 rounded-xl border border-dashed border-border/60">
-                <Label className="readex-kicker block mb-4 font-bold text-[10px] text-accent">LOCATE SOURCE ONLINE</Label>
+                <Label className="readex-kicker block mb-4 font-bold text-[10px] text-accent flex items-center gap-2">
+                  <Globe className="size-3" /> INTELLECTUAL LOCATOR
+                </Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40" />
@@ -706,57 +739,41 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                       placeholder="Search by title, author, or ISBN..." 
                       value={locatorQuery}
                       onChange={(e) => setLocatorQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleLocateSource()}
-                      className="pl-9 h-10 text-sm italic rounded-full bg-white"
+                      className="pl-9 h-11 text-sm italic rounded-full bg-white pr-10"
+                      onFocus={() => locatorResults.length > 0 && setShowDropdown(true)}
                     />
+                    {isLocating && <Loader2 className="absolute right-4 size-4 animate-spin text-accent" />}
                   </div>
                   <Button variant="outline" onClick={handleLocateSource} disabled={isLocating} className="h-10 px-6 rounded-full font-bold">
-                    {isLocating ? <Loader2 className="size-4 animate-spin" /> : 'SEARCH'}
+                    {isLocating ? <Loader2 className="size-4 animate-spin" /> : 'LOCATE'}
                   </Button>
                 </div>
                 {locatorResults.length > 0 && (
-                  <div className="mt-4 space-y-2 border-t border-border/20 pt-4">
-                    {locatorResults.map((item) => (
+                  <div className="mt-4 space-y-2 border-t border-border/20 pt-4 animate-fade-in-up">
+                    {locatorResults.map((item, idx) => (
                       <button
-                        key={item.id}
+                        key={idx}
                         onClick={() => selectLocatedSource(item)}
-                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white hover:shadow-md transition-all text-left group"
+                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white hover:shadow-md transition-all text-left group border border-transparent hover:border-border/40"
                       >
-                        <div className="size-10 bg-muted/20 rounded shrink-0 overflow-hidden border border-border/20">
-                          {item.volumeInfo.imageLinks?.smallThumbnail && (
-                            <img src={item.volumeInfo.imageLinks.smallThumbnail.replace('http:', 'https:')} alt="" className="w-full h-full object-cover" />
+                        <div className="size-12 bg-muted/20 rounded shrink-0 overflow-hidden border border-border/20 flex items-center justify-center">
+                          {item.thumbnailUrl ? (
+                            <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <Globe className="size-5 text-muted-foreground/30" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-headline font-bold italic truncate group-hover:text-accent">{item.volumeInfo.title}</div>
-                          <div className="text-[10px] text-muted-foreground truncate uppercase font-code tracking-tighter">{item.volumeInfo.authors?.join(', ')}</div>
+                          <div className="text-[13px] font-headline font-bold italic truncate group-hover:text-accent">{item.title}</div>
+                          <div className="text-[10px] text-muted-foreground truncate uppercase font-code tracking-tighter">{item.creator} {item.year && `(${item.year})`}</div>
                         </div>
                         <Check className="size-3.5 opacity-0 group-hover:opacity-100 text-accent" />
                       </button>
                     ))}
+                    <Button variant="ghost" size="sm" onClick={() => setLocatorResults([])} className="w-full text-[10px] uppercase font-bold tracking-widest text-muted-foreground/40">Clear Results</Button>
                   </div>
-                </section>
-              )}
-
-              {intakeMode === 'url' && !draft.id && urlSupported && (
-                <section className="space-y-4 rounded-xl border border-border/40 bg-white p-5 shadow-sm">
-                  <div className="flex gap-3">
-                    <Input
-                      value={sourceUrl}
-                      onChange={(e) => setSourceUrl(e.target.value)}
-                      onKeyDown={(event) => event.key === 'Enter' && fetchUrlMetadata()}
-                      placeholder="https://example.com/article"
-                      className="h-11 text-sm rounded-full"
-                    />
-                    <Button type="button" onClick={fetchUrlMetadata} disabled={sourceLoading || !sourceUrl.trim()} className="h-11 rounded-full px-6 font-code text-[10px] font-bold uppercase tracking-widest">
-                      {sourceLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Globe className="mr-2 size-4" />}
-                      Fill
-                    </Button>
-                  </div>
-                  <p className="text-xs italic text-muted-foreground">Paste a URL to auto-extract metadata. Heavier scholarly pages are supported up to 10MB.</p>
-                  {sourceError && <p className="text-xs text-destructive">{sourceError}</p>}
-                </section>
-              )}
+                )}
+              </section>
 
               <section>
                 <Label className="readex-kicker block mb-4 font-bold text-[10px]">MEDIA TYPE</Label>
