@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText, Check, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,7 +20,6 @@ import { MEDIA_LABELS, MEDIA_TYPES, MEDIA_ICONS_COMP, normalizeConceptTags, toda
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sourceResultToMediaPatch } from '@/lib/source-intake';
-import type { NormalizedSourceResult } from '@/lib/source-intake';
 import { distillInsightsFromMedia } from '@/ai/flows/distill-insights-from-media';
 import { generateReflectiveQuestions } from '@/ai/flows/generate-reflective-questions-flow';
 import { locateMediaMetadata } from '@/ai/flows/locate-media-metadata-flow';
@@ -44,6 +43,22 @@ interface MediaLibraryProps {
 }
 
 const statuses: MediaStatus[] = ['Want to Read', 'Consuming', 'Finished', 'Paused', 'Abandoned'];
+
+const TYPE_TERMINOLOGY: Record<MediaType, { creator: string; publisher: string; genre: string; identifier: string }> = {
+  book: { creator: 'Author', publisher: 'Publisher', genre: 'Genre', identifier: 'ISBN' },
+  audiobook: { creator: 'Author/Narrator', publisher: 'Publisher', genre: 'Genre', identifier: 'ISBN' },
+  podcast: { creator: 'Host', publisher: 'Platform', genre: 'Topic', identifier: 'Feed URL' },
+  video: { creator: 'Creator/Channel', publisher: 'Platform', genre: 'Topic', identifier: 'Video URL' },
+  movie: { creator: 'Director', publisher: 'Studio', genre: 'Genre', identifier: 'IMDb ID' },
+  article: { creator: 'Author', publisher: 'Publication', genre: 'Topic', identifier: 'Article URL' },
+  course: { creator: 'Instructor', publisher: 'Institution', genre: 'Subject', identifier: 'Course URL' },
+  lecture: { creator: 'Speaker', publisher: 'Institution', genre: 'Subject', identifier: 'Event/URL' },
+  documentary: { creator: 'Director', publisher: 'Production', genre: 'Subject', identifier: 'IMDb ID' },
+  interview: { creator: 'Participants', publisher: 'Host/Event', genre: 'Topic', identifier: 'URL' },
+  conversation: { creator: 'Participants', publisher: 'Context', genre: 'Topic', identifier: 'Date/URL' },
+  paper: { creator: 'Authors', publisher: 'Journal/Conference', genre: 'Field of Study', identifier: 'DOI' },
+  other: { creator: 'Creator', publisher: 'Publisher', genre: 'Genre', identifier: 'Identifier' },
+};
 
 export function MediaLibrary({ 
   media, 
@@ -625,9 +640,10 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   const { toast } = useToast();
   const [tagInput, setTagInput] = useState('');
   const [locatorQuery, setLocatorQuery] = useState('');
-  const [locatorResults, setLocatorResults] = useState<any[]>([]);
+  const [locatorResults, setLocatorResults] = useState<NormalizedSourceResult[]>([]);
   const [isLocating, setIsLocating] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const terms = TYPE_TERMINOLOGY[draft.type || 'book'];
 
   const addTag = () => {
     if (!tagInput.trim()) return;
@@ -649,38 +665,46 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
       status: prev.status || 'Want to Read',
       tags: normalizeConceptTags([...(prev.tags || []), ...(patch.tags || [])]),
     }));
+    setSourceError('');
+    setIntakeMode('manual');
   };
 
-  const handleLocateSource = useCallback(async () => {
-    if (locatorQuery.trim().length < 2) return;
-    setIsLocating(true);
+  const searchSources = async () => {
+    if (sourceQuery.trim().length < 2) return;
+    if (!isSearchableType) {
+      setSourceResults([]);
+      setSourceError('Search is not available for this media type yet. Use Paste URL or Manual entry.');
+      return;
+    }
+    setSourceLoading(true);
+    setSourceError('');
     try {
-      const results = await locateMediaMetadata({
-        query: locatorQuery,
-        mediaType: draft.type || 'book',
+      const { results } = await locateMediaMetadata({
+        query: query,
+        mediaType: draft.type,
       });
-      setLocatorResults((results as any).results || [results] || []);
+      setLocatorResults(results || []);
       setShowDropdown(true);
     } catch (error) {
       console.error("Locator failed", error);
-      const isQuotaError = (error as any).message?.includes('RESOURCE_EXHAUSTED') || (error as any).message?.includes('429');
+      const isQuotaError = error.message?.includes('RESOURCE_EXHAUSTED') || error.message?.includes('429');
       toast({
         variant: "destructive",
         title: "AI Locator Interrupted",
-        description: isQuotaError
+        description: isQuotaError 
           ? "AI search limit reached. Please fill in details manually or check your AI Studio billing."
-          : "Unable to search online databases at this time. Manual archival is still available.",
+          : "Unable to search online databases at this time. Manual archival is still available."
       });
       setShowDropdown(false);
     } finally {
       setIsLocating(false);
     }
-  }, [locatorQuery, draft.type, toast]);
+  }, [toast]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (locatorQuery.trim().length >= 3) {
-        handleLocateSource();
+        handleLocateSource(locatorQuery);
       } else {
         setLocatorResults([]);
         setShowDropdown(false);
@@ -690,34 +714,22 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   }, [locatorQuery, handleLocateSource]);
 
   const selectLocatedSource = (item: any) => {
-    if (item.title) {
-      setDraft(prev => ({
-        ...prev,
-        title: item.title || prev.title,
-        creator: item.creator || item.author || prev.creator,
-        year: item.year || prev.year,
-        genre: item.genre || prev.genre,
-        publisher: item.publisher || prev.publisher,
-        description: item.description || prev.description,
-        thumbnailUrl: item.thumbnailUrl || prev.thumbnailUrl,
-        isbn: item.isbn || prev.isbn,
-      }));
-    } else if (item.volumeInfo) {
-      const info = item.volumeInfo;
-      const year = info.publishedDate ? info.publishedDate.substring(0, 4) : '';
-      const isbn = info.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier || info.industryIdentifiers?.[0]?.identifier || '';
-      setDraft(prev => ({
-        ...prev,
-        title: info.title || prev.title,
-        creator: info.authors?.join(', ') || prev.creator,
-        year: year || prev.year,
-        genre: info.categories?.join(', ') || prev.genre,
-        publisher: info.publisher || prev.publisher,
-        description: info.description || prev.description,
-        thumbnailUrl: info.imageLinks?.thumbnail?.replace('http:', 'https:') || prev.thumbnailUrl,
-        isbn: isbn || prev.isbn,
-      }));
-    }
+    const info = item.volumeInfo;
+    const year = info.publishedDate ? info.publishedDate.substring(0, 4) : '';
+    const isbn = info.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier || info.industryIdentifiers?.[0]?.identifier || '';
+    
+    setDraft(prev => ({
+      ...prev,
+      title: info.title || prev.title,
+      creator: info.authors?.join(', ') || prev.creator,
+      year: year || prev.year,
+      genre: info.categories?.join(', ') || prev.genre,
+      publisher: info.publisher || prev.publisher,
+      description: info.description || prev.description,
+      thumbnailUrl: info.imageLinks?.thumbnail?.replace('http:', 'https:') || prev.thumbnailUrl,
+      isbn: isbn || prev.isbn,
+    }));
+    
     setLocatorResults([]);
     setShowDropdown(false);
     setLocatorQuery('');
@@ -730,56 +742,77 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
           <div className="p-8">
             <DialogHeader className="mb-8">
               <DialogTitle className="text-4xl font-headline italic mb-2">Add to Library</DialogTitle>
-              <p className="text-muted-foreground text-sm font-body italic">Search by title, paste a public URL, or enter source details manually.</p>
+              <p className="text-muted-foreground text-sm font-body italic">Archiving {MEDIA_LABELS[draft.type || 'book']}.</p>
             </DialogHeader>
 
             <div className="space-y-8">
-              <section className="bg-muted/5 p-5 rounded-xl border border-dashed border-border/60">
-                <Label className="readex-kicker block mb-4 font-bold text-[10px] text-accent flex items-center gap-2">
-                  <Globe className="size-3" /> INTELLECTUAL LOCATOR
-                </Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40" />
-                    <Input 
-                      placeholder={`Search ${MEDIA_LABELS[draft.type || 'book']} databases...`} 
-                      value={locatorQuery}
-                      onChange={(e) => setLocatorQuery(e.target.value)}
-                      className="pl-9 h-11 text-sm italic rounded-full bg-white pr-10"
-                      onFocus={() => locatorResults.length > 0 && setShowDropdown(true)}
-                    />
-                    {isLocating && <Loader2 className="absolute right-4 size-4 animate-spin text-accent" />}
-                  </div>
-                  <Button variant="outline" onClick={handleLocateSource} disabled={isLocating} className="h-10 px-6 rounded-full font-bold">
-                    {isLocating ? <Loader2 className="size-4 animate-spin" /> : 'LOCATE'}
-                  </Button>
-                </div>
-                {locatorResults.length > 0 && (
-                  <div className="mt-4 space-y-2 border-t border-border/20 pt-4 animate-fade-in-up">
-                    {locatorResults.map((item, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => selectLocatedSource(item)}
-                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white hover:shadow-md transition-all text-left group border border-transparent hover:border-border/40"
-                      >
-                        <div className="size-12 bg-muted/20 rounded shrink-0 overflow-hidden border border-border/20 flex items-center justify-center">
-                          {item.thumbnailUrl ? (
-                            <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <Globe className="size-5 text-muted-foreground/30" />
-                          )}
+              {!draft.id && (
+                <>
+                  {showSearch && (
+                    <section className="bg-muted/5 p-5 rounded-xl border border-dashed border-border/60">
+                      <Label className="readex-kicker block mb-4 font-bold text-[10px] text-accent flex items-center gap-2">
+                        <Globe className="size-3" /> INTELLECTUAL LOCATOR
+                      </Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40" />
+                        <Input 
+                          placeholder={`Search ${MEDIA_LABELS[draft.type || 'book']} databases...`} 
+                          value={locatorQuery}
+                          onChange={(e) => {
+                            setLocatorQuery(e.target.value);
+                            handleLocateSource(e.target.value);
+                          }}
+                          className="pl-9 h-11 text-sm italic rounded-full bg-white"
+                        />
+                        {isLocating && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 size-4 animate-spin text-accent" />}
+                      </div>
+                      {showDropdown && locatorResults.length > 0 && (
+                        <div className="mt-4 space-y-2 border-t border-border/20 pt-4 animate-fade-in-up">
+                          {locatorResults.map((item, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => selectLocatedSource(item)}
+                              className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white hover:shadow-md transition-all text-left group border border-transparent hover:border-border/40"
+                            >
+                              <div className="size-12 bg-muted/20 rounded shrink-0 overflow-hidden border border-border/20 flex items-center justify-center">
+                                {item.thumbnailUrl ? (
+                                  <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <Globe className="size-5 text-muted-foreground/30" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[13px] font-headline font-bold italic truncate group-hover:text-accent">{item.title}</div>
+                                <div className="text-[10px] text-muted-foreground truncate uppercase font-code tracking-tighter">{item.creators.join(', ')} {item.year && `(${item.year})`}</div>
+                              </div>
+                              <Check className="size-3.5 opacity-0 group-hover:opacity-100 text-accent" />
+                            </button>
+                          ))}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-headline font-bold italic truncate group-hover:text-accent">{item.title}</div>
-                          <div className="text-[10px] text-muted-foreground truncate uppercase font-code tracking-tighter">{item.creator} {item.year && `(${item.year})`}</div>
-                        </div>
-                        <Check className="size-3.5 opacity-0 group-hover:opacity-100 text-accent" />
-                      </button>
-                    ))}
-                    <Button variant="ghost" size="sm" onClick={() => setLocatorResults([])} className="w-full text-[10px] uppercase font-bold tracking-widest text-muted-foreground/40">Clear Results</Button>
-                  </div>
-                )}
-              </section>
+                      )}
+                    </section>
+                  )}
+
+                  {showImport && (
+                    <section className="bg-muted/5 p-5 rounded-xl border border-dashed border-border/60">
+                      <Label className="readex-kicker block mb-4 font-bold text-[10px] text-accent flex items-center gap-2">
+                        <Link2 className="size-3" /> PASTE URL
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Paste source URL for auto-metadata..." 
+                          value={importUrl}
+                          onChange={(e) => setImportUrl(e.target.value)}
+                          className="h-11 text-sm italic rounded-full bg-white"
+                        />
+                        <Button variant="outline" onClick={handleImportUrl} disabled={isImporting || !importUrl.trim()} className="h-11 px-6 rounded-full font-bold">
+                          {isImporting ? <Loader2 className="size-4 animate-spin" /> : 'IMPORT'}
+                        </Button>
+                      </div>
+                    </section>
+                  )}
+                </>
+              )}
 
               <section>
                 <Label className="readex-kicker block mb-4 font-bold text-[10px]">MEDIA TYPE</Label>
@@ -817,7 +850,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">CREATOR / AUTHOR</Label>
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.creator.toUpperCase()}</Label>
                   <Input 
                     value={draft.creator || ''} 
                     onChange={(e) => setDraft(prev => ({ ...prev, creator: e.target.value }))}
@@ -835,7 +868,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">GENRE / TOPIC</Label>
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.genre.toUpperCase()}</Label>
                     <Input 
                       value={draft.genre || ''} 
                       onChange={(e) => setDraft(prev => ({ ...prev, genre: e.target.value }))}
@@ -845,7 +878,7 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">PUBLISHER / PLATFORM</Label>
+                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.publisher.toUpperCase()}</Label>
                   <Input 
                     value={draft.publisher || ''} 
                     onChange={(e) => setDraft(prev => ({ ...prev, publisher: e.target.value }))}
@@ -855,30 +888,21 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">ISBN / ISSN</Label>
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">{terms.identifier.toUpperCase()}</Label>
                     <Input 
-                      value={draft.isbn || ''} 
-                      onChange={(e) => setDraft(prev => ({ ...prev, isbn: e.target.value }))}
+                      value={draft.isbn || draft.doi || ''} 
+                      onChange={(e) => setDraft(prev => ({ ...prev, isbn: e.target.value, doi: e.target.value }))}
                       className="h-11 text-base"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">DOI</Label>
-                    <Input 
-                      value={draft.doi || ''} 
-                      onChange={(e) => setDraft(prev => ({ ...prev, doi: e.target.value, externalIds: { ...prev.externalIds, doi: e.target.value } }))}
+                    <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">URL</Label>
+                    <Input
+                      value={draft.url || ''}
+                      onChange={(e) => setDraft(prev => ({ ...prev, url: e.target.value }))}
                       className="h-11 text-base"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="readex-kicker uppercase opacity-50 font-bold text-[9px]">SOURCE URL</Label>
-                  <Input
-                    value={draft.url || ''}
-                    onChange={(e) => setDraft(prev => ({ ...prev, url: e.target.value, externalIds: { ...prev.externalIds, url: e.target.value } }))}
-                    className="h-11 text-base"
-                  />
                 </div>
 
                 <div className="space-y-4">
