@@ -27,6 +27,8 @@ interface LoginPageProps {
 
 function authMessage(error: unknown) {
   const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: string }).code) : '';
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : 'your current domain';
+
   if (code.includes('auth/invalid-credential')) return 'Email or password was not recognized.';
   if (code.includes('auth/email-already-in-use')) return 'That email already has a Noesis account.';
   if (code.includes('auth/weak-password')) return 'Use at least 6 characters for your password.';
@@ -34,7 +36,9 @@ function authMessage(error: unknown) {
   if (code.includes('auth/operation-not-allowed')) return 'This sign-in method is not enabled in Firebase Auth. Please enable it in your Firebase Console.';
   if (code.includes('auth/user-not-found')) return 'No account found with this email.';
   if (code.includes('auth/wrong-password')) return 'Incorrect password.';
-  if (code.includes('auth/unauthorized-domain')) return 'This domain is not authorized for sign-in. Please add your current URL to "Authorized Domains" in the Firebase Console (Authentication > Settings).';
+  if (code.includes('auth/unauthorized-domain')) {
+    return `This domain ("${hostname}") is not authorized. Please add it to "Authorized Domains" in the Firebase Console (Authentication > Settings).`;
+  }
   return 'Authentication failed. Check your details or Firebase configuration and try again.';
 }
 
@@ -64,8 +68,11 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
       } else {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth error:', error);
+      if (error.code === 'auth/unauthorized-domain') {
+        console.warn(`ACTION REQUIRED: Add "${window.location.hostname}" to Authorized Domains in Firebase Console.`);
+      }
       toast({ 
         variant: 'destructive',
         title: mode === 'signup' ? 'Account not created' : 'Sign in failed', 
@@ -80,11 +87,13 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
     setBusy('google');
     try {
       const provider = new GoogleAuthProvider();
-      // Ensure popup works in various environments
       provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google Auth error:', error);
+      if (error.code === 'auth/unauthorized-domain') {
+        console.warn(`ACTION REQUIRED: Add "${window.location.hostname}" to Authorized Domains in Firebase Console.`);
+      }
       toast({ 
         variant: 'destructive',
         title: 'Google sign in failed', 
@@ -157,7 +166,7 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
       </section>
 
       <section className="flex min-h-screen items-center justify-center p-6">
-        <div className="w-full max-w-md">
+        <div className="w-full max-md">
           <div className="mb-10 lg:hidden">
             <div className="flex items-center gap-4 mb-6">
               <div className="relative size-10 overflow-hidden rounded-lg bg-accent/10">
@@ -256,8 +265,9 @@ export function LoginPage({ allowDemo, onDemo }: LoginPageProps) {
             </div>
           </div>
 
-          <p className={cn('mt-6 text-center text-xs leading-5 text-muted-foreground', !allowDemo && 'opacity-70')}>
-            Ensure Email/Password and Google providers are enabled in your Firebase Console for this project.
+          <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">
+            Ensure Email/Password and Google providers are enabled in your Firebase Console. 
+            If sign-in fails, confirm this domain is added to "Authorized Domains".
           </p>
         </div>
       </section>
