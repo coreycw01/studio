@@ -24,7 +24,10 @@ import {
   Baseline,
   ChevronDown,
   List,
-  ListOrdered
+  ListOrdered,
+  Download,
+  Clock,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,6 +42,7 @@ import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import type { Concept, Draft, DraftStatus, DraftType, ExternalDocProvider, Media, Question, VaultEntry } from '@/lib/types';
 import { DRAFT_LABELS, normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface AtelierProps {
   drafts: Draft[];
@@ -89,6 +93,7 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
   const [newDraft, setNewDraft] = useState({ title: '', type: 'essay' as DraftType });
   const [docDraft, setDocDraft] = useState({ title: '', url: '', provider: 'google_docs' as ExternalDocProvider, autoSync: true });
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const { toast } = useToast();
   
   const active = drafts.find((draft) => draft.id === activeId) || null;
   
@@ -99,6 +104,9 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
     })
     .filter(draft => !search || draft.title.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => new Date(b.dateUpdated).getTime() - new Date(a.dateUpdated).getTime());
+
+  const wordCount = active?.body.split(/\s+/).filter(Boolean).length || 0;
+  const readingTime = Math.ceil(wordCount / 225); // Average scholarly reading speed
 
   const createDraft = () => {
     if (!newDraft.title.trim()) return;
@@ -154,6 +162,25 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
     if (!active) return;
     const { externalDoc, ...rest } = active;
     onUpdateDraft({ ...rest, dateUpdated: today() });
+  };
+
+  const exportManuscript = () => {
+    if (!active) return;
+    const content = `# ${active.title}\n\nType: ${DRAFT_LABELS[active.type]}\nStatus: ${active.status}\nConcepts: ${(active.conceptTags || []).join(', ')}\nDate Exported: ${new Date().toLocaleString()}\n\n---\n\n${active.body}`;
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${active.title.replace(/\s+/g, '_')}_Noesis_Export.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Manuscript Exported",
+      description: "Your synthesis is ready as a Markdown file."
+    });
   };
 
   const syncExternalDoc = async (draft: Draft) => {
@@ -213,9 +240,8 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
       if (latest?.externalDoc?.autoSync) void syncExternalDoc(latest);
     }, 120_000);
     return () => window.clearInterval(interval);
-  }, [active?.id, active?.externalDoc?.autoSync]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [active?.id, active?.externalDoc?.autoSync]);
 
-  // Detail View (The Full Page Editor)
   if (active) {
     return (
       <div className="flex-1 flex flex-col overflow-hidden bg-background font-body">
@@ -228,6 +254,17 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
               <ChevronLeft className="size-4" /> BACK TO MANUSCRIPTS
             </button>
             <div className="flex items-center gap-3">
+              <div className="hidden lg:flex items-center gap-6 mr-6 border-r border-border/40 pr-6">
+                <div className="text-center">
+                  <div className="font-code text-[9px] uppercase tracking-widest opacity-40 font-bold">WORDS</div>
+                  <div className="font-code text-[11px] font-bold text-primary/70">{wordCount}</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-code text-[9px] uppercase tracking-widest opacity-40 font-bold">READ TIME</div>
+                  <div className="font-code text-[11px] font-bold text-primary/70">{readingTime}m</div>
+                </div>
+              </div>
+
               <div className="flex items-center gap-3 mr-4">
                 <span className="font-code text-[9px] uppercase tracking-widest opacity-40 font-bold">STATUS</span>
                 <Select value={active.status} onValueChange={(value) => updateActive({ status: value as DraftStatus })}>
@@ -241,6 +278,10 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                   </SelectContent>
                 </Select>
               </div>
+
+              <Button variant="outline" size="sm" onClick={exportManuscript} className="h-9 px-5 rounded-full font-bold shadow-sm bg-white border-border/60">
+                <Download className="size-4 mr-2" /> Export
+              </Button>
               <Button variant="outline" size="sm" onClick={openDocDialog} className="h-9 px-5 rounded-full font-bold shadow-sm bg-white border-border/60">
                 <Link2 className="size-4 mr-2" /> {active.externalDoc ? 'Doc' : 'Connect Doc'}
               </Button>
@@ -258,35 +299,11 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
 
         <ScrollArea className="flex-1">
           <div className="max-w-3xl mx-auto px-8 py-16">
-            {active.externalDoc && (
-              <div className="mb-12 rounded-xl border border-accent/20 bg-accent/5 p-6 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="font-code text-[9px] uppercase tracking-widest text-accent font-bold mb-1">External Writing Source</div>
-                  <p className="font-body text-base italic text-primary/80 truncate">
-                    {providerLabels[active.externalDoc.provider]} · {active.externalDoc.title || active.title}
-                  </p>
-                  <p className="font-code text-[8px] uppercase tracking-widest text-muted-foreground mt-2">
-                    {active.externalDoc.lastSyncedAt ? `Last synced ${new Date(active.externalDoc.lastSyncedAt).toLocaleString()}` : 'Not synced yet'}
-                    {active.externalDoc.syncError ? ` · ${active.externalDoc.syncError}` : ''}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => syncExternalDoc(active)} disabled={syncingId === active.id} className="rounded-full bg-white border-border/60">
-                    <RefreshCw className={cn('mr-2 size-4', syncingId === active.id && 'animate-spin')} /> Sync
-                  </Button>
-                  <Button variant="outline" size="sm" asChild className="rounded-full bg-white border-border/60">
-                    <a href={active.externalDoc.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 size-4" /> Open</a>
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={detachExternalDoc} className="rounded-full text-destructive hover:text-destructive">
-                    <Unlink className="mr-2 size-4" /> Detach
-                  </Button>
-                </div>
-              </div>
-            )}
-
             <div className="space-y-12">
               <div className="space-y-4">
-                <div className="font-code text-[10px] uppercase tracking-[0.25em] text-muted-foreground/40 font-bold">{DRAFT_LABELS[active.type]}</div>
+                <div className="flex items-center gap-2 font-code text-[10px] uppercase tracking-[0.25em] text-muted-foreground/40 font-bold">
+                  <FileText className="size-3" /> {DRAFT_LABELS[active.type]}
+                </div>
                 <Input 
                   className="bg-transparent border-none text-5xl font-headline font-bold focus-visible:ring-0 italic p-0 h-auto rounded-none shadow-none text-primary placeholder:text-muted-foreground/20" 
                   value={active.title} 
@@ -294,6 +311,32 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                   placeholder="Manuscript Title..."
                 />
               </div>
+
+              {active.externalDoc && (
+                <div className="rounded-xl border border-accent/20 bg-accent/5 p-6 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-code text-[9px] uppercase tracking-widest text-accent font-bold mb-1">External Writing Source</div>
+                    <p className="font-body text-base italic text-primary/80 truncate">
+                      {providerLabels[active.externalDoc.provider]} · {active.externalDoc.title || active.title}
+                    </p>
+                    <p className="font-code text-[8px] uppercase tracking-widest text-muted-foreground mt-2">
+                      {active.externalDoc.lastSyncedAt ? `Last synced ${new Date(active.externalDoc.lastSyncedAt).toLocaleString()}` : 'Not synced yet'}
+                      {active.externalDoc.syncError ? ` · ${active.externalDoc.syncError}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => syncExternalDoc(active)} disabled={syncingId === active.id} className="rounded-full bg-white border-border/60">
+                      <RefreshCw className={cn('mr-2 size-4', syncingId === active.id && 'animate-spin')} /> Sync
+                    </Button>
+                    <Button variant="outline" size="sm" asChild className="rounded-full bg-white border-border/60">
+                      <a href={active.externalDoc.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 size-4" /> Open</a>
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={detachExternalDoc} className="rounded-full text-destructive hover:text-destructive">
+                      <Unlink className="mr-2 size-4" /> Detach
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <Textarea 
                 className="w-full min-h-[600px] border-none shadow-none text-[21px] leading-[2.2] font-body focus-visible:ring-0 resize-none bg-transparent p-0 italic text-primary/90 placeholder:text-muted-foreground/10" 
@@ -316,8 +359,13 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                   </section>
                   
                   <div className="flex justify-between items-center py-8 opacity-40">
-                    <div className="font-code text-[10px] uppercase tracking-[0.2em] font-bold">
-                      {active.body.split(/\s+/).filter(Boolean).length} WORDS
+                    <div className="flex items-center gap-6">
+                      <div className="font-code text-[10px] uppercase tracking-[0.2em] font-bold">
+                        {wordCount} WORDS
+                      </div>
+                      <div className="flex items-center gap-1.5 font-code text-[10px] uppercase tracking-[0.2em] font-bold">
+                        <Clock className="size-3" /> {readingTime}m READ
+                      </div>
                     </div>
                     <div className="font-code text-[9px] uppercase tracking-widest font-bold">
                       UPDATED {new Date(active.dateUpdated).toLocaleDateString()}
@@ -376,7 +424,6 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
     );
   }
 
-  // Index View (The Card Grid)
   return (
     <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-7xl mx-auto w-full font-body">
       <header className="flex justify-between items-start mb-12">
@@ -508,27 +555,23 @@ function FormattingToolbar() {
   return (
     <div className="sticky top-0 z-40 flex items-center justify-center border-b border-border/30 bg-background/95 backdrop-blur py-2 px-8">
       <div className="flex items-center gap-1 p-1.5 rounded-full border border-border/60 bg-white shadow-sm overflow-x-auto max-w-full">
-        {/* Font Selection */}
         <div className="flex items-center px-3 border-r border-border/40 gap-2">
           <Type className="size-3.5 text-muted-foreground" />
           <span className="text-[11px] font-body italic text-primary/80">Spectral</span>
           <ChevronDown className="size-3 text-muted-foreground/50" />
         </div>
 
-        {/* Font Size */}
         <div className="flex items-center px-3 border-r border-border/40 gap-2">
           <span className="text-[11px] font-code font-bold text-primary/80">14</span>
           <ChevronDown className="size-3 text-muted-foreground/50" />
         </div>
 
-        {/* Styles */}
         <div className="flex items-center gap-0.5 px-2 border-r border-border/40">
           <ToolbarButton icon={Bold} />
           <ToolbarButton icon={Italic} />
           <ToolbarButton icon={Underline} />
         </div>
 
-        {/* Alignment */}
         <div className="flex items-center gap-0.5 px-2 border-r border-border/40">
           <ToolbarButton icon={AlignLeft} active />
           <ToolbarButton icon={AlignCenter} />
@@ -536,13 +579,11 @@ function FormattingToolbar() {
           <ToolbarButton icon={AlignJustify} />
         </div>
 
-        {/* Lists & Others */}
         <div className="flex items-center gap-0.5 px-2 border-r border-border/40">
           <ToolbarButton icon={List} />
           <ToolbarButton icon={ListOrdered} />
         </div>
 
-        {/* Color & Spacing */}
         <div className="flex items-center gap-0.5 px-2">
           <ToolbarButton icon={Baseline} />
           <div className="flex items-center gap-1.5 ml-2 mr-1 group cursor-pointer">
