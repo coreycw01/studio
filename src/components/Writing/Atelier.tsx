@@ -345,6 +345,33 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                 </div>
               )}
 
+              {/* Manuscript Metadata & Concepts Section - Moved to top */}
+              <div className="flex flex-col gap-8 pb-12 border-b border-border/20">
+                <section>
+                  <h4 className="font-code text-[10px] uppercase tracking-widest opacity-40 mb-6 font-bold">Linked Concepts</h4>
+                  <ConceptTagPicker 
+                    concepts={concepts} 
+                    value={active.conceptTags || []} 
+                    onChange={(tags) => updateActive({ conceptTags: normalizeConceptTags(tags) })} 
+                    onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} 
+                  />
+                </section>
+                
+                <div className="flex justify-between items-center opacity-40">
+                  <div className="flex items-center gap-6">
+                    <div className="font-code text-[10px] uppercase tracking-[0.2em] font-bold">
+                      {wordCount} WORDS
+                    </div>
+                    <div className="flex items-center gap-1.5 font-code text-[10px] uppercase tracking-[0.2em] font-bold">
+                      <Clock className="size-3" /> {readingTime}m READ
+                    </div>
+                  </div>
+                  <div className="font-code text-[9px] uppercase tracking-widest font-bold">
+                    UPDATED {new Date(active.dateUpdated).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+
               <Textarea 
                 className={cn(
                   "w-full border-none shadow-none focus-visible:ring-0 resize-none bg-transparent p-0 italic text-primary/90 placeholder:text-muted-foreground/10",
@@ -355,34 +382,6 @@ export function Atelier({ drafts, media, vault, questions, concepts, onAddDraft,
                 onChange={(event) => updateActive({ body: event.target.value })} 
                 readOnly={!!active.externalDoc}
               />
-
-              <div className="pt-16 border-t border-border/20">
-                <div className="flex flex-col gap-8">
-                  <section>
-                    <h4 className="font-code text-[10px] uppercase tracking-widest opacity-40 mb-6 font-bold">Linked Concepts</h4>
-                    <ConceptTagPicker 
-                      concepts={concepts} 
-                      value={active.conceptTags || []} 
-                      onChange={(tags) => updateActive({ conceptTags: normalizeConceptTags(tags) })} 
-                      onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} 
-                    />
-                  </section>
-                  
-                  <div className="flex justify-between items-center py-8 opacity-40">
-                    <div className="flex items-center gap-6">
-                      <div className="font-code text-[10px] uppercase tracking-[0.2em] font-bold">
-                        {wordCount} WORDS
-                      </div>
-                      <div className="flex items-center gap-1.5 font-code text-[10px] uppercase tracking-[0.2em] font-bold">
-                        <Clock className="size-3" /> {readingTime}m READ
-                      </div>
-                    </div>
-                    <div className="font-code text-[9px] uppercase tracking-widest font-bold">
-                      UPDATED {new Date(active.dateUpdated).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </ScrollArea>
