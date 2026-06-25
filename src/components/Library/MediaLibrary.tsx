@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Edit, Plus, Search, Trash2, MessageSquare, X, Sparkles, Loader2, HelpCircle, Triangle, BookOpen, FileText, Check, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,8 +20,10 @@ import { MEDIA_LABELS, MEDIA_TYPES, MEDIA_ICONS_COMP, normalizeConceptTags, toda
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sourceResultToMediaPatch } from '@/lib/source-intake';
+import type { NormalizedSourceResult } from '@/lib/source-intake';
 import { distillInsightsFromMedia } from '@/ai/flows/distill-insights-from-media';
 import { generateReflectiveQuestions } from '@/ai/flows/generate-reflective-questions-flow';
+import { locateMediaMetadata } from '@/ai/flows/locate-media-metadata-flow';
 
 interface MediaLibraryProps {
   media: Media[];
@@ -620,12 +622,12 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   setDraft: React.Dispatch<React.SetStateAction<Partial<Media>>>;
   onSave: () => void;
 }) {
+  const { toast } = useToast();
   const [tagInput, setTagInput] = useState('');
   const [locatorQuery, setLocatorQuery] = useState('');
   const [locatorResults, setLocatorResults] = useState<any[]>([]);
   const [isLocating, setIsLocating] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const terms = TYPE_TERMINOLOGY[draft.type || 'book'];
 
   const addTag = () => {
     if (!tagInput.trim()) return;
@@ -647,46 +649,38 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
       status: prev.status || 'Want to Read',
       tags: normalizeConceptTags([...(prev.tags || []), ...(patch.tags || [])]),
     }));
-    setSourceError('');
-    setIntakeMode('manual');
   };
 
-  const searchSources = async () => {
-    if (sourceQuery.trim().length < 2) return;
-    if (!isSearchableType) {
-      setSourceResults([]);
-      setSourceError('Search is not available for this media type yet. Use Paste URL or Manual entry.');
-      return;
-    }
-    setSourceLoading(true);
-    setSourceError('');
+  const handleLocateSource = useCallback(async () => {
+    if (locatorQuery.trim().length < 2) return;
+    setIsLocating(true);
     try {
-      const { results } = await locateMediaMetadata({
-        query: query,
-        mediaType: draft.type,
+      const results = await locateMediaMetadata({
+        query: locatorQuery,
+        mediaType: draft.type || 'book',
       });
-      setLocatorResults(results || []);
+      setLocatorResults((results as any).results || [results] || []);
       setShowDropdown(true);
     } catch (error) {
       console.error("Locator failed", error);
-      const isQuotaError = error.message?.includes('RESOURCE_EXHAUSTED') || error.message?.includes('429');
+      const isQuotaError = (error as any).message?.includes('RESOURCE_EXHAUSTED') || (error as any).message?.includes('429');
       toast({
         variant: "destructive",
         title: "AI Locator Interrupted",
-        description: isQuotaError 
+        description: isQuotaError
           ? "AI search limit reached. Please fill in details manually or check your AI Studio billing."
-          : "Unable to search online databases at this time. Manual archival is still available."
+          : "Unable to search online databases at this time. Manual archival is still available.",
       });
       setShowDropdown(false);
     } finally {
-      setIsImporting(false);
+      setIsLocating(false);
     }
-  }, [toast]);
+  }, [locatorQuery, draft.type, toast]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (locatorQuery.trim().length >= 3) {
-        handleLocateSource(locatorQuery);
+        handleLocateSource();
       } else {
         setLocatorResults([]);
         setShowDropdown(false);
@@ -696,37 +690,37 @@ function MediaEditor({ open, onOpenChange, draft, setDraft, onSave }: {
   }, [locatorQuery, handleLocateSource]);
 
   const selectLocatedSource = (item: any) => {
-    const info = item.volumeInfo;
-    const year = info.publishedDate ? info.publishedDate.substring(0, 4) : '';
-    const isbn = info.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier || info.industryIdentifiers?.[0]?.identifier || '';
-    
-    setDraft(prev => ({
-      ...prev,
-      title: info.title || prev.title,
-      creator: info.authors?.join(', ') || prev.creator,
-      year: year || prev.year,
-      genre: info.categories?.join(', ') || prev.genre,
-      publisher: info.publisher || prev.publisher,
-      description: info.description || prev.description,
-      thumbnailUrl: info.imageLinks?.thumbnail?.replace('http:', 'https:') || prev.thumbnailUrl,
-      isbn: isbn || prev.isbn,
-    }));
-    
+    if (item.title) {
+      setDraft(prev => ({
+        ...prev,
+        title: item.title || prev.title,
+        creator: item.creator || item.author || prev.creator,
+        year: item.year || prev.year,
+        genre: item.genre || prev.genre,
+        publisher: item.publisher || prev.publisher,
+        description: item.description || prev.description,
+        thumbnailUrl: item.thumbnailUrl || prev.thumbnailUrl,
+        isbn: item.isbn || prev.isbn,
+      }));
+    } else if (item.volumeInfo) {
+      const info = item.volumeInfo;
+      const year = info.publishedDate ? info.publishedDate.substring(0, 4) : '';
+      const isbn = info.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier || info.industryIdentifiers?.[0]?.identifier || '';
+      setDraft(prev => ({
+        ...prev,
+        title: info.title || prev.title,
+        creator: info.authors?.join(', ') || prev.creator,
+        year: year || prev.year,
+        genre: info.categories?.join(', ') || prev.genre,
+        publisher: info.publisher || prev.publisher,
+        description: info.description || prev.description,
+        thumbnailUrl: info.imageLinks?.thumbnail?.replace('http:', 'https:') || prev.thumbnailUrl,
+        isbn: isbn || prev.isbn,
+      }));
+    }
     setLocatorResults([]);
     setShowDropdown(false);
     setLocatorQuery('');
-  };
-
-  const addTag = () => {
-    if (!tagInput.trim()) return;
-    const next = normalizeConceptTags([...(draft.tags || []), tagInput]);
-    setDraft(prev => ({ ...prev, tags: next }));
-    setTagInput('');
-  };
-
-  const removeTag = (tag: string) => {
-    const next = normalizeConceptTags((draft.tags || []).filter(t => conceptKey(t) !== conceptKey(tag)));
-    setDraft(prev => ({ ...prev, tags: next }));
   };
 
   return (

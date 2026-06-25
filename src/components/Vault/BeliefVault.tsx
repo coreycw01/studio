@@ -200,7 +200,7 @@ export function BeliefVault({ entries, media, drafts, concepts, links, onAddEntr
   }
 
   const tensions = useMemo(() => {
-    const active = entries.filter((e) => e.status !== 'rejected' && e.status !== 'archived');
+    const active = entries.filter((e) => e.status !== 'rejected' && e.status !== 'abandoned');
     const pairs: Array<{ a: VaultEntry; b: VaultEntry; sharedTags: string[] }> = [];
     for (let i = 0; i < active.length; i++) {
       for (let j = i + 1; j < active.length; j++) {
