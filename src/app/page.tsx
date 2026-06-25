@@ -15,6 +15,7 @@ import {
 } from '@/firebase';
 import { LoginPage } from '@/components/Auth/LoginPage';
 import { Shell } from '@/components/Shell';
+import type { MovementMetrics } from '@/components/Shell';
 import { ConceptAtlas } from '@/components/Atlas/ConceptAtlas';
 import { ConceptEncyclopedia } from '@/components/Concepts/ConceptEncyclopedia';
 import { MediaLibrary } from '@/components/Library/MediaLibrary';
@@ -531,6 +532,14 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
     return acc;
   }, {} as Record<MediaType, number>);
 
+  const movement: MovementMetrics = {
+    rawAnnotations: allAnnotations(media).filter((a) => !a.philosophyStatus || a.philosophyStatus === 'raw').length,
+    unsupportedPositions: vault.filter((v) => (v.evidenceFor || []).length === 0 && (v.sourceIds || []).length === 0 && v.status !== 'rejected').length,
+    openInquiries: questions.filter((q) => !q.answer && q.status !== 'answered' && q.status !== 'archived').length,
+    practicesWithoutPosition: practices.filter((p) => (p.positionIds || []).length === 0).length,
+    positionsWithoutPractice: vault.filter((v) => v.status !== 'rejected' && !practices.some((p) => (p.positionIds || []).includes(v.id))).length,
+  };
+
   const renderContent = () => {
     switch (view) {
       case 'atlas':
@@ -589,27 +598,30 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
             onCreateInquiry={addQuestion}
             onAddConcept={addConcept}
             onCreateSuggestion={addAiSuggestion}
+            onCreateLink={addPhilosophicalLink}
           />
         );
       case 'source-index':
         return <SourceIndex media={media} vault={vault} drafts={drafts} practices={practices} onOpenSource={(sourceId) => { setFocusedSourceId(sourceId); setView('library'); }} />;
       case 'vault':
         return (
-          <BeliefVault 
-            entries={vault} 
-            media={media} 
-            drafts={drafts} 
-            concepts={concepts} 
+          <BeliefVault
+            entries={vault}
+            media={media}
+            drafts={drafts}
+            concepts={concepts}
             links={links}
-            onAddEntry={addVaultEntry} 
-            onUpdateEntry={updateVaultEntry} 
-            onDeleteEntry={deleteVaultEntry} 
-            onAddConcept={addConcept} 
+            onAddEntry={addVaultEntry}
+            onUpdateEntry={updateVaultEntry}
+            onDeleteEntry={deleteVaultEntry}
+            onAddConcept={addConcept}
             onCreateLink={addPhilosophicalLink}
+            onAddDraft={addDraft}
+            onAddPractice={addPractice}
           />
         );
       case 'questions':
-        return <QuestionsWorkspace questions={questions} media={media} vault={vault} drafts={drafts} concepts={concepts} onAddQuestion={addQuestion} onUpdateQuestion={updateQuestion} />;
+        return <QuestionsWorkspace questions={questions} media={media} vault={vault} drafts={drafts} concepts={concepts} onAddQuestion={addQuestion} onUpdateQuestion={updateQuestion} onAddVaultEntry={addVaultEntry} onAddDraft={addDraft} />;
       case 'writing':
         return <Atelier drafts={drafts} media={media} vault={vault} questions={questions} concepts={concepts} writingDefaults={preferences.writingDefaults} onAddDraft={addDraft} onUpdateDraft={updateDraft} onDeleteDraft={deleteDraft} onAddConcept={addConcept} />;
       case 'evolution':
@@ -638,19 +650,20 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
     <Shell
       activeView={view}
       onViewChange={setView}
-      counts={{ 
-        concepts: concepts.length, 
-        questions: questions.length, 
-        media: media.length, 
-        vault: vault.length, 
-        drafts: drafts.length, 
-        timeline: timeline.length, 
+      counts={{
+        concepts: concepts.length,
+        questions: questions.length,
+        media: media.length,
+        vault: vault.length,
+        drafts: drafts.length,
+        timeline: timeline.length,
         practices: practices.length,
         annotations: allAnnotations(media).length
       }}
       goal={goal}
       goalProgress={goalProgress}
       onOpenSettings={() => setView('settings')}
+      movement={movement}
     >
       {renderContent()}
       <Toaster />

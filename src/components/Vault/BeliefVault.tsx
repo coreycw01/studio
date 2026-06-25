@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState } from 'react';
-import { ArrowLeft, Edit, Plus, ShieldCheck, Trash2, Search, Triangle } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { AlertTriangle, ArrowLeft, Edit, Plus, ShieldCheck, Trash2, Search, Triangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import { SourceLinker } from '@/components/SourceLinker';
 import { NextPhilosophicalActionPanel } from '@/components/Philosophy/NextPhilosophicalActionPanel';
-import type { Concept, Draft, Media, PhilosophicalLink, VaultEntry, VaultType } from '@/lib/types';
+import type { Concept, Draft, Media, PhilosophicalLink, Practice, VaultEntry, VaultType } from '@/lib/types';
 import { normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +29,8 @@ interface BeliefVaultProps {
   onDeleteEntry: (id: string) => void;
   onAddConcept: (data: Partial<Concept>) => void;
   onCreateLink: (data: Partial<PhilosophicalLink>) => void;
+  onAddDraft: (data: Partial<Draft>) => void;
+  onAddPractice: (data: Partial<Practice>) => void;
 }
 
 const vaultTypes: VaultType[] = ['belief', 'principle', 'mental_model', 'life_rule', 'worldview'];
@@ -41,7 +43,7 @@ const TYPE_LABELS: Record<VaultType, string> = {
   worldview: 'Worldview',
 };
 
-export function BeliefVault({ entries, media, drafts, concepts, links, onAddEntry, onUpdateEntry, onDeleteEntry, onAddConcept, onCreateLink }: BeliefVaultProps) {
+export function BeliefVault({ entries, media, drafts, concepts, links, onAddEntry, onUpdateEntry, onDeleteEntry, onAddConcept, onCreateLink, onAddDraft, onAddPractice }: BeliefVaultProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -98,24 +100,50 @@ export function BeliefVault({ entries, media, drafts, concepts, links, onAddEntr
             description="Positions are the center of gravity: support them, challenge them, express them, or test them."
             actions={[
               {
-                label: 'Link Support',
+                label: 'Raise Confidence',
                 tone: 'support',
-                disabled: !firstLinkedSource,
-                description: firstLinkedSource ? `Use ${firstLinkedSource.title} as support.` : 'Attach a source before creating a support link.',
-                onClick: () => firstLinkedSource && onCreateLink({
-                  fromType: 'source',
-                  fromId: firstLinkedSource.id,
-                  fromLabel: firstLinkedSource.title,
-                  toType: 'position',
-                  toId: selected.id,
-                  toLabel: selected.title,
-                  type: 'supports',
-                  note: 'Source supports this position.',
+                disabled: selected.confidence >= 5,
+                description: 'Increase confidence in this position.',
+                onClick: () => onUpdateEntry({ ...selected, confidence: Math.min(5, (selected.confidence || 3) + 1), dateUpdated: today() }),
+              },
+              {
+                label: 'Lower Confidence',
+                tone: 'challenge',
+                disabled: selected.confidence <= 1,
+                description: 'Decrease confidence — add doubt before revising.',
+                onClick: () => onUpdateEntry({ ...selected, confidence: Math.max(1, (selected.confidence || 3) - 1), dateUpdated: today() }),
+              },
+              {
+                label: 'Turn into Essay',
+                description: 'Open this position as an essay draft.',
+                onClick: () => onAddDraft({
+                  title: selected.title,
+                  body: `**Position:** ${selected.statement}\n\n**Reasoning:**\n${selected.description || ''}`,
+                  type: 'essay',
+                  status: 'seed',
+                  beliefIds: [selected.id],
+                  sourceIds: selected.sourceIds || [],
+                  conceptTags: selected.tags || [],
+                }),
+              },
+              {
+                label: 'Start Practice',
+                description: 'Create a behavioral experiment to test this position.',
+                onClick: () => onAddPractice({
+                  title: `Test: ${selected.title.slice(0, 60)}`,
+                  description: `This practice tests the position: "${selected.statement}"`,
+                  type: 'experiment',
+                  status: 'planned',
+                  durationDays: 7,
+                  positionIds: [selected.id],
+                  conceptTags: selected.tags || [],
+                  sourceIds: selected.sourceIds || [],
                 }),
               },
               {
                 label: 'Mark Challenged',
                 tone: 'challenge',
+                disabled: selected.status === 'challenged',
                 onClick: () => onUpdateEntry({
                   ...selected,
                   status: 'challenged',
@@ -128,12 +156,28 @@ export function BeliefVault({ entries, media, drafts, concepts, links, onAddEntr
               },
               {
                 label: 'Mark Revised',
+                disabled: selected.status === 'revised',
                 onClick: () => onUpdateEntry({
                   ...selected,
                   status: 'revised',
                   versionHistory: [
                     ...(selected.versionHistory || []),
                     { date: today(), eventType: 'revised', description: 'Marked as revised after reflection.' },
+                  ],
+                  dateUpdated: today(),
+                }),
+              },
+              {
+                label: 'Reject',
+                tone: 'challenge',
+                disabled: selected.status === 'rejected',
+                description: 'Mark this position as rejected after examination.',
+                onClick: () => onUpdateEntry({
+                  ...selected,
+                  status: 'rejected',
+                  versionHistory: [
+                    ...(selected.versionHistory || []),
+                    { date: today(), eventType: 'revised', description: 'Position rejected after examination.' },
                   ],
                   dateUpdated: today(),
                 }),
@@ -155,6 +199,22 @@ export function BeliefVault({ entries, media, drafts, concepts, links, onAddEntr
     );
   }
 
+  const tensions = useMemo(() => {
+    const active = entries.filter((e) => e.status !== 'rejected' && e.status !== 'archived');
+    const pairs: Array<{ a: VaultEntry; b: VaultEntry; sharedTags: string[] }> = [];
+    for (let i = 0; i < active.length; i++) {
+      for (let j = i + 1; j < active.length; j++) {
+        const tagsA = (active[i].tags || []).map((t) => t.toLowerCase());
+        const tagsB = (active[j].tags || []).map((t) => t.toLowerCase());
+        const shared = tagsA.filter((t) => tagsB.includes(t));
+        if (shared.length > 0 && active[i].id !== active[j].id) {
+          pairs.push({ a: active[i], b: active[j], sharedTags: shared });
+        }
+      }
+    }
+    return pairs.slice(0, 3);
+  }, [entries]);
+
   return (
     <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-7xl mx-auto w-full font-body">
       <header className="flex justify-between items-center mb-10">
@@ -172,6 +232,29 @@ export function BeliefVault({ entries, media, drafts, concepts, links, onAddEntr
           </Button>
         </div>
       </header>
+
+      {tensions.length > 0 && (
+        <div className="mb-8 rounded-xl border border-amber-200/60 bg-amber-50/60 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="size-4 text-amber-600" />
+            <h3 className="font-code text-[10px] uppercase tracking-[0.2em] text-amber-700 font-bold">Possible Tensions Detected</h3>
+          </div>
+          <div className="space-y-3">
+            {tensions.map(({ a, b, sharedTags }) => (
+              <div key={`${a.id}-${b.id}`} className="rounded-lg bg-white/70 border border-amber-100 p-4">
+                <div className="flex flex-wrap items-start gap-x-3 gap-y-1 text-sm font-body">
+                  <button onClick={() => setSelectedId(a.id)} className="font-bold italic text-primary hover:text-accent transition-colors">{a.title}</button>
+                  <span className="text-amber-600/60 font-code text-[9px] uppercase tracking-widest self-center">shares concept</span>
+                  <span className="font-code text-[9px] bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 self-center">{sharedTags[0]}</span>
+                  <span className="text-amber-600/60 font-code text-[9px] uppercase tracking-widest self-center">with</span>
+                  <button onClick={() => setSelectedId(b.id)} className="font-bold italic text-primary hover:text-accent transition-colors">{b.title}</button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 font-body italic">Examine whether these positions contradict, refine, or complement each other.</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mb-10">
         <p className="text-xl font-headline italic text-foreground/60 mb-5">Explicit positions, principles, and mental models</p>

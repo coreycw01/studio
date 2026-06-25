@@ -3,15 +3,16 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { 
-  BookOpen, 
-  HelpCircle, 
-  History, 
-  Library, 
-  Map as MapIcon, 
-  PenTool, 
+import {
+  AlertTriangle,
+  BookOpen,
+  HelpCircle,
+  History,
+  Library,
+  Map as MapIcon,
+  PenTool,
   Repeat,
-  Settings, 
+  Settings,
   ShieldCheck,
   Edit2,
   ChevronRight,
@@ -25,6 +26,14 @@ import { Button } from '@/components/ui/button';
 import type { GoalSettings, MediaType } from '@/lib/types';
 import { MEDIA_LABELS } from '@/lib/readex';
 import placeholderData from '@/app/lib/placeholder-images.json';
+
+export interface MovementMetrics {
+  rawAnnotations: number;
+  unsupportedPositions: number;
+  openInquiries: number;
+  practicesWithoutPosition: number;
+  positionsWithoutPractice: number;
+}
 
 interface ShellProps {
   children: React.ReactNode;
@@ -43,9 +52,10 @@ interface ShellProps {
   goal: GoalSettings;
   goalProgress: Partial<Record<MediaType, number>>;
   onOpenSettings: () => void;
+  movement?: MovementMetrics;
 }
 
-export function Shell({ children, activeView, onViewChange, counts, goal, goalProgress, onOpenSettings }: ShellProps) {
+export function Shell({ children, activeView, onViewChange, counts, goal, goalProgress, onOpenSettings, movement }: ShellProps) {
   const navItems = [
     { id: 'atlas', label: 'Atlas', icon: MapIcon, section: 'Mind' },
     { id: 'concepts', label: 'Concepts', icon: BookOpen, section: 'Mind', count: counts.concepts },
@@ -118,6 +128,52 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
             </div>
           </div>
         </div>
+
+        {movement && (movement.rawAnnotations + movement.unsupportedPositions + movement.openInquiries + movement.practicesWithoutPosition + movement.positionsWithoutPractice) > 0 && (
+          <div className="px-5 pb-4 border-b border-sidebar-border">
+            <div className="flex items-center gap-1.5 mb-2 mt-4">
+              <AlertTriangle className="size-3 text-amber-400" />
+              <span className="font-code text-[8px] uppercase tracking-[0.16em] text-sidebar-foreground/40 font-bold">Needs Attention</span>
+            </div>
+            <div className="space-y-1.5">
+              {movement.rawAnnotations > 0 && (
+                <button onClick={() => onViewChange('annotations')} className="w-full text-left rounded-lg px-3 py-2 bg-white/[0.04] hover:bg-white/[0.07] transition-colors group">
+                  <span className="font-code text-[9px] text-white/50 group-hover:text-white/80 transition-colors">
+                    <span className="text-amber-400 font-bold">{movement.rawAnnotations}</span> raw annotation{movement.rawAnnotations !== 1 ? 's' : ''} unclassified
+                  </span>
+                </button>
+              )}
+              {movement.openInquiries > 0 && (
+                <button onClick={() => onViewChange('questions')} className="w-full text-left rounded-lg px-3 py-2 bg-white/[0.04] hover:bg-white/[0.07] transition-colors group">
+                  <span className="font-code text-[9px] text-white/50 group-hover:text-white/80 transition-colors">
+                    <span className="text-amber-400 font-bold">{movement.openInquiries}</span> open inquir{movement.openInquiries !== 1 ? 'ies' : 'y'} without answer
+                  </span>
+                </button>
+              )}
+              {movement.unsupportedPositions > 0 && (
+                <button onClick={() => onViewChange('vault')} className="w-full text-left rounded-lg px-3 py-2 bg-white/[0.04] hover:bg-white/[0.07] transition-colors group">
+                  <span className="font-code text-[9px] text-white/50 group-hover:text-white/80 transition-colors">
+                    <span className="text-amber-400 font-bold">{movement.unsupportedPositions}</span> position{movement.unsupportedPositions !== 1 ? 's' : ''} without evidence
+                  </span>
+                </button>
+              )}
+              {movement.positionsWithoutPractice > 0 && (
+                <button onClick={() => onViewChange('practices')} className="w-full text-left rounded-lg px-3 py-2 bg-white/[0.04] hover:bg-white/[0.07] transition-colors group">
+                  <span className="font-code text-[9px] text-white/50 group-hover:text-white/80 transition-colors">
+                    <span className="text-amber-400 font-bold">{movement.positionsWithoutPractice}</span> position{movement.positionsWithoutPractice !== 1 ? 's' : ''} not yet tested
+                  </span>
+                </button>
+              )}
+              {movement.practicesWithoutPosition > 0 && (
+                <button onClick={() => onViewChange('practices')} className="w-full text-left rounded-lg px-3 py-2 bg-white/[0.04] hover:bg-white/[0.07] transition-colors group">
+                  <span className="font-code text-[9px] text-white/50 group-hover:text-white/80 transition-colors">
+                    <span className="text-amber-400 font-bold">{movement.practicesWithoutPosition}</span> practice{movement.practicesWithoutPosition !== 1 ? 's' : ''} without a belief
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <nav className="flex-1 overflow-y-auto py-4 scrollbar-hide">
           {['Mind', 'Inputs', 'Outputs'].map((section) => (

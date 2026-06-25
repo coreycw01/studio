@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import { NextPhilosophicalActionPanel } from '@/components/Philosophy/NextPhilosophicalActionPanel';
-import type { AiSuggestion, Annotation, AnnotationType, Concept, Media, Question, VaultEntry } from '@/lib/types';
+import type { AiSuggestion, Annotation, AnnotationType, Concept, Media, PhilosophicalLink, Question, VaultEntry } from '@/lib/types';
 import { allAnnotations, conceptKey, MEDIA_LABELS, normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +31,7 @@ interface AnnotationsIndexProps {
   onCreateInquiry: (data: { text: string; conceptIds: string[]; sourceIds: string[]; evidenceIds: string[]; type: 'annotation' }) => void;
   onAddConcept: (data: Partial<Concept>) => void;
   onCreateSuggestion: (data: Partial<AiSuggestion>) => void;
+  onCreateLink: (data: Partial<PhilosophicalLink>) => void;
 }
 
 type FlatAnnotation = Annotation & { source: Media };
@@ -48,6 +49,7 @@ export function AnnotationsIndex({
   onCreateInquiry,
   onAddConcept,
   onCreateSuggestion,
+  onCreateLink,
 }: AnnotationsIndexProps) {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<AnnotationFilter>('all');
@@ -55,6 +57,7 @@ export function AnnotationsIndex({
   const [filterSource, setFilterSource] = useState<string>('all');
   const [editing, setEditing] = useState<FlatAnnotation | null>(null);
   const [suggestingId, setSuggestingId] = useState<string | null>(null);
+  const [linkDialog, setLinkDialog] = useState<{ annotation: FlatAnnotation; linkType: 'supports' | 'challenges' } | null>(null);
   const { toast } = useToast();
 
   const annotations = useMemo(() => allAnnotations(media) as FlatAnnotation[], [media]);
@@ -253,7 +256,7 @@ export function AnnotationsIndex({
             <NextPhilosophicalActionPanel
               compact
               status={annotation.philosophyStatus || (annotation.type === 'question' ? 'questioned' : 'raw')}
-              description="Ask what this note becomes: concept language, an inquiry, support for a position, or a challenge."
+              description="Move this note into the next layer: classify it, link it, or transform it."
               actions={[
                 {
                   label: suggestingId === annotation.id ? 'Thinking' : 'Ask AI',
@@ -262,12 +265,25 @@ export function AnnotationsIndex({
                   onClick: () => suggestConsequences(annotation),
                 },
                 {
-                  label: 'Make Position',
+                  label: 'Support Position',
                   tone: 'support',
+                  description: positions.length ? 'Mark this annotation as evidence for an existing position.' : 'Create a position first.',
+                  disabled: positions.length === 0,
+                  onClick: () => setLinkDialog({ annotation, linkType: 'supports' }),
+                },
+                {
+                  label: 'Challenge Position',
+                  tone: 'challenge',
+                  description: positions.length ? 'Mark this annotation as a challenge to an existing position.' : 'Create a position first.',
+                  disabled: positions.length === 0,
+                  onClick: () => setLinkDialog({ annotation, linkType: 'challenges' }),
+                },
+                {
+                  label: 'Form Position',
                   onClick: () => createPosition(annotation),
                 },
                 {
-                  label: 'Make Inquiry',
+                  label: 'Open Inquiry',
                   onClick: () => createInquiry(annotation),
                 },
               ]}
@@ -301,6 +317,58 @@ export function AnnotationsIndex({
           </div>
         )}
       </div>
+
+      <Dialog open={!!linkDialog} onOpenChange={(open) => !open && setLinkDialog(null)}>
+        <DialogContent className="max-w-lg border-none shadow-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl italic">
+              {linkDialog?.linkType === 'supports' ? 'Support a Position' : 'Challenge a Position'}
+            </DialogTitle>
+          </DialogHeader>
+          {linkDialog && (
+            <div className="space-y-4 pt-2">
+              <p className="text-sm italic text-muted-foreground font-body leading-relaxed">
+                "{linkDialog.annotation.text.slice(0, 120)}{linkDialog.annotation.text.length > 120 ? '…' : ''}"
+              </p>
+              <p className="text-xs font-code uppercase tracking-widest text-muted-foreground/60">Select a position this annotation {linkDialog.linkType === 'supports' ? 'supports' : 'challenges'}:</p>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {positions.map((position) => (
+                  <button
+                    key={position.id}
+                    className="w-full text-left rounded-xl border border-border/40 bg-muted/10 p-4 hover:border-accent/40 hover:bg-accent/5 transition-all"
+                    onClick={() => {
+                      onCreateLink({
+                        fromType: 'annotation',
+                        fromId: linkDialog.annotation.id,
+                        fromLabel: linkDialog.annotation.text.slice(0, 80),
+                        toType: 'position',
+                        toId: position.id,
+                        toLabel: position.title,
+                        type: linkDialog.linkType,
+                        note: `Annotation ${linkDialog.linkType} this position.`,
+                        createdFrom: 'manual',
+                      });
+                      const { source, ...annotationData } = linkDialog.annotation;
+                      onUpdateAnnotation(source.id, {
+                        ...annotationData,
+                        philosophyStatus: linkDialog.linkType === 'supports' ? 'used_in_position' : 'questioned',
+                      });
+                      toast({ title: 'Link Created', description: `Annotation marked as ${linkDialog.linkType === 'supports' ? 'supporting' : 'challenging'} "${position.title}".` });
+                      setLinkDialog(null);
+                    }}
+                  >
+                    <p className="font-headline font-bold italic text-sm text-primary leading-tight">{position.title}</p>
+                    <p className="font-body text-xs text-muted-foreground mt-1 line-clamp-1">{position.statement}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="pt-2">
+            <Button variant="ghost" onClick={() => setLinkDialog(null)} className="rounded-full">Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-2xl border-none shadow-2xl rounded-2xl">
