@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Edit, Plus, ShieldCheck, Trash2, Search, Triangle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ChevronRight, Edit, Lightbulb, Loader2, Plus, ShieldCheck, Trash2, Search, Triangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,8 @@ import { normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 import { ConceptDetailDialog } from '@/components/Library/MediaLibrary';
 import { NextPhilosophicalActionPanel } from '@/components/Philosophy/NextPhilosophicalActionPanel';
+import { generateIdeaQuestions, formPositionFromIdea } from '@/ai/flows/philosophy-suggestions';
+import { useToast } from '@/hooks/use-toast';
 
 interface BeliefVaultProps {
   entries: VaultEntry[];
@@ -35,6 +37,7 @@ interface BeliefVaultProps {
   onCreateLink: (data: Partial<PhilosophicalLink>) => void;
   onAddDraft: (data: Partial<Draft>) => void;
   onAddPractice: (data: Partial<Practice>) => void;
+  onCreateIdea: (data: { title: string; body: string; tags: string[]; sourceIds: string[]; position?: { title: string; statement: string; description: string; confidence: number } }) => void;
 }
 
 const vaultTypes: VaultType[] = ['belief', 'principle', 'mental_model', 'life_rule', 'worldview'];
@@ -47,19 +50,93 @@ const TYPE_LABELS: Record<VaultType, string> = {
   worldview: 'Worldview',
 };
 
-export function BeliefVault({ entries, media, drafts, practices, questions, timeline, concepts, links, onAddEntry, onUpdateEntry, onDeleteEntry, onAddConcept, onCreateLink, onAddDraft, onAddPractice }: BeliefVaultProps) {
+export function BeliefVault({ entries, media, drafts, practices, questions, timeline, concepts, links, onAddEntry, onUpdateEntry, onDeleteEntry, onAddConcept, onCreateLink, onAddDraft, onAddPractice, onCreateIdea }: BeliefVaultProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | VaultType>('all');
+  const [filter, setFilter] = useState<'all' | VaultType | 'ideas'>('all');
   const [draftEntry, setDraftEntry] = useState<Partial<VaultEntry>>({ type: 'belief', title: '', statement: '', description: '', confidence: 3, status: 'active', tags: [] });
   const [conceptPopupName, setConceptPopupName] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // Idea pipeline state
+  const [ideaOpen, setIdeaOpen] = useState(false);
+  const [ideaStep, setIdeaStep] = useState<1 | 2 | 3>(1);
+  const [ideaDraft, setIdeaDraft] = useState({ title: '', body: '' });
+  const [ideaQA, setIdeaQA] = useState<Array<{ question: string; focus: string; answer: string }>>([]);
+  const [ideaPosition, setIdeaPosition] = useState<{ positionTitle: string; statement: string; description: string; confidence: number } | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const openIdeaDialog = () => {
+    setIdeaDraft({ title: '', body: '' });
+    setIdeaQA([]);
+    setIdeaPosition(null);
+    setIdeaStep(1);
+    setIdeaOpen(true);
+  };
+
+  const handleGenerateQuestions = async () => {
+    if (!ideaDraft.title.trim()) return;
+    setIsGenerating(true);
+    try {
+      const result = await generateIdeaQuestions({ ideaTitle: ideaDraft.title, ideaBody: ideaDraft.body });
+      setIdeaQA(result.questions.map((q) => ({ ...q, answer: '' })));
+      setIdeaStep(2);
+    } catch {
+      toast({ variant: 'destructive', title: 'AI Unavailable', description: 'Could not generate questions. Try again.' });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleFormPosition = async () => {
+    if (ideaQA.some((q) => !q.answer.trim())) {
+      toast({ title: 'Answer all questions', description: 'Each question helps shape your position.' });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const result = await formPositionFromIdea({
+        ideaTitle: ideaDraft.title,
+        ideaBody: ideaDraft.body,
+        qa: ideaQA.map((q) => ({ question: q.question, answer: q.answer })),
+      });
+      setIdeaPosition(result);
+      setIdeaStep(3);
+    } catch {
+      toast({ variant: 'destructive', title: 'AI Unavailable', description: 'Could not form position. Try again.' });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSaveIdeaPosition = () => {
+    if (!ideaPosition) return;
+    onCreateIdea({
+      title: ideaDraft.title,
+      body: ideaDraft.body,
+      tags: [],
+      sourceIds: [],
+      position: {
+        title: ideaPosition.positionTitle,
+        statement: ideaPosition.statement,
+        description: ideaPosition.description,
+        confidence: ideaPosition.confidence,
+      },
+    });
+    setIdeaOpen(false);
+    toast({ title: 'Position Created', description: `"${ideaPosition.positionTitle}" added to your Positions.` });
+  };
 
   const selected = entries.find((entry) => entry.id === selectedId) || null;
   const filteredEntries = entries.filter(e => {
-    const typeOk = filter === 'all' || e.type === filter;
-    const queryOk = !search || 
-      e.title.toLowerCase().includes(search.toLowerCase()) || 
+    const typeOk = filter === 'all'
+      ? true
+      : filter === 'ideas'
+        ? e.createdFrom === 'idea'
+        : e.type === filter;
+    const queryOk = !search ||
+      e.title.toLowerCase().includes(search.toLowerCase()) ||
       e.statement.toLowerCase().includes(search.toLowerCase());
     return typeOk && queryOk;
   });
@@ -255,6 +332,9 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search positions, principles..." className="w-72 pl-9 h-9 rounded-full" />
           </div>
+          <Button variant="outline" onClick={openIdeaDialog} size="sm" className="bg-white border-border/60 shadow-sm rounded-full h-9 font-bold">
+            <Lightbulb className="size-4 mr-1.5" /> NEW IDEA
+          </Button>
           <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 px-6 shadow-md shadow-accent/20 rounded-full h-9 font-bold">
             <Plus className="size-4 mr-1.5" /> NEW POSITION
           </Button>
@@ -304,14 +384,25 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
               onClick={() => setFilter(type)}
               className={cn(
                 "px-5 py-2 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
-                filter === type 
-                  ? "bg-accent text-white shadow-sm" 
+                filter === type
+                  ? "bg-accent text-white shadow-sm"
                   : "bg-white text-muted-foreground border border-border/60 shadow-sm hover:text-foreground hover:bg-muted/5"
               )}
             >
               {TYPE_LABELS[type] === 'Belief' ? 'BELIEFS' : TYPE_LABELS[type].toUpperCase() + 'S'}
             </button>
           ))}
+          <button
+            onClick={() => setFilter('ideas')}
+            className={cn(
+              "px-5 py-2 rounded-full text-[10px] font-code font-bold uppercase tracking-[0.14em] transition-all whitespace-nowrap",
+              filter === 'ideas'
+                ? "bg-amber-500 text-white shadow-sm"
+                : "bg-amber-50 text-amber-700 border border-amber-200 shadow-sm hover:bg-amber-100"
+            )}
+          >
+            IDEAS
+          </button>
         </div>
       </div>
 
@@ -391,6 +482,152 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
       />
 
       <BeliefEditor open={editorOpen} onOpenChange={setEditorOpen} draft={draftEntry} setDraft={setDraftEntry} concepts={concepts} media={media} onAddConcept={onAddConcept} onSave={saveEntry} />
+
+      {/* Idea → Position pipeline dialog */}
+      <Dialog open={ideaOpen} onOpenChange={(open) => { if (!open) setIdeaOpen(false); }}>
+        <DialogContent className="max-w-xl bg-white border-none shadow-2xl rounded-2xl">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-1">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className={cn('h-1 flex-1 rounded-full transition-all', ideaStep >= n ? 'bg-accent' : 'bg-muted/30')} />
+              ))}
+            </div>
+            <DialogTitle className="font-headline text-2xl italic">
+              {ideaStep === 1 && 'Write Your Idea'}
+              {ideaStep === 2 && 'Sharpen It'}
+              {ideaStep === 3 && 'Review Your Position'}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground font-body">
+              {ideaStep === 1 && 'Capture the thought. AI will ask 3 questions to turn it into a position.'}
+              {ideaStep === 2 && 'Answer each question to clarify the claim you are willing to own.'}
+              {ideaStep === 3 && 'Edit and save the position AI formed from your idea and answers.'}
+            </p>
+          </DialogHeader>
+
+          {ideaStep === 1 && (
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label className="font-code text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Idea Statement</Label>
+                <Input
+                  value={ideaDraft.title}
+                  onChange={(e) => setIdeaDraft((p) => ({ ...p, title: e.target.value }))}
+                  placeholder="State the idea briefly..."
+                  className="rounded-full"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-code text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Reasoning / Context</Label>
+                <Textarea
+                  value={ideaDraft.body}
+                  onChange={(e) => setIdeaDraft((p) => ({ ...p, body: e.target.value }))}
+                  placeholder="Why do you think this? What prompted it?"
+                  className="min-h-[100px]"
+                />
+              </div>
+              <DialogFooter className="pt-2">
+                <Button
+                  onClick={handleGenerateQuestions}
+                  disabled={!ideaDraft.title.trim() || isGenerating}
+                  className="bg-accent shadow-md shadow-accent/20 rounded-full px-8 w-full"
+                >
+                  {isGenerating ? <Loader2 className="size-4 mr-2 animate-spin" /> : <ChevronRight className="size-4 mr-2" />}
+                  {isGenerating ? 'Generating questions…' : 'Ask AI'}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {ideaStep === 2 && (
+            <div className="space-y-5 pt-2">
+              <div className="rounded-lg bg-muted/20 border border-border/30 px-4 py-3">
+                <p className="text-xs text-muted-foreground font-code uppercase tracking-widest mb-1 font-bold">Your Idea</p>
+                <p className="text-sm italic font-body text-primary/80">{ideaDraft.title}</p>
+              </div>
+              {ideaQA.map((qa, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-code text-[8px] uppercase tracking-widest text-accent font-bold px-2 py-0.5 bg-accent/10 rounded-full">{qa.focus}</span>
+                  </div>
+                  <p className="text-sm font-body text-foreground/80 leading-snug">{qa.question}</p>
+                  <Textarea
+                    value={qa.answer}
+                    onChange={(e) => setIdeaQA((prev) => prev.map((q, j) => j === i ? { ...q, answer: e.target.value } : q))}
+                    placeholder="Your answer..."
+                    className="min-h-[72px]"
+                  />
+                </div>
+              ))}
+              <DialogFooter className="pt-2">
+                <Button
+                  onClick={handleFormPosition}
+                  disabled={isGenerating}
+                  className="bg-accent shadow-md shadow-accent/20 rounded-full px-8 w-full"
+                >
+                  {isGenerating ? <Loader2 className="size-4 mr-2 animate-spin" /> : <ChevronRight className="size-4 mr-2" />}
+                  {isGenerating ? 'Forming position…' : 'Form Position'}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {ideaStep === 3 && ideaPosition && (
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label className="font-code text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Position Title</Label>
+                <Input
+                  value={ideaPosition.positionTitle}
+                  onChange={(e) => setIdeaPosition((p) => p ? { ...p, positionTitle: e.target.value } : p)}
+                  className="rounded-full font-headline font-bold"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-code text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Core Claim</Label>
+                <Textarea
+                  value={ideaPosition.statement}
+                  onChange={(e) => setIdeaPosition((p) => p ? { ...p, statement: e.target.value } : p)}
+                  className="min-h-[72px] italic"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-code text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Supporting Reasoning</Label>
+                <Textarea
+                  value={ideaPosition.description}
+                  onChange={(e) => setIdeaPosition((p) => p ? { ...p, description: e.target.value } : p)}
+                  className="min-h-[90px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-code text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Confidence (1–5)</Label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setIdeaPosition((p) => p ? { ...p, confidence: n } : p)}
+                      className={cn(
+                        'flex-1 h-9 rounded-full text-[11px] font-code font-bold uppercase tracking-wider transition-all border',
+                        ideaPosition.confidence === n
+                          ? 'bg-accent text-white border-accent shadow-md'
+                          : 'bg-white text-muted-foreground border-border/60 hover:border-accent/40'
+                      )}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <DialogFooter className="pt-2">
+                <Button
+                  onClick={handleSaveIdeaPosition}
+                  className="bg-accent shadow-md shadow-accent/20 rounded-full px-8 w-full"
+                >
+                  Save Position
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

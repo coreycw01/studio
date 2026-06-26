@@ -288,11 +288,12 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
     deleteDoc(vaultRef).catch(() => emitError(vaultRef.path, 'delete'));
   };
 
-  const createIdea = (data: { title: string; body: string; tags: string[]; sourceIds: string[] }) => {
+  const createIdea = (data: { title: string; body: string; tags: string[]; sourceIds: string[]; position?: { title: string; statement: string; description: string; confidence: number } }) => {
     const tags = normalizeConceptTags(data.tags);
     ensureConcepts(tags);
     const insightRef = doc(refs.insights);
     const beliefRef = doc(refs.vault);
+    const posTitle = data.position?.title || data.title;
     const batch = writeBatch(db);
     batch.set(insightRef, {
       id: insightRef.id,
@@ -308,11 +309,11 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
     });
     batch.set(beliefRef, {
       id: beliefRef.id,
-      title: data.title,
+      title: posTitle,
       type: 'belief',
-      statement: data.title,
-      description: data.body,
-      confidence: 3,
+      statement: data.position?.statement || data.title,
+      description: data.position?.description || data.body,
+      confidence: data.position?.confidence ?? 3,
       status: 'active',
       tags,
       sourceIds: data.sourceIds || [],
@@ -325,7 +326,7 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
       dateUpdated: today(),
     });
     const eventRef = doc(refs.timeline);
-    batch.set(eventRef, { id: eventRef.id, entityId: beliefRef.id, entityType: 'vault', entityTitle: data.title, eventType: 'created', reason: 'Idea formed as position', influencedBy: data.sourceIds || [], date: today() });
+    batch.set(eventRef, { id: eventRef.id, entityId: beliefRef.id, entityType: 'vault', entityTitle: posTitle, eventType: 'created', reason: 'Idea formed as position', influencedBy: data.sourceIds || [], date: today() });
     batch.commit().catch(() => emitError('batch', 'write', data));
   };
 
@@ -621,6 +622,7 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
             onCreateLink={addPhilosophicalLink}
             onAddDraft={addDraft}
             onAddPractice={addPractice}
+            onCreateIdea={createIdea}
           />
         );
       case 'questions':

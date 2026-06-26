@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { BookOpen, Edit, Plus, Search, Trash2, Lightbulb, Sparkles, Loader2 } from 'lucide-react';
+import { BookOpen, Edit, Plus, Search, Sparkles, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,7 +39,6 @@ interface ConceptEncyclopediaProps {
 export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
   const { concepts, media, insights, vault, drafts, practices = [], questions, timeline, onAddConcept, onUpdateConcept, onDeleteConcept, onCreateIdea } = props;
   const [search, setSearch] = useState('');
-  const [mode, setMode] = useState<'concepts' | 'ideas'>('concepts');
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [editing, setEditing] = useState<Concept | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -49,30 +48,19 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
   const [positionDrafts, setPositionDrafts] = useState<Array<{ claim: string; confidence: 'low' | 'medium' | 'high'; supportSummary: string; challengeToConsider: string }>>([]);
   const { toast } = useToast();
   
-  const [ideaOpen, setIdeaOpen] = useState(false);
-  const [ideaDraft, setIdeaDraft] = useState({ title: '', body: '', tags: [UNSORTED_CONCEPT], sourceIds: [] as string[] });
-
   const allTerms = useMemo(() => conceptTerms(concepts, media, insights, vault, drafts, practices), [concepts, media, insights, vault, drafts, practices]);
   const selectedRelated = useMemo(() => selectedName ? conceptRelated(selectedName, { media, insights, vault, drafts, practices, questions, timeline }) : null, [selectedName, media, insights, vault, drafts, practices, questions, timeline]);
   
   const filteredTerms = useMemo(() => {
     return allTerms.filter((name) => {
       const isUnsorted = conceptKey(name) === conceptKey(UNSORTED_CONCEPT);
-      
-      if (mode === 'concepts') {
-        if (isUnsorted) return false;
-        const conceptDoc = concepts.find(c => conceptKey(c.name) === conceptKey(name));
-        if (!conceptDoc) return false;
-      } else {
-        if (isUnsorted) return true;
-        const related = conceptRelated(name, { media, insights, vault, drafts, practices, questions, timeline });
-        if (related.beliefs.length === 0 && related.ideas.length === 0) return false;
-      }
-
+      if (isUnsorted) return false;
+      const conceptDoc = concepts.find(c => conceptKey(c.name) === conceptKey(name));
+      if (!conceptDoc) return false;
       const related = conceptRelated(name, { media, insights, vault, drafts, practices, questions, timeline });
       return !search || `${name} ${JSON.stringify(related)}`.toLowerCase().includes(search.toLowerCase());
     });
-  }, [allTerms, mode, search, concepts, media, insights, vault, drafts, practices, questions, timeline]);
+  }, [allTerms, search, concepts, media, insights, vault, drafts, practices, questions, timeline]);
 
   const openEditor = (concept?: Concept) => {
     if (concept) {
@@ -142,21 +130,6 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
     });
   };
 
-  const saveIdea = () => {
-    if (!ideaDraft.title.trim()) return;
-    onCreateIdea(ideaDraft);
-    setIdeaDraft({ title: '', body: '', tags: [UNSORTED_CONCEPT], sourceIds: [] });
-    setIdeaOpen(false);
-  };
-
-  const toggleIdeaSource = (id: string) => {
-    setIdeaDraft(prev => {
-      const current = ideaDraft.sourceIds;
-      const next = current.includes(id) ? current.filter(s => s !== id) : [...current, id];
-      return { ...prev, sourceIds: next };
-    });
-  };
-
   const handleSuggestPositions = async () => {
     if (!selectedName || !selectedRelated) return;
     const annotationTexts = selectedRelated.annotations.map((annotation) => annotation.text).filter(Boolean);
@@ -203,9 +176,6 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search..." className="w-64 pl-9 h-9 rounded-full" />
           </div>
-          <Button variant="outline" onClick={() => setIdeaOpen(true)} size="sm" className="bg-white border-border/60 shadow-sm rounded-full h-9">
-            <Plus className="size-4 mr-1.5" /> NEW IDEA
-          </Button>
           <Button onClick={() => openEditor()} size="sm" className="bg-accent hover:bg-accent/90 shadow-md shadow-accent/20 rounded-full h-9">
             <Plus className="size-4 mr-1.5" /> NEW CONCEPT
           </Button>
@@ -219,41 +189,15 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         <Stat value={vault.length + drafts.length + (practices?.length || 0)} label="Outputs" sub="Positions, works, practices" />
       </div>
 
-      <div className="flex items-center gap-3 mb-8 border-b border-border pb-4">
-        <button 
-          onClick={() => setMode('concepts')}
-          className={cn(
-            "font-code text-[11px] uppercase tracking-[0.14em] px-5 py-2 rounded-full transition-all",
-            mode === 'concepts' ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Concepts
-        </button>
-        <button 
-          onClick={() => setMode('ideas')}
-          className={cn(
-            "font-code text-[11px] uppercase tracking-[0.14em] px-5 py-2 rounded-full transition-all",
-            mode === 'ideas' ? "bg-accent text-accent-foreground shadow-md" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Ideas
-        </button>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredTerms.map((name) => {
           const related = conceptRelated(name, { media, insights: [], vault, drafts, practices, questions, timeline });
           const concept = concepts.find((item) => conceptKey(item.name) === conceptKey(name));
-          const isUnsorted = conceptKey(name) === conceptKey(UNSORTED_CONCEPT);
-          const isIdea = mode === 'ideas' || isUnsorted;
-          
+
           return (
-            <Card 
-              key={name} 
-              className={cn(
-                "rounded-xl p-5 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all group bg-white/95 shadow-md border border-accent/20",
-                isIdea ? "border-accent/30" : "border-accent/20"
-              )} 
+            <Card
+              key={name}
+              className="rounded-xl p-5 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all group bg-white/95 shadow-md border border-accent/20" 
               onClick={() => {
                 setSelectedName(name);
                 setPositionDrafts([]);
@@ -263,7 +207,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
                 <div className="flex-1">
                   <div className="flex gap-2 items-start">
                     <h3 className="font-headline text-xl font-bold flex-1 group-hover:text-accent transition-colors leading-tight">{name}</h3>
-                    {concept && !isUnsorted && (
+                    {concept && (
                       <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity rounded-full" onClick={(event) => { event.stopPropagation(); openEditor(concept); }}>
                         <Edit className="size-3" />
                       </Button>
@@ -273,16 +217,13 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
                     {related.sources.length + related.beliefs.length + related.drafts.length} LINKS
                   </div>
                 </div>
-                <div className={cn(
-                  "size-8 rounded-full flex items-center justify-center transition-colors shadow-sm",
-                  isIdea ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"
-                )}>
-                  {isIdea ? <Lightbulb className="size-4" /> : <BookOpen className="size-4" />}
+                <div className="size-8 rounded-full flex items-center justify-center transition-colors shadow-sm bg-primary/10 text-primary">
+                  <BookOpen className="size-4" />
                 </div>
               </div>
               
               <p className="text-[13px] leading-relaxed text-muted-foreground font-body line-clamp-2 italic mb-5">
-                {concept?.description || (isUnsorted ? 'Catch-all for nascent thoughts and untagged observations.' : 'Inspect linked sources, positions, works, inquiries, and practices.')}
+                {concept?.description || 'Inspect linked sources, positions, works, inquiries, and practices.'}
               </p>
 
               <div className="flex flex-wrap gap-1.5 border-t border-border/30 pt-4">
@@ -297,7 +238,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         {filteredTerms.length === 0 && (
           <div className="col-span-full py-24 text-center opacity-40">
             <BookOpen className="size-16 mx-auto mb-6" />
-            <h3 className="text-2xl font-headline italic">No {mode} discovered</h3>
+            <h3 className="text-2xl font-headline italic">No concepts discovered</h3>
             <p className="text-sm font-body mt-2">Refine your search or add new intellectual artifacts to the vault.</p>
           </div>
         )}
@@ -368,33 +309,6 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={ideaOpen} onOpenChange={setIdeaOpen}>
-        <DialogContent className="max-w-xl bg-white border-none shadow-2xl rounded-2xl">
-          <DialogHeader><DialogTitle className="font-headline text-2xl italic">New Idea</DialogTitle></DialogHeader>
-          <div className="space-y-6 pt-2">
-            <div className="space-y-2">
-              <Label className="readex-kicker">Idea Statement</Label>
-              <Input value={ideaDraft.title} onChange={(event) => setIdeaDraft((prev) => ({ ...prev, title: event.target.value }))} placeholder="Brief title or central statement..." className="rounded-full" />
-            </div>
-            <div className="space-y-2">
-              <Label className="readex-kicker">Description / Reasoning</Label>
-              <Textarea value={ideaDraft.body} onChange={(event) => setIdeaDraft((prev) => ({ ...prev, body: event.target.value }))} className="min-h-[120px]" placeholder="Elaborate on the insight..." />
-            </div>
-            <div className="space-y-2">
-              <Label className="readex-kicker">Concepts</Label>
-              <ConceptTagPicker concepts={concepts} value={ideaDraft.tags} onChange={(tags) => setIdeaDraft((prev) => ({ ...prev, tags }))} onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })} />
-            </div>
-            
-            <SourceLinker 
-              media={media} 
-              selectedIds={ideaDraft.sourceIds} 
-              onToggle={toggleIdeaSource} 
-              label="Influencing Sources"
-            />
-          </div>
-          <DialogFooter className="pt-4"><Button onClick={saveIdea} className="bg-accent shadow-md shadow-accent/20 rounded-full px-8">Archive Idea</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

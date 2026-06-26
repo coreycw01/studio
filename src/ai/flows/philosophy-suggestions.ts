@@ -225,6 +225,96 @@ const summarizeEvolutionEventFlow = ai.defineFlow({
   return output!;
 });
 
+const GenerateIdeaQuestionsInputSchema = z.object({
+  ideaTitle: z.string(),
+  ideaBody: z.string().optional(),
+});
+
+const GenerateIdeaQuestionsOutputSchema = z.object({
+  questions: z.array(z.object({
+    question: z.string(),
+    focus: z.string(),
+  })).length(3),
+});
+
+export async function generateIdeaQuestions(input: z.infer<typeof GenerateIdeaQuestionsInputSchema>) {
+  return generateIdeaQuestionsFlow(input);
+}
+
+const generateIdeaQuestionsPrompt = ai.definePrompt({
+  name: 'generateIdeaQuestionsPrompt',
+  input: { schema: GenerateIdeaQuestionsInputSchema },
+  output: { schema: GenerateIdeaQuestionsOutputSchema },
+  prompt: `You are a Socratic assistant. The user has written an idea and needs to turn it into a clear philosophical position.
+
+Idea title: {{{ideaTitle}}}
+Idea body: {{{ideaBody}}}
+
+Generate exactly 3 questions that will help the user clarify and commit to a specific position. Each question should surface a different dimension: scope of the claim, the evidence or experience behind it, and a key objection or limit. Be specific to THIS idea. Return a short "focus" label (2-4 words) for each.`,
+});
+
+const generateIdeaQuestionsFlow = ai.defineFlow({
+  name: 'generateIdeaQuestionsFlow',
+  inputSchema: GenerateIdeaQuestionsInputSchema,
+  outputSchema: GenerateIdeaQuestionsOutputSchema,
+}, async (input) => {
+  const { output } = await generateIdeaQuestionsPrompt(input);
+  return output!;
+});
+
+const FormPositionFromIdeaInputSchema = z.object({
+  ideaTitle: z.string(),
+  ideaBody: z.string().optional(),
+  qa: z.array(z.object({
+    question: z.string(),
+    answer: z.string(),
+  })),
+});
+
+const FormPositionFromIdeaOutputSchema = z.object({
+  positionTitle: z.string(),
+  statement: z.string(),
+  description: z.string(),
+  confidence: z.number().min(1).max(5).int(),
+});
+
+export async function formPositionFromIdea(input: z.infer<typeof FormPositionFromIdeaInputSchema>) {
+  return formPositionFromIdeaFlow(input);
+}
+
+const formPositionFromIdeaPrompt = ai.definePrompt({
+  name: 'formPositionFromIdeaPrompt',
+  input: { schema: FormPositionFromIdeaInputSchema },
+  output: { schema: FormPositionFromIdeaOutputSchema },
+  prompt: `Synthesize a philosophical position from this idea and the user's answers to Socratic questions.
+
+Original idea: {{{ideaTitle}}}
+{{ideaBody}}
+
+User's answers:
+{{#each qa}}
+Q: {{{question}}}
+A: {{{answer}}}
+{{/each}}
+
+Write:
+- positionTitle: a short bold claim the user can own (under 12 words)
+- statement: the core claim in one precise sentence
+- description: 2-3 sentences of reasoning drawn from their answers
+- confidence: 1–5 integer reflecting how certain they seem (default 3)
+
+Reflect the user's actual views. Do not add claims beyond what they expressed.`,
+});
+
+const formPositionFromIdeaFlow = ai.defineFlow({
+  name: 'formPositionFromIdeaFlow',
+  inputSchema: FormPositionFromIdeaInputSchema,
+  outputSchema: FormPositionFromIdeaOutputSchema,
+}, async (input) => {
+  const { output } = await formPositionFromIdeaPrompt(input);
+  return output!;
+});
+
 const SuggestDailyPhilosophyPromptInputSchema = z.object({
   rawAnnotationCount: z.number(),
   openInquiryCount: z.number(),
