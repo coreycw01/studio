@@ -28,7 +28,7 @@ export const READEX_SETTINGS_DOCS = {
 } as const;
 
 export const DEFAULT_GOAL_SETTINGS: GoalSettings = {
-  label: '2026 Source Goals',
+  label: '2026 Goals',
   types: ['book', 'movie', 'video', 'documentary', 'article', 'podcast', 'audiobook'],
   targets: { book: 12, movie: 12, video: 12, documentary: 12, article: 12, podcast: 12, audiobook: 12 },
 };

@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SourceLinker } from '@/components/SourceLinker';
 import type {
   AtlasAutoLinkFilters,
@@ -46,6 +48,8 @@ interface ConceptAtlasProps {
   onAddAtlasMap: (data: Partial<AtlasMap>) => void;
   onUpdateAtlasMap: (map: AtlasMap) => void;
   onDeleteAtlasMap: (id: string) => void;
+  onDeleteLink?: (id: string) => void;
+  onOpenPosition?: (id: string) => void;
   uid?: string;
 }
 
@@ -66,6 +70,20 @@ type MapEdge = {
   id?: string;
 };
 
+type AtlasLinkItem = {
+  id: string;
+  kind: 'custom' | 'concept' | 'typed' | 'shared';
+  from: string;
+  to: string;
+  label: string;
+  linkType?: string;
+  note?: string;
+  removable: boolean;
+  sourceLabel: string;
+  sourceConceptId?: string;
+  conceptTarget?: string;
+};
+
 const defaultAutoLinkFilters: AtlasAutoLinkFilters = {
   sharedSources: true,
   sharedPositions: true,
@@ -75,7 +93,7 @@ const defaultAutoLinkFilters: AtlasAutoLinkFilters = {
   conceptLinks: true,
 };
 
-const linkTypes: AtlasMapLinkType[] = ['supports', 'challenges', 'defines', 'refines', 'contradicts', 'exemplifies', 'inspired_by', 'tested_by', 'expressed_in', 'changed_by', 'relates', 'custom'];
+const linkTypes: AtlasMapLinkType[] = ['supports', 'challenges', 'coheres', 'defines', 'refines', 'contradicts', 'exemplifies', 'inspired_by', 'tested_by', 'expressed_in', 'changed_by', 'relates', 'custom'];
 
 export function ConceptAtlas({
   concepts,
@@ -93,6 +111,8 @@ export function ConceptAtlas({
   onAddAtlasMap,
   onUpdateAtlasMap,
   onDeleteAtlasMap,
+  onDeleteLink,
+  onOpenPosition,
 }: ConceptAtlasProps) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -106,6 +126,9 @@ export function ConceptAtlas({
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isLinkOpen, setIsLinkOpen] = useState(false);
   const [isNodeOpen, setIsNodeOpen] = useState(false);
+  const [selectedLink, setSelectedLink] = useState<AtlasLinkItem | null>(null);
+  const [cutLinkCandidate, setCutLinkCandidate] = useState<AtlasLinkItem | null>(null);
+  const [isPositionsOpen, setIsPositionsOpen] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [newConcept, setNewConcept] = useState<Partial<Concept>>({ name: '', description: '', sourceIds: [] });
   const [newMap, setNewMap] = useState({ title: '', description: '' });
@@ -280,6 +303,132 @@ export function ConceptAtlas({
     });
   }, [concepts, links, selectedName]);
 
+  const linkItemForEdge = (edge: MapEdge): AtlasLinkItem => {
+    if (edge.type === 'user') {
+      const mapLink = activeMap?.manualLinks?.find((link) => link.id === edge.id);
+      return {
+        id: edge.id || `${edge.from}:${edge.to}`,
+        kind: 'custom',
+        from: mapLink?.from || edge.from,
+        to: mapLink?.to || edge.to,
+        label: mapLink?.label || edge.label,
+        linkType: mapLink?.type || edge.linkType,
+        note: mapLink?.note,
+        removable: Boolean(mapLink),
+        sourceLabel: 'Custom map link',
+      };
+    }
+
+    if (edge.type === 'typed') {
+      const typedLink = links.find((link) => link.id === edge.id);
+      return {
+        id: edge.id || `${edge.from}:${edge.to}`,
+        kind: 'typed',
+        from: typedLink?.fromLabel || edge.from,
+        to: typedLink?.toLabel || edge.to,
+        label: typedLink?.type?.replace(/_/g, ' ') || edge.label,
+        linkType: typedLink?.type || edge.linkType,
+        note: typedLink?.note,
+        removable: Boolean(typedLink && onDeleteLink),
+        sourceLabel: 'Typed philosophical link',
+      };
+    }
+
+    if (edge.type === 'concept') {
+      const sourceConcept = concepts.find((concept) => conceptKey(concept.name) === conceptKey(edge.from));
+      return {
+        id: `concept:${sourceConcept?.id || edge.from}:${conceptKey(edge.to)}`,
+        kind: 'concept',
+        from: edge.from,
+        to: edge.to,
+        label: edge.label,
+        linkType: 'concept',
+        removable: Boolean(sourceConcept),
+        sourceLabel: 'Saved concept link',
+        sourceConceptId: sourceConcept?.id,
+        conceptTarget: conceptKey(edge.to),
+      };
+    }
+
+    return {
+      id: `shared:${conceptKey(edge.from)}:${conceptKey(edge.to)}`,
+      kind: 'shared',
+      from: edge.from,
+      to: edge.to,
+      label: edge.label,
+      linkType: 'shared evidence',
+      note: 'This link is derived from shared sources, positions, inquiries, works, or practices.',
+      removable: false,
+      sourceLabel: 'Auto/shared evidence link',
+    };
+  };
+
+  const selectedNodeLinks = useMemo<AtlasLinkItem[]>(() => {
+    if (!selectedName) return [];
+    const key = conceptKey(selectedName);
+    const items: AtlasLinkItem[] = [];
+
+    selectedMapLinks.forEach((link) => {
+      items.push({
+        id: link.id,
+        kind: 'custom',
+        from: link.from,
+        to: link.to,
+        label: link.label || link.type,
+        linkType: link.type,
+        note: link.note,
+        removable: true,
+        sourceLabel: 'Custom map link',
+      });
+    });
+
+    concepts.forEach((concept) => {
+      (concept.links || []).forEach((target) => {
+        const from = conceptKey(concept.name);
+        const to = conceptKey(target);
+        if (from !== key && to !== key) return;
+        items.push({
+          id: `concept:${concept.id}:${to}`,
+          kind: 'concept',
+          from,
+          to,
+          label: 'saved concept link',
+          linkType: 'concept',
+          removable: true,
+          sourceLabel: 'Saved concept link',
+          sourceConceptId: concept.id,
+          conceptTarget: to,
+        });
+      });
+    });
+
+    selectedTypedLinks.forEach((link) => {
+      items.push({
+        id: link.id,
+        kind: 'typed',
+        from: link.fromLabel || link.fromType,
+        to: link.toLabel || link.toType,
+        label: link.type.replace(/_/g, ' '),
+        linkType: link.type,
+        note: link.note,
+        removable: Boolean(onDeleteLink),
+        sourceLabel: 'Typed philosophical link',
+      });
+    });
+
+    edges
+      .filter((edge) => edge.type === 'shared' && (conceptKey(edge.from) === key || conceptKey(edge.to) === key))
+      .forEach((edge) => items.push(linkItemForEdge(edge)));
+
+    const seen = new Set<string>();
+    return items.filter((item) => {
+      const id = `${item.kind}:${item.id}`;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }, [concepts, edges, onDeleteLink, selectedMapLinks, selectedName, selectedTypedLinks]);
+
   const linkTargets = useMemo(() => {
     if (!selectedName) return [];
     const key = conceptKey(selectedName);
@@ -385,6 +534,22 @@ export function ConceptAtlas({
     onUpdateConcept({ ...selectedConcept, links, dateUpdated: today() });
   };
 
+  const cutLink = (item: AtlasLinkItem) => {
+    if (item.kind === 'custom') {
+      removeUserLink(item.id);
+    } else if (item.kind === 'typed') {
+      onDeleteLink?.(item.id);
+    } else if (item.kind === 'concept' && item.sourceConceptId && item.conceptTarget) {
+      const sourceConcept = concepts.find((concept) => concept.id === item.sourceConceptId);
+      if (sourceConcept) {
+        const nextLinks = (sourceConcept.links || []).filter((link) => conceptKey(link) !== conceptKey(item.conceptTarget));
+        onUpdateConcept({ ...sourceConcept, links: nextLinks, dateUpdated: today() });
+      }
+    }
+    setSelectedLink(null);
+    setCutLinkCandidate(null);
+  };
+
   const startPanning = (event: React.MouseEvent | React.PointerEvent) => {
     if (draggingName) return;
     setIsPanning(true);
@@ -454,16 +619,17 @@ export function ConceptAtlas({
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Search map..." value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 w-64 pl-9 rounded-full" />
           </div>
-          <select
-            value={typedLinkFilter}
-            onChange={(event) => setTypedLinkFilter(event.target.value as PhilosophicalLinkType | 'all')}
-            className="h-9 rounded-full border border-input bg-background px-4 font-code text-[10px] uppercase tracking-wider shadow-sm"
-          >
-            <option value="all">All Link Types</option>
-            {linkTypes.filter((type) => type !== 'relates' && type !== 'custom').map((type) => (
-              <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>
-            ))}
-          </select>
+          <Select value={typedLinkFilter} onValueChange={(value) => setTypedLinkFilter(value as PhilosophicalLinkType | 'all')}>
+            <SelectTrigger className="h-9 w-48 rounded-full border-input bg-background px-4 font-code text-[10px] uppercase tracking-wider shadow-sm">
+              <SelectValue placeholder="All Link Types" />
+            </SelectTrigger>
+            <SelectContent className="max-h-72 w-56">
+              <SelectItem value="all" className="font-code text-[10px] uppercase tracking-wider">All Link Types</SelectItem>
+              {linkTypes.filter((type) => type !== 'relates' && type !== 'custom').map((type) => (
+                <SelectItem key={type} value={type} className="font-code text-[10px] uppercase tracking-wider">{type.replace(/_/g, ' ')}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button onClick={() => setIsAddOpen(true)} size="sm" className="bg-accent hover:bg-accent/90 rounded-full">
             <Plus className="mr-1.5 size-4" /> New Concept
           </Button>
@@ -562,19 +728,36 @@ export function ConceptAtlas({
                 const user = edge.type === 'user';
                 const concept = edge.type === 'concept';
                 const typed = edge.type === 'typed';
+                const key = `${edge.from}-${edge.to}-${edge.id || index}`;
                 return (
-                  <line
-                    key={`${edge.from}-${edge.to}-${edge.id || index}`}
-                    x1={`${points.x1}%`}
-                    y1={`${points.y1}%`}
-                    x2={`${points.x2}%`}
-                    y2={`${points.y2}%`}
-                    stroke={user ? 'hsl(var(--accent))' : typed ? 'hsl(160 70% 32%)' : concept ? 'hsl(var(--primary) / .55)' : 'hsl(var(--muted-foreground) / .35)'}
-                    strokeWidth={user ? 4 : typed ? 3 : concept ? 2.5 : 2}
-                    strokeDasharray={user || concept ? '0' : '6 6'}
-                    strokeLinecap="round"
-                    className="transition-all"
-                  />
+                  <g key={key}>
+                    <line
+                      x1={`${points.x1}%`}
+                      y1={`${points.y1}%`}
+                      x2={`${points.x2}%`}
+                      y2={`${points.y2}%`}
+                      stroke={user ? 'hsl(var(--accent))' : typed ? 'hsl(160 70% 32%)' : concept ? 'hsl(var(--primary) / .55)' : 'hsl(var(--muted-foreground) / .35)'}
+                      strokeWidth={user ? 4 : typed ? 3 : concept ? 2.5 : 2}
+                      strokeDasharray={user || concept ? '0' : '6 6'}
+                      strokeLinecap="round"
+                      className="transition-all"
+                    />
+                    <line
+                      x1={`${points.x1}%`}
+                      y1={`${points.y1}%`}
+                      x2={`${points.x2}%`}
+                      y2={`${points.y2}%`}
+                      stroke="transparent"
+                      strokeWidth={16}
+                      strokeLinecap="round"
+                      className="pointer-events-auto cursor-pointer"
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedLink(linkItemForEdge(edge));
+                      }}
+                    />
+                  </g>
                 );
               })}
             </svg>
@@ -584,6 +767,11 @@ export function ConceptAtlas({
                 key={node.name}
                 className="absolute min-w-[140px] -translate-x-1/2 -translate-y-1/2 cursor-grab text-center transition-none active:cursor-grabbing"
                 style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setSelectedName(node.name);
+                }}
                 onPointerDown={(event) => {
                   event.stopPropagation();
                   setSelectedName(node.name);
@@ -626,7 +814,46 @@ export function ConceptAtlas({
                       </Button>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-2">
+                      {selectedNodeLinks.map((link) => {
+                        const target = conceptKey(link.from) === conceptKey(selectedName) ? link.to : link.from;
+                        return (
+                          <div key={`${link.kind}:${link.id}`} className="rounded-lg border border-border/50 bg-muted/10 p-3">
+                            <button onClick={() => setSelectedLink(link)} className="w-full text-left">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="truncate font-headline text-sm font-semibold italic text-primary">{target}</div>
+                                  <div className="mt-1 font-code text-[8px] uppercase tracking-widest text-muted-foreground">
+                                    {link.sourceLabel} · {link.label}
+                                  </div>
+                                </div>
+                                <Badge variant="outline" className="shrink-0 rounded-full bg-card font-code text-[8px] uppercase tracking-widest">{link.kind}</Badge>
+                              </div>
+                              {link.note && <p className="mt-2 line-clamp-2 text-xs italic text-muted-foreground">{link.note}</p>}
+                            </button>
+                            <div className="mt-2 flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => setSelectedLink(link)} className="h-7 rounded-full px-3">Details</Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={!link.removable}
+                                onClick={() => {
+                                  setSelectedLink(null);
+                                  setCutLinkCandidate(link);
+                                }}
+                                className="h-7 rounded-full px-3 text-destructive hover:text-destructive disabled:text-muted-foreground"
+                              >
+                                Cut Link
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {!selectedNodeLinks.length && <p className="text-[10px] italic text-muted-foreground font-body">No links yet.</p>}
+                    </div>
+
+                    <div className="hidden">
                       {selectedMapLinks.map((link) => (
                         <Badge key={link.id} variant="secondary" className="flex items-center gap-1 border-accent/20 bg-accent/10 pr-1 font-code text-[9px] uppercase tracking-widest text-accent rounded-full">
                           {conceptKey(link.from) === conceptKey(selectedName) ? link.to : link.from} · {link.label || link.type}
@@ -668,7 +895,9 @@ export function ConceptAtlas({
                     {related ? (
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="outline" className="bg-muted/30 rounded-full">{related.sources.length} sources</Badge>
-                        <Badge variant="outline" className="bg-muted/30 rounded-full">{related.beliefs.length} positions</Badge>
+                        <button onClick={() => setIsPositionsOpen(true)} disabled={!related.beliefs.length} className="rounded-full disabled:cursor-not-allowed disabled:opacity-60">
+                          <Badge variant="outline" className="bg-muted/30 rounded-full transition-colors hover:border-accent hover:text-accent">{related.beliefs.length} positions</Badge>
+                        </button>
                         <Badge variant="outline" className="bg-muted/30 rounded-full">{related.drafts.length} works</Badge>
                         <Badge variant="outline" className="bg-muted/30 rounded-full">{related.practices.length} practices</Badge>
                         <Badge variant="outline" className="bg-muted/30 rounded-full">{related.questions.length} inquiries</Badge>
@@ -689,6 +918,157 @@ export function ConceptAtlas({
           </aside>
         )}
       </div>
+
+      <Dialog open={!!selectedLink} onOpenChange={(open) => !open && setSelectedLink(null)}>
+        <DialogContent className="max-w-lg border-none shadow-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl italic">Link Detail</DialogTitle>
+          </DialogHeader>
+          {selectedLink && (
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-border/60 bg-muted/10 p-4">
+                  <div className="font-code text-[8px] uppercase tracking-widest text-muted-foreground">From</div>
+                  <div className="mt-1 font-headline text-lg font-bold italic">{selectedLink.from}</div>
+                </div>
+                <div className="rounded-xl border border-border/60 bg-muted/10 p-4">
+                  <div className="font-code text-[8px] uppercase tracking-widest text-muted-foreground">To</div>
+                  <div className="mt-1 font-headline text-lg font-bold italic">{selectedLink.to}</div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge className="rounded-full bg-accent font-code text-[9px] uppercase tracking-widest">{selectedLink.linkType || selectedLink.label}</Badge>
+                <Badge variant="outline" className="rounded-full bg-card font-code text-[9px] uppercase tracking-widest">{selectedLink.sourceLabel}</Badge>
+              </div>
+              <p className="rounded-xl border border-border/60 bg-card p-4 text-sm italic leading-6 text-muted-foreground">
+                {selectedLink.note || (selectedLink.kind === 'shared' ? 'This relationship is derived from shared evidence across the system.' : 'No note recorded for this link.')}
+              </p>
+              {selectedLink.kind === 'shared' && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs italic leading-5 text-amber-800">
+                  Auto/shared links are calculated from overlap. They cannot be cut directly; remove the shared evidence or disable this auto-link filter on a Custom Map.
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="pt-4">
+            <Button variant="ghost" onClick={() => setSelectedLink(null)} className="rounded-full">Close</Button>
+            {selectedLink?.kind === 'shared' && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedName(selectedLink.from);
+                    setSelectedLink(null);
+                  }}
+                  className="rounded-full px-5"
+                >
+                  View Shared Evidence
+                </Button>
+                {mode === 'custom' && activeMap && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      updateActiveMap({
+                        autoLinkFilters: {
+                          ...(activeMap.autoLinkFilters || defaultAutoLinkFilters),
+                          sharedSources: false,
+                          sharedPositions: false,
+                          sharedInquiries: false,
+                          sharedWorks: false,
+                          sharedPractices: false,
+                        },
+                      });
+                      setSelectedLink(null);
+                    }}
+                    className="rounded-full px-5"
+                  >
+                    Turn Off Auto Evidence
+                  </Button>
+                )}
+              </>
+            )}
+            {selectedLink?.removable && (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setCutLinkCandidate(selectedLink);
+                  setSelectedLink(null);
+                }}
+                className="rounded-full px-7"
+              >
+                Cut Link
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!cutLinkCandidate} onOpenChange={(open) => !open && setCutLinkCandidate(null)}>
+        <DialogContent className="max-w-md border-none shadow-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl italic">Cut This Link?</DialogTitle>
+          </DialogHeader>
+          {cutLinkCandidate && (
+            <p className="pt-2 text-sm italic leading-6 text-muted-foreground">
+              This severs the relationship between <span className="text-foreground">{cutLinkCandidate.from}</span> and <span className="text-foreground">{cutLinkCandidate.to}</span>. The nodes and their source items stay intact.
+            </p>
+          )}
+          <DialogFooter className="pt-4">
+            <Button variant="ghost" onClick={() => setCutLinkCandidate(null)} className="rounded-full">Cancel</Button>
+            <Button variant="destructive" onClick={() => cutLink(cutLinkCandidate!)} className="rounded-full px-7">Cut Link</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPositionsOpen} onOpenChange={setIsPositionsOpen}>
+        <DialogContent className="max-w-4xl border-none shadow-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl italic">{selectedName} Positions</DialogTitle>
+            <p className="text-sm text-muted-foreground">Positions linked to this concept through tags, evidence, and outputs.</p>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto rounded-xl border border-border/60">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Position</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Confidence</TableHead>
+                  <TableHead>Sources</TableHead>
+                  <TableHead>Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(related?.beliefs || []).map((position) => (
+                  <TableRow
+                    key={position.id}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      setIsPositionsOpen(false);
+                      onOpenPosition?.(position.id);
+                    }}
+                  >
+                    <TableCell>
+                      <div className="font-headline text-base font-semibold italic">{position.title}</div>
+                      <div className="line-clamp-1 text-xs text-muted-foreground">{position.statement || position.description}</div>
+                    </TableCell>
+                    <TableCell className="font-code text-[10px] uppercase tracking-widest">{position.type.replace(/_/g, ' ')}</TableCell>
+                    <TableCell><Badge variant="outline" className="rounded-full bg-card font-code text-[8px] uppercase tracking-widest">{position.status}</Badge></TableCell>
+                    <TableCell className="font-code text-xs">{position.confidence}/5</TableCell>
+                    <TableCell className="font-code text-xs">{(position.sourceIds || []).length}</TableCell>
+                    <TableCell className="font-code text-[10px] uppercase tracking-widest text-muted-foreground">{new Date(position.dateUpdated || position.dateCreated).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))}
+                {!(related?.beliefs || []).length && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-sm italic text-muted-foreground">No related positions yet.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="max-w-xl border-none shadow-2xl rounded-2xl">

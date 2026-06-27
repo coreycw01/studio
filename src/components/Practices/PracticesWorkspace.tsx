@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Edit, Plus, Repeat, Trash2 } from 'lucide-react';
+import { CheckCircle2, Edit, Plus, Repeat, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,23 @@ interface PracticesWorkspaceProps {
 
 const practiceTypes: PracticeType[] = ['habit', 'experiment', 'discipline', 'reflection_prompt', 'commitment', 'observation', 'rule', 'challenge'];
 const statuses: PracticeStatus[] = ['proposed', 'planned', 'active', 'completed', 'failed', 'integrated', 'paused', 'abandoned'];
+
+function dateKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function currentStreak(logDates?: string[]) {
+  const logged = new Set((logDates || []).map((date) => date.slice(0, 10)));
+  let streak = 0;
+  const cursor = new Date();
+  for (let i = 0; i < 365; i += 1) {
+    const key = dateKey(cursor);
+    if (!logged.has(key)) break;
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
 
 export function PracticesWorkspace({ practices, concepts, media, questions, positions, drafts, onAddPractice, onUpdatePractice, onDeletePractice, onAddConcept, onCreateLink }: PracticesWorkspaceProps) {
   const [statusFilter, setStatusFilter] = useState<PracticeStatus | 'all'>('all');
@@ -140,7 +157,12 @@ function PracticeCard({ practice, questions, positions, onEdit, onDelete, onUpda
   const linkedQuestions = questions.filter((question) => (practice.questionIds || []).includes(question.id));
   const linkedPositions = positions.filter((position) => (practice.positionIds || []).includes(position.id));
   const firstLinkedPosition = linkedPositions[0];
+  const todayKey = dateKey();
+  const logDates = Array.from(new Set(practice.logDates || [])).sort();
+  const hasLoggedToday = logDates.includes(todayKey);
+  const streak = currentStreak(logDates);
   const setStatus = (status: PracticeStatus) => onUpdatePractice({ ...practice, status, dateUpdated: today() });
+  const logToday = () => onUpdatePractice({ ...practice, logDates: Array.from(new Set([...logDates, todayKey])), dateUpdated: today() });
   return (
     <Card className="group cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all border border-accent/20 bg-white/95 p-5 rounded-xl shadow-md">
       <div className="flex items-start justify-between gap-4 mb-4">
@@ -161,8 +183,9 @@ function PracticeCard({ practice, questions, positions, onEdit, onDelete, onUpda
         {practice.description || 'No requirement explicitly defined.'}
       </p>
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-4 gap-3 mb-6">
         <MiniStat label="DAYS" value={practice.durationDays || 0} />
+        <MiniStat label="STREAK" value={`${streak}d`} />
         <MiniStat label="INQUIRIES" value={linkedQuestions.length} />
         <MiniStat label="POSITIONS" value={linkedPositions.length} />
       </div>
@@ -180,6 +203,13 @@ function PracticeCard({ practice, questions, positions, onEdit, onDelete, onUpda
           title="What does this test?"
           description="Practices close the loop by testing positions in lived behavior."
           actions={[
+            {
+              label: hasLoggedToday ? 'Logged' : 'Log Today',
+              tone: 'support',
+              disabled: hasLoggedToday,
+              icon: <CheckCircle2 className="size-3" />,
+              onClick: logToday,
+            },
             {
               label: 'Activate',
               disabled: practice.status === 'active',

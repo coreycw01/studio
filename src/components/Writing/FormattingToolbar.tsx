@@ -13,7 +13,6 @@ import {
   List,
   ListOrdered,
   Type,
-  ChevronDown,
   RotateCcw,
   RotateCw,
   Palette,
@@ -27,6 +26,7 @@ interface FormattingToolbarProps {
 
 export function FormattingToolbar({ saveStatus }: FormattingToolbarProps) {
   const applyFormat = (command: string, value?: string) => {
+    document.execCommand('styleWithCSS', false, 'true');
     document.execCommand(command, false, value);
   };
 
@@ -41,13 +41,32 @@ export function FormattingToolbar({ saveStatus }: FormattingToolbarProps) {
 
         <div className="flex items-center px-3 border-r border-border/40 gap-2">
           <Type className="size-3.5 text-muted-foreground" />
-          <span className="text-[11px] font-body italic text-primary/80">Spectral</span>
-          <ChevronDown className="size-3 text-muted-foreground/50" />
+          <select
+            defaultValue="P"
+            onChange={(event) => applyFormat('formatBlock', event.target.value)}
+            className="bg-transparent text-[11px] font-body italic text-primary/80 outline-none"
+            title="Paragraph style"
+          >
+            <option value="P">Paragraph</option>
+            <option value="H1">Heading 1</option>
+            <option value="H2">Heading 2</option>
+            <option value="H3">Heading 3</option>
+            <option value="BLOCKQUOTE">Quote</option>
+          </select>
         </div>
 
         <div className="flex items-center px-3 border-r border-border/40 gap-2">
-          <span className="text-[11px] font-code font-bold text-primary/80">14</span>
-          <ChevronDown className="size-3 text-muted-foreground/50" />
+          <select
+            defaultValue="3"
+            onChange={(event) => applyFormat('fontSize', event.target.value)}
+            className="bg-transparent text-[11px] font-code font-bold text-primary/80 outline-none"
+            title="Text size"
+          >
+            <option value="2">Small</option>
+            <option value="3">Normal</option>
+            <option value="4">Large</option>
+            <option value="5">Title</option>
+          </select>
         </div>
 
         <div className="flex items-center gap-0.5 px-2 border-r border-border/40">
@@ -57,8 +76,8 @@ export function FormattingToolbar({ saveStatus }: FormattingToolbarProps) {
         </div>
 
         <div className="flex items-center gap-0.5 px-2 border-r border-border/40">
-          <ToolbarButton icon={Palette} onClick={() => {}} title="Text Color" />
-          <ToolbarButton icon={Highlighter} onClick={() => {}} title="Highlight" />
+          <ToolbarButton icon={Palette} onClick={() => applyFormat('foreColor', '#6d28d9')} title="Accent text color" />
+          <ToolbarButton icon={Highlighter} onClick={() => applyFormat('backColor', '#fef3c7')} title="Highlight" />
         </div>
 
         <div className="flex items-center gap-0.5 px-2 border-r border-border/40">
@@ -80,7 +99,11 @@ export function FormattingToolbar({ saveStatus }: FormattingToolbarProps) {
 function ToolbarButton({ icon: Icon, onClick, active, title }: { icon: any, onClick?: () => void, active?: boolean, title?: string }) {
   return (
     <button 
-      onClick={onClick}
+      type="button"
+      onMouseDown={(event) => {
+        event.preventDefault();
+        onClick?.();
+      }}
       title={title}
       className={cn(
         "size-8 rounded-full flex items-center justify-center transition-all hover:bg-muted",

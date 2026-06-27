@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { BookOpen, Edit, ExternalLink, HelpCircle, Highlighter, Loader2, Quote, Search, Trash2 } from 'lucide-react';
+import { BookOpen, BrainCircuit, Edit, ExternalLink, Highlighter, Loader2, Quote, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,10 +32,21 @@ interface AnnotationsIndexProps {
   onAddConcept: (data: Partial<Concept>) => void;
   onCreateSuggestion: (data: Partial<AiSuggestion>) => void;
   onCreateLink: (data: Partial<PhilosophicalLink>) => void;
+  onNavigate?: (view: string) => void;
 }
 
 type FlatAnnotation = Annotation & { source: Media };
 type AnnotationFilter = AnnotationType | 'all' | 'unanswered';
+type PreflightMode = 'position' | 'inquiry';
+
+interface PreflightDraft {
+  mode: PreflightMode;
+  annotation: FlatAnnotation;
+  title: string;
+  body: string;
+  question: string;
+  tags: string[];
+}
 
 export function AnnotationsIndex({
   media,
@@ -50,12 +61,14 @@ export function AnnotationsIndex({
   onAddConcept,
   onCreateSuggestion,
   onCreateLink,
+  onNavigate,
 }: AnnotationsIndexProps) {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<AnnotationFilter>('all');
   const [filterConcept, setFilterConcept] = useState<string>('all');
   const [filterSource, setFilterSource] = useState<string>('all');
   const [editing, setEditing] = useState<FlatAnnotation | null>(null);
+  const [preflight, setPreflight] = useState<PreflightDraft | null>(null);
   const [suggestingId, setSuggestingId] = useState<string | null>(null);
   const [linkDialog, setLinkDialog] = useState<{ annotation: FlatAnnotation; linkType: 'supports' | 'challenges' } | null>(null);
   const { toast } = useToast();
@@ -107,21 +120,44 @@ export function AnnotationsIndex({
     setEditing(null);
   };
 
-  const createPosition = (annotation: FlatAnnotation) => {
-    onCreatePosition({
+  const openPreflight = (annotation: FlatAnnotation, mode: PreflightMode) => {
+    const tags = normalizeConceptTags(annotation.conceptTags || annotation.source.tags);
+    setPreflight({
+      mode,
+      annotation,
       title: annotation.text.slice(0, 90),
       body: annotation.answer ? `${annotation.text}\n\nAnswer: ${annotation.answer}` : annotation.text,
-      tags: normalizeConceptTags(annotation.conceptTags || annotation.source.tags),
+      question: annotation.type === 'question' ? annotation.text : `What does this imply: ${annotation.text}`,
+      tags,
+    });
+  };
+
+  const submitPreflight = () => {
+    if (!preflight) return;
+    if (preflight.mode === 'position') {
+      createPosition(preflight.annotation, preflight.title, preflight.body, preflight.tags);
+      onNavigate?.('vault');
+    } else {
+      createInquiry(preflight.annotation, preflight.question, preflight.tags);
+      onNavigate?.('questions');
+    }
+    setPreflight(null);
+  };
+
+  const createPosition = (annotation: FlatAnnotation, title = annotation.text.slice(0, 90), body = annotation.answer ? `${annotation.text}\n\nAnswer: ${annotation.answer}` : annotation.text, tags = normalizeConceptTags(annotation.conceptTags || annotation.source.tags)) => {
+    onCreatePosition({
+      title,
+      body,
+      tags,
       sourceIds: [annotation.source.id],
     });
     const { source, ...annotationData } = annotation;
     onUpdateAnnotation(source.id, { ...annotationData, philosophyStatus: 'used_in_position' });
   };
 
-  const createInquiry = (annotation: FlatAnnotation) => {
-    const tags = normalizeConceptTags(annotation.conceptTags || annotation.source.tags);
+  const createInquiry = (annotation: FlatAnnotation, text = annotation.type === 'question' ? annotation.text : `What does this imply: ${annotation.text}`, tags = normalizeConceptTags(annotation.conceptTags || annotation.source.tags)) => {
     onCreateInquiry({
-      text: annotation.type === 'question' ? annotation.text : `What does this imply: ${annotation.text}`,
+      text,
       conceptIds: concepts.filter((concept) => tags.map(conceptKey).includes(conceptKey(concept.name))).map((concept) => concept.id),
       sourceIds: [annotation.source.id],
       evidenceIds: [annotation.id],
@@ -224,12 +260,15 @@ export function AnnotationsIndex({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {filtered.map((annotation) => (
-          <Card key={`${annotation.source.id}:${annotation.id}`} className="p-8 bg-white border border-accent/10 shadow-md rounded-2xl group hover:shadow-xl transition-all">
-            <div className="flex justify-between items-start gap-4 mb-6">
+          <Card key={`${annotation.source.id}:${annotation.id}`} className="p-6 bg-white border border-accent/10 shadow-md rounded-2xl group hover:shadow-xl transition-all">
+            <div className="flex justify-between items-start gap-4 mb-4">
               <Badge variant="outline" className="font-code text-[9px] uppercase tracking-widest bg-muted/5 border-border/40 rounded-full font-bold px-3 py-1">
                 {annotation.type}
               </Badge>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="size-8 rounded-full text-accent hover:text-accent" onClick={() => suggestConsequences(annotation)} disabled={suggestingId === annotation.id} title="Ask Noesis AI">
+                  {suggestingId === annotation.id ? <Loader2 className="size-3.5 animate-spin" /> : <BrainCircuit className="size-3.5" />}
+                </Button>
                 <Button variant="ghost" size="icon" className="size-8 rounded-full" onClick={() => setEditing(annotation)} title="Edit annotation">
                   <Edit className="size-3.5" />
                 </Button>
@@ -242,12 +281,12 @@ export function AnnotationsIndex({
               </div>
             </div>
 
-            <div className="relative mb-6">
+            <div className="relative mb-4">
               <Quote className="absolute -left-6 -top-2 size-10 text-accent/5" />
               <p className="font-body italic leading-relaxed text-[18px] text-primary/90 relative z-10">"{annotation.text}"</p>
             </div>
 
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="flex flex-wrap gap-2 mb-4">
               {normalizeConceptTags(annotation.conceptTags || annotation.source.tags).map((tag) => (
                 <Badge key={tag} variant="secondary" className="font-code text-[8px] uppercase tracking-wider rounded-full bg-muted/20 text-muted-foreground font-bold">{tag}</Badge>
               ))}
@@ -258,12 +297,6 @@ export function AnnotationsIndex({
               status={annotation.philosophyStatus || (annotation.type === 'question' ? 'questioned' : 'raw')}
               description="Move this note into the next layer: classify it, link it, or transform it."
               actions={[
-                {
-                  label: suggestingId === annotation.id ? 'Thinking' : 'Ask AI',
-                  tone: 'ai',
-                  disabled: suggestingId === annotation.id,
-                  onClick: () => suggestConsequences(annotation),
-                },
                 {
                   label: 'Support Position',
                   tone: 'support',
@@ -280,16 +313,16 @@ export function AnnotationsIndex({
                 },
                 {
                   label: 'Form Position',
-                  onClick: () => createPosition(annotation),
+                  onClick: () => openPreflight(annotation, 'position'),
                 },
                 {
-                  label: 'Open Inquiry',
-                  onClick: () => createInquiry(annotation),
+                  label: 'Open in Query',
+                  onClick: () => openPreflight(annotation, 'inquiry'),
                 },
               ]}
             />
 
-            <div className="flex items-center justify-between gap-4 pt-6 border-t border-border/20">
+            <div className="flex items-center justify-between gap-4 pt-4 border-t border-border/20 mt-4">
               <button onClick={() => onOpenSource(annotation.source.id)} className="flex min-w-0 items-center gap-3 text-left">
                 <div className="size-8 rounded-lg bg-accent/5 flex items-center justify-center shrink-0 border border-accent/10">
                   <BookOpen className="size-4 text-accent/40" />
@@ -300,9 +333,8 @@ export function AnnotationsIndex({
                 </div>
               </button>
               <div className="flex shrink-0 gap-2">
-                <Button variant="outline" size="sm" onClick={() => suggestConsequences(annotation)} disabled={suggestingId === annotation.id} className="h-8 rounded-full font-code text-[9px] uppercase tracking-widest">
-                  {suggestingId === annotation.id ? <Loader2 className="mr-1.5 size-3.5 animate-spin" /> : <HelpCircle className="mr-1.5 size-3.5" />}
-                  Next
+                <Button variant="outline" size="icon" onClick={() => suggestConsequences(annotation)} disabled={suggestingId === annotation.id} className="size-8 rounded-full bg-card border-border/60" title="Ask Noesis AI">
+                  {suggestingId === annotation.id ? <Loader2 className="size-3.5 animate-spin" /> : <BrainCircuit className="size-3.5" />}
                 </Button>
               </div>
             </div>
@@ -417,6 +449,63 @@ export function AnnotationsIndex({
           <DialogFooter className="pt-4">
             <Button variant="ghost" onClick={() => setEditing(null)} className="rounded-full">Cancel</Button>
             <Button onClick={saveEditing} className="rounded-full px-8">Save Annotation</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!preflight} onOpenChange={(open) => !open && setPreflight(null)}>
+        <DialogContent className="max-w-2xl border-none shadow-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl italic">Route Annotation</DialogTitle>
+            <p className="text-sm text-muted-foreground">Shape the object before Noesis sends it to the right workspace.</p>
+          </DialogHeader>
+          {preflight && (
+            <div className="space-y-5 pt-2">
+              <div className="space-y-2">
+                <Label>Destination</Label>
+                <Select value={preflight.mode} onValueChange={(value) => setPreflight((prev) => prev ? { ...prev, mode: value as PreflightMode } : prev)}>
+                  <SelectTrigger className="rounded-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="position">Positions</SelectItem>
+                    <SelectItem value="inquiry">Inquiries</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {preflight.mode === 'position' ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>Position Title</Label>
+                    <Input value={preflight.title} onChange={(event) => setPreflight((prev) => prev ? { ...prev, title: event.target.value } : prev)} className="rounded-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Position Statement</Label>
+                    <Textarea value={preflight.body} onChange={(event) => setPreflight((prev) => prev ? { ...prev, body: event.target.value } : prev)} className="min-h-[140px]" />
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Question To Work</Label>
+                  <Textarea value={preflight.question} onChange={(event) => setPreflight((prev) => prev ? { ...prev, question: event.target.value } : prev)} className="min-h-[140px]" />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Concept Tags</Label>
+                <ConceptTagPicker
+                  concepts={concepts}
+                  value={preflight.tags}
+                  onChange={(tags) => setPreflight((prev) => prev ? { ...prev, tags: normalizeConceptTags(tags) } : prev)}
+                  onCreateConcept={(name) => onAddConcept({ name, description: '', createdFrom: 'tag' })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="pt-4">
+            <Button variant="ghost" onClick={() => setPreflight(null)} className="rounded-full">Cancel</Button>
+            <Button onClick={submitPreflight} className="rounded-full px-8">
+              {preflight?.mode === 'position' ? 'Open in Positions' : 'Open in Inquiries'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

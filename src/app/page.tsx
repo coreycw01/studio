@@ -27,6 +27,7 @@ import { QuestionsWorkspace } from '@/components/Questions/QuestionsWorkspace';
 import { EvolutionTimeline } from '@/components/Evolution/EvolutionTimeline';
 import { PracticesWorkspace } from '@/components/Practices/PracticesWorkspace';
 import { SettingsPage } from '@/components/Settings/SettingsPage';
+import { GoalsPage } from '@/components/Goals/GoalsPage';
 import { Toaster } from '@/components/ui/toaster';
 import { MEDIA_TYPES, allAnnotations, conceptKey, ensureConceptTerms, normalizeConceptTags, today } from '@/lib/readex';
 import { DEFAULT_ATLAS_NODE_SETTINGS, DEFAULT_ATLAS_VIEW_SETTINGS, DEFAULT_GOAL_SETTINGS, DEFAULT_USER_PREFERENCES, DEFAULT_USER_PROFILE, PROTOTYPE_USER_ID, readexRefs, readexSchemaDoc } from '@/lib/firestore-schema';
@@ -43,6 +44,7 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
   const { db } = useFirebase();
   const [view, setView] = useState('atlas');
   const [focusedSourceId, setFocusedSourceId] = useState<string | null>(null);
+  const [focusedPositionId, setFocusedPositionId] = useState<string | null>(null);
   const effectiveUid = uid;
 
   const refs = useMemo(() => readexRefs(db, effectiveUid), [db, effectiveUid]);
@@ -114,14 +116,20 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const dark = preferences.themeMode === 'dark' || (preferences.themeMode === 'system' && systemDark);
-    root.classList.toggle('dark', dark);
-    root.dataset.theme = preferences.accentTheme;
-    window.localStorage.setItem('noesis:theme', JSON.stringify({
-      themeMode: preferences.themeMode,
-      accentTheme: preferences.accentTheme,
-    }));
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyTheme = () => {
+      const systemDark = mediaQuery.matches;
+      const dark = preferences.themeMode === 'dark' || (preferences.themeMode === 'system' && systemDark);
+      root.classList.toggle('dark', dark);
+      root.dataset.theme = preferences.accentTheme;
+      window.localStorage.setItem('noesis:theme', JSON.stringify({
+        themeMode: preferences.themeMode,
+        accentTheme: preferences.accentTheme,
+      }));
+    };
+    applyTheme();
+    mediaQuery.addEventListener('change', applyTheme);
+    return () => mediaQuery.removeEventListener('change', applyTheme);
   }, [preferences.themeMode, preferences.accentTheme]);
 
   const emitError = (path: string, operation: SecurityRuleContext['operation'], data?: any) => {
@@ -503,6 +511,16 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
     setDoc(linkRef, payload).catch(() => emitError(linkRef.path, 'create', payload));
   };
 
+  const updatePhilosophicalLink = (link: PhilosophicalLink) => {
+    const linkRef = doc(refs.links, link.id);
+    updateDoc(linkRef, { ...link, dateUpdated: today() } as any).catch(() => emitError(linkRef.path, 'update', link));
+  };
+
+  const deletePhilosophicalLink = (id: string) => {
+    const linkRef = doc(refs.links, id);
+    deleteDoc(linkRef).catch(() => emitError(linkRef.path, 'delete'));
+  };
+
   const addAiSuggestion = (data: Partial<AiSuggestion>) => {
     if (!data.targetType || !data.targetId || !data.suggestionType) return;
     const suggestionRef = doc(refs.suggestions);
@@ -591,7 +609,30 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
   const renderContent = () => {
     switch (view) {
       case 'atlas':
-        return <ConceptAtlas concepts={concepts} media={media} insights={insights} vault={vault} drafts={drafts} practices={practices} questions={questions} timeline={timeline} atlasMaps={atlasMaps} links={links} onAddConcept={addConcept} onUpdateConcept={updateConcept} onAddAtlasMap={addAtlasMap} onUpdateAtlasMap={updateAtlasMap} onDeleteAtlasMap={deleteAtlasMap} />;
+        return (
+          <ConceptAtlas
+            concepts={concepts}
+            media={media}
+            insights={insights}
+            vault={vault}
+            drafts={drafts}
+            practices={practices}
+            questions={questions}
+            timeline={timeline}
+            atlasMaps={atlasMaps}
+            links={links}
+            onAddConcept={addConcept}
+            onUpdateConcept={updateConcept}
+            onAddAtlasMap={addAtlasMap}
+            onUpdateAtlasMap={updateAtlasMap}
+            onDeleteAtlasMap={deleteAtlasMap}
+            onDeleteLink={deletePhilosophicalLink}
+            onOpenPosition={(id) => {
+              setFocusedPositionId(id);
+              setView('vault');
+            }}
+          />
+        );
       case 'concepts':
         return (
           <ConceptEncyclopedia 
@@ -647,10 +688,13 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
             onAddConcept={addConcept}
             onCreateSuggestion={addAiSuggestion}
             onCreateLink={addPhilosophicalLink}
+            onNavigate={setView}
           />
         );
       case 'source-index':
         return <SourceIndex media={media} vault={vault} drafts={drafts} practices={practices} onOpenSource={(sourceId) => { setFocusedSourceId(sourceId); setView('library'); }} />;
+      case 'goals':
+        return <GoalsPage goal={goal} goalProgress={goalProgress} onSaveGoal={saveGoal} />;
       case 'vault':
         return (
           <BeliefVault
@@ -670,6 +714,9 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
             onAddDraft={addDraft}
             onAddPractice={addPractice}
             onCreateIdea={createIdea}
+            onUpdateLink={updatePhilosophicalLink}
+            focusedEntryId={focusedPositionId}
+            onFocusedEntryHandled={() => setFocusedPositionId(null)}
           />
         );
       case 'questions':
@@ -686,11 +733,8 @@ function ReadexWorkspace({ user, uid }: { user: User | null; uid: string }) {
             user={user}
             profile={profile}
             preferences={preferences}
-            goal={goal}
-            goalProgress={goalProgress}
             onSaveProfile={saveProfile}
             onSavePreferences={savePreferences}
-            onSaveGoal={saveGoal}
           />
         );
       default:

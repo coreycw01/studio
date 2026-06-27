@@ -13,24 +13,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { MEDIA_LABELS, MEDIA_TYPES, WRITING_STYLE_DESCRIPTIONS, WRITING_STYLE_LABELS, WRITING_STYLES } from '@/lib/readex';
-import type { AccentTheme, DraftStatus, DraftType, GoalSettings, MediaType, ThemeMode, UserPreferences, UserProfile, WritingStyle } from '@/lib/types';
+import { DRAFT_LABELS, WRITING_STYLE_DESCRIPTIONS, WRITING_STYLE_LABELS, WRITING_STYLES } from '@/lib/readex';
+import type { AccentTheme, DraftStatus, DraftType, ThemeMode, UserPreferences, UserProfile, WritingStyle } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface SettingsPageProps {
   user: User | null;
   profile: UserProfile;
   preferences: UserPreferences;
-  goal: GoalSettings;
-  goalProgress: Partial<Record<MediaType, number>>;
   onSaveProfile: (profile: UserProfile) => Promise<void>;
   onSavePreferences: (preferences: UserPreferences) => Promise<void>;
-  onSaveGoal: (goal: GoalSettings) => Promise<void>;
 }
 
 const themeModes: ThemeMode[] = ['light', 'dark', 'system'];
 const accentThemes: AccentTheme[] = ['violet', 'sage', 'blue', 'amber', 'rose', 'mono'];
-const draftTypes: DraftType[] = ['essay', 'script', 'field_note'];
+const draftTypes: DraftType[] = ['essay', 'script', 'field_note', 'voice_note', 'talk_to_text', 'drawing', 'recording'];
 const draftStatuses: DraftStatus[] = ['seed', 'drafting', 'revised', 'final'];
 
 const accentLabels: Record<AccentTheme, string> = {
@@ -46,22 +43,25 @@ export function SettingsPage({
   user,
   profile,
   preferences,
-  goal,
-  goalProgress,
   onSaveProfile,
   onSavePreferences,
-  onSaveGoal,
 }: SettingsPageProps) {
   const auth = useAuth();
   const { toast } = useToast();
   const [profileDraft, setProfileDraft] = useState<UserProfile>(profile);
   const [preferencesDraft, setPreferencesDraft] = useState<UserPreferences>(preferences);
-  const [goalDraft, setGoalDraft] = useState<GoalSettings>(goal);
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => setProfileDraft(profile), [profile]);
   useEffect(() => setPreferencesDraft(preferences), [preferences]);
-  useEffect(() => setGoalDraft(goal), [goal]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const dark = preferencesDraft.themeMode === 'dark' || (preferencesDraft.themeMode === 'system' && systemDark);
+    root.classList.toggle('dark', dark);
+    root.dataset.theme = preferencesDraft.accentTheme;
+  }, [preferencesDraft.themeMode, preferencesDraft.accentTheme]);
 
   const saveProfile = async () => {
     setSaving('profile');
@@ -93,18 +93,6 @@ export function SettingsPage({
     }
   };
 
-  const saveGoals = async () => {
-    setSaving('goals');
-    try {
-      await onSaveGoal(goalDraft);
-      toast({ title: 'Source goals saved', description: 'Your media targets are updated.' });
-    } catch {
-      toast({ title: 'Goals not saved', description: 'Noesis could not write your source goals.' });
-    } finally {
-      setSaving(null);
-    }
-  };
-
   const resetPassword = async () => {
     if (!user?.email) return;
     setSaving('reset');
@@ -131,7 +119,7 @@ export function SettingsPage({
         <header className="mb-10">
           <h1 className="text-[28px] font-headline font-semibold italic text-foreground/80">Settings</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Control your account, appearance, source goals, and the default shape of every new work.
+            Control your account, appearance, and the default shape of every new work.
           </p>
         </header>
 
@@ -221,7 +209,7 @@ export function SettingsPage({
                   <Select value={preferencesDraft.writingDefaults.type} onValueChange={(value) => updateWritingDefaults({ type: value as DraftType })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {draftTypes.map((type) => <SelectItem key={type} value={type}>{type === 'field_note' ? 'Field Note' : type}</SelectItem>)}
+                      {draftTypes.map((type) => <SelectItem key={type} value={type}>{DRAFT_LABELS[type]}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </Field>
@@ -270,45 +258,6 @@ export function SettingsPage({
             </div>
           </SettingsCard>
 
-          <SettingsCard title="Source Goals" description="Track media targets separately so books, films, videos, and articles do not collapse into one count.">
-            <Field label="Goal Label">
-              <Input value={goalDraft.label} onChange={(event) => setGoalDraft((prev) => ({ ...prev, label: event.target.value }))} />
-            </Field>
-            <div className="mt-5 grid max-h-[420px] gap-3 overflow-y-auto pr-2">
-              {MEDIA_TYPES.map((type) => {
-                const active = goalDraft.types.includes(type);
-                const done = goalProgress[type] || 0;
-                const target = goalDraft.targets[type] || 12;
-                return (
-                  <div key={type} className="grid grid-cols-[auto_1fr_80px_auto] items-center gap-3 rounded-xl border border-border bg-card p-3">
-                    <input
-                      type="checkbox"
-                      checked={active}
-                      onChange={(event) => setGoalDraft((prev) => ({ ...prev, types: event.target.checked ? Array.from(new Set([...prev.types, type])) : prev.types.filter((item) => item !== type) }))}
-                      className="size-4 accent-accent"
-                    />
-                    <div>
-                      <div className="font-code text-[10px] font-bold uppercase tracking-widest">{MEDIA_LABELS[type]}</div>
-                      <div className="text-xs text-muted-foreground">{done} finished</div>
-                    </div>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={target}
-                      onChange={(event) => setGoalDraft((prev) => ({ ...prev, targets: { ...prev.targets, [type]: Math.max(1, Number(event.target.value) || 1) } }))}
-                      className="h-9 text-right font-code text-xs"
-                    />
-                    <Badge variant="outline" className="rounded-full bg-card font-code text-[9px]">{done}/{target}</Badge>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-6">
-              <Button onClick={saveGoals} disabled={saving === 'goals'} className="rounded-full px-7 font-bold">
-                <Save className="mr-2 size-4" /> Save Goals
-              </Button>
-            </div>
-          </SettingsCard>
         </div>
       </div>
     </div>

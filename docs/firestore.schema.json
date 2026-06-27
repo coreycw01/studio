@@ -80,11 +80,11 @@
     },
     "drafts": {
       "path": "/users/{uid}/drafts/{draftId}",
-      "purpose": "Works: essays, scripts, and field notes.",
+      "purpose": "Works: essays, scripts, field notes, voice notes, talk-to-text captures, drawings, and recordings.",
       "fields": {
         "title": "string",
         "body": "string",
-        "type": "essay | script | field_note",
+        "type": "essay | script | field_note | voice_note | talk_to_text | drawing | recording",
         "status": "seed | drafting | revised | final",
         "writingStyle": "blank_paper | ruled_notebook | manuscript | cornell_notes | two_column_debate | dialectic | belief_audit | source_analysis | mind_map | timeline",
         "externalDoc": "ExternalDraftDocument?",
@@ -123,6 +123,7 @@
         "positionIds": "string[] vault ids",
         "draftIds": "string[]",
         "notes": "string",
+        "logDates": "YYYY-MM-DD string[]? consistency log",
         "dateCreated": "ISO string",
         "dateUpdated": "ISO string"
       }
@@ -140,7 +141,7 @@
         "dateCreated": "ISO string",
         "dateUpdated": "ISO string"
       },
-      "linkTypes": "supports | challenges | defines | refines | contradicts | exemplifies | inspired_by | tested_by | expressed_in | changed_by | examples | causes | questions | practices | relates | custom",
+      "linkTypes": "supports | challenges | coheres | defines | refines | contradicts | exemplifies | inspired_by | tested_by | expressed_in | changed_by | examples | causes | questions | practices | relates | custom",
       "autoLinkFilters": {
         "sharedSources": "boolean",
         "sharedPositions": "boolean",
@@ -188,7 +189,7 @@
         "toType": "source | annotation | concept | inquiry | position | work | practice | evolution",
         "toId": "string",
         "toLabel": "string?",
-        "type": "supports | challenges | defines | refines | contradicts | exemplifies | inspired_by | tested_by | expressed_in | changed_by",
+        "type": "supports | challenges | coheres | defines | refines | contradicts | exemplifies | inspired_by | tested_by | expressed_in | changed_by",
         "note": "string?",
         "createdFrom": "manual | suggestion | system",
         "dateCreated": "ISO string",
@@ -224,7 +225,7 @@
         "themeMode": "light | dark | system",
         "accentTheme": "violet | sage | blue | amber | rose | mono",
         "writingDefaults": {
-          "type": "essay | script | field_note",
+          "type": "essay | script | field_note | voice_note | talk_to_text | drawing | recording",
           "status": "seed | drafting | revised | final",
           "writingStyle": "blank_paper | ruled_notebook | manuscript | cornell_notes | two_column_debate | dialectic | belief_audit | source_analysis | mind_map | timeline",
           "editorFeel": "focused | spacious | dense"

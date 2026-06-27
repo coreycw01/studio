@@ -5,7 +5,7 @@ export type AnnotationType = 'highlight' | 'thought' | 'question' | 'connection'
 export type VaultType = 'belief' | 'principle' | 'mental_model' | 'life_rule' | 'worldview';
 export type EventType = 'created' | 'refined' | 'challenged' | 'revised' | 'expanded' | 'abandoned';
 export type QuestionStatus = 'open' | 'investigating' | 'answered' | 'archived';
-export type DraftType = 'essay' | 'script' | 'field_note';
+export type DraftType = 'essay' | 'script' | 'field_note' | 'voice_note' | 'talk_to_text' | 'drawing' | 'recording';
 export type DraftStatus = 'seed' | 'drafting' | 'revised' | 'final';
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type AccentTheme = 'violet' | 'sage' | 'blue' | 'amber' | 'rose' | 'mono';
@@ -18,7 +18,7 @@ export type AnnotationPhilosophyStatus = 'raw' | 'connected' | 'questioned' | 'u
 export type ConceptPhilosophyStatus = 'undefined' | 'emerging' | 'developed' | 'contested' | 'core';
 export type PositionPhilosophyStatus = 'draft' | 'active' | 'uncertain' | 'challenged' | 'revised' | 'rejected';
 export type PhilosophicalObjectType = 'source' | 'annotation' | 'concept' | 'inquiry' | 'position' | 'work' | 'practice' | 'evolution';
-export type PhilosophicalLinkType = 'supports' | 'challenges' | 'defines' | 'refines' | 'contradicts' | 'exemplifies' | 'inspired_by' | 'tested_by' | 'expressed_in' | 'changed_by';
+export type PhilosophicalLinkType = 'supports' | 'challenges' | 'coheres' | 'defines' | 'refines' | 'contradicts' | 'exemplifies' | 'inspired_by' | 'tested_by' | 'expressed_in' | 'changed_by';
 export type AtlasMapLinkType = PhilosophicalLinkType | 'examples' | 'causes' | 'questions' | 'practices' | 'relates' | 'custom';
 export type SourceProvider = 'google_books' | 'open_library' | 'openalex' | 'tmdb' | 'url_metadata' | 'manual';
 export type AiSuggestionType = 'annotation_consequence' | 'position_draft' | 'typed_link' | 'possible_tension' | 'evolution_summary' | 'daily_prompt';
@@ -217,6 +217,7 @@ export interface Practice {
   positionIds: string[];
   draftIds: string[];
   notes: string;
+  logDates?: string[];
   dateCreated: string;
   dateUpdated: string;
 }

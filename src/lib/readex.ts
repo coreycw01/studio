@@ -41,6 +41,10 @@ export const DRAFT_LABELS = {
   essay: 'Essay',
   script: 'Script',
   field_note: 'Field Note',
+  voice_note: 'Voice Note',
+  talk_to_text: 'Talk-to-Text',
+  drawing: 'Drawing',
+  recording: 'Recording',
 };
 
 export const WRITING_STYLE_LABELS: Record<WritingStyle, string> = {

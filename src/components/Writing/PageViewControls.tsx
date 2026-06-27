@@ -67,8 +67,9 @@ export function PageViewControls({
     <div className="flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" className="size-9 rounded-full font-bold border-border/60 bg-white shadow-sm flex items-center justify-center">
+          <Button variant="outline" size="sm" className="h-9 rounded-full font-bold border-border/60 bg-card shadow-sm px-4">
             <Settings2 className="size-4 text-accent" />
+            View / Paper
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64 font-body">

@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, ChevronRight, Edit, Lightbulb, Loader2, Plus, ShieldCheck, Trash2, Search, Triangle } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, ArrowLeft, ChevronRight, Edit, LayoutGrid, Lightbulb, Loader2, Plus, ShieldCheck, Table2, Trash2, Search, Triangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import { SourceLinker } from '@/components/SourceLinker';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Concept, Draft, Media, PhilosophicalLink, Practice, Question, TimelineEvent, VaultEntry, VaultType } from '@/lib/types';
 import { normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,9 @@ interface BeliefVaultProps {
   onAddDraft: (data: Partial<Draft>) => void;
   onAddPractice: (data: Partial<Practice>) => void;
   onCreateIdea: (data: { title: string; body: string; tags: string[]; sourceIds: string[]; position?: { title: string; statement: string; description: string; confidence: number } }) => void;
+  onUpdateLink?: (link: PhilosophicalLink) => void;
+  focusedEntryId?: string | null;
+  onFocusedEntryHandled?: () => void;
 }
 
 const vaultTypes: VaultType[] = ['belief', 'principle', 'mental_model', 'life_rule', 'worldview'];
@@ -50,11 +54,12 @@ const TYPE_LABELS: Record<VaultType, string> = {
   worldview: 'Worldview',
 };
 
-export function BeliefVault({ entries, media, drafts, practices, questions, timeline, concepts, links, onAddEntry, onUpdateEntry, onDeleteEntry, onAddConcept, onCreateLink, onAddDraft, onAddPractice, onCreateIdea }: BeliefVaultProps) {
+export function BeliefVault({ entries, media, drafts, practices, questions, timeline, concepts, links, onAddEntry, onUpdateEntry, onDeleteEntry, onAddConcept, onCreateLink, onAddDraft, onAddPractice, onCreateIdea, onUpdateLink, focusedEntryId, onFocusedEntryHandled }: BeliefVaultProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | VaultType | 'ideas'>('all');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [draftEntry, setDraftEntry] = useState<Partial<VaultEntry>>({ type: 'belief', title: '', statement: '', description: '', confidence: 3, status: 'active', tags: [] });
   const [conceptPopupName, setConceptPopupName] = useState<string | null>(null);
   const { toast } = useToast();
@@ -146,6 +151,22 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
     setEditorOpen(true);
   };
 
+  useEffect(() => {
+    if (!focusedEntryId) return;
+    if (entries.some((entry) => entry.id === focusedEntryId)) {
+      setSelectedId(focusedEntryId);
+      onFocusedEntryHandled?.();
+    }
+  }, [entries, focusedEntryId, onFocusedEntryHandled]);
+
+  useEffect(() => {
+    if (!focusedEntryId) return;
+    if (entries.some((entry) => entry.id === focusedEntryId)) {
+      setSelectedId(focusedEntryId);
+      onFocusedEntryHandled?.();
+    }
+  }, [entries, focusedEntryId, onFocusedEntryHandled]);
+
   const saveEntry = () => {
     if (!draftEntry.title?.trim()) return;
     if (draftEntry.id) onUpdateEntry({ ...(draftEntry as VaultEntry), tags: normalizeConceptTags(draftEntry.tags), dateUpdated: today() });
@@ -157,6 +178,7 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
     const linkedSources = media.filter((item) => (selected.sourceIds || []).includes(item.id));
     const linkedDrafts = drafts.filter((draft) => (draft.beliefIds || []).includes(selected.id));
     const typedLinks = links.filter((link) => (link.fromType === 'position' && link.fromId === selected.id) || (link.toType === 'position' && link.toId === selected.id));
+    const tensionLinks = typedLinks.filter((link) => link.type === 'contradicts' || link.type === 'challenges' || link.note?.toLowerCase().includes('tension'));
     const firstLinkedSource = linkedSources[0];
     return (
       <div className="flex-1 overflow-y-auto p-8 pt-8 max-w-5xl mx-auto w-full font-body">
@@ -278,6 +300,13 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
           />
         </div>
 
+        <TensionResolutionPanel
+          selected={selected}
+          tensionLinks={tensionLinks}
+          onUpdateEntry={onUpdateEntry}
+          onUpdateLink={onUpdateLink}
+        />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <EvidencePanel title="Evidence For" items={selected.evidenceFor || []} onAdd={(text) => onUpdateEntry({ ...selected, evidenceFor: [...(selected.evidenceFor || []), text], dateUpdated: today() })} />
           <EvidencePanel title="Evidence Against" items={selected.evidenceAgainst || []} onAdd={(text) => onUpdateEntry({ ...selected, evidenceAgainst: [...(selected.evidenceAgainst || []), text], dateUpdated: today() })} />
@@ -328,6 +357,14 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">State what you currently believe, what you are testing, and what evidence supports or challenges each position.</p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex rounded-full border border-border/60 bg-card p-1 shadow-sm">
+            <Button variant={viewMode === 'cards' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('cards')} className="h-7 rounded-full px-3">
+              <LayoutGrid className="size-3.5" /> Cards
+            </Button>
+            <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className="h-7 rounded-full px-3">
+              <Table2 className="size-3.5" /> Table
+            </Button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search positions, principles..." className="w-72 pl-9 h-9 rounded-full" />
@@ -406,6 +443,9 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
         </div>
       </div>
 
+      {viewMode === 'table' ? (
+        <PositionsTable entries={filteredEntries} onOpen={setSelectedId} />
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredEntries.map((entry) => (
           <Card 
@@ -468,6 +508,7 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
           </div>
         )}
       </div>
+      )}
       
       <ConceptDetailDialog 
         name={conceptPopupName} 
@@ -629,6 +670,148 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function TensionResolutionPanel({
+  selected,
+  tensionLinks,
+  onUpdateEntry,
+  onUpdateLink,
+}: {
+  selected: VaultEntry;
+  tensionLinks: PhilosophicalLink[];
+  onUpdateEntry: (entry: VaultEntry) => void;
+  onUpdateLink?: (link: PhilosophicalLink) => void;
+}) {
+  if (!tensionLinks.length) return null;
+
+  const updateLink = (link: PhilosophicalLink, type: PhilosophicalLink['type'], note: string) => {
+    onUpdateLink?.({
+      ...link,
+      type,
+      note,
+      dateUpdated: today(),
+    });
+  };
+
+  const resolveTension = (link: PhilosophicalLink) => {
+    updateLink(link, 'refines', 'Resolved by refining the distinction between these positions.');
+    onUpdateEntry({
+      ...selected,
+      status: 'revised',
+      versionHistory: [
+        ...(selected.versionHistory || []),
+        { date: today(), eventType: 'revised', description: 'Resolved a possible tension by refining this position.' },
+      ],
+      dateUpdated: today(),
+    });
+  };
+
+  return (
+    <Card className="mb-6 rounded-xl border-amber-200/60 bg-amber-50/60 p-5 shadow-sm">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-code text-[10px] font-bold uppercase tracking-[0.2em] text-amber-700">Possible Tension Detected</h2>
+          <p className="mt-1 text-sm italic leading-5 text-muted-foreground">Decide whether this relationship is compatible, opposed, or needs refinement.</p>
+        </div>
+        <Badge variant="outline" className="rounded-full bg-white font-code text-[8px] uppercase tracking-widest">{tensionLinks.length} open</Badge>
+      </div>
+      <div className="space-y-3">
+        {tensionLinks.map((link) => {
+          const otherLabel = link.fromId === selected.id ? link.toLabel || link.toType : link.fromLabel || link.fromType;
+          return (
+            <div key={link.id} className="rounded-lg border border-amber-200/50 bg-white/80 p-3">
+              <div className="mb-3 text-sm italic text-primary/80">
+                {otherLabel} is currently marked as <span className="font-code text-[10px] uppercase tracking-widest text-amber-700">{link.type}</span>.
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => updateLink(link, 'coheres', 'Reviewed and marked as not a contradiction.')} className="rounded-full bg-white">
+                  Not A Contradiction
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => updateLink(link, 'contradicts', 'Confirmed as an active contradiction to examine.')} className="rounded-full border-destructive/25 text-destructive hover:text-destructive">
+                  Confirms Conflict
+                </Button>
+                <Button size="sm" onClick={() => resolveTension(link)} className="rounded-full">
+                  Resolve / Fix
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function PositionsTable({ entries, onOpen }: { entries: VaultEntry[]; onOpen: (id: string) => void }) {
+  if (!entries.length) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center text-center opacity-40">
+        <ShieldCheck className="size-20 mb-6 text-muted-foreground" />
+        <h2 className="text-2xl font-headline italic mb-2">No positions found</h2>
+        <p className="max-w-md font-body">Refine your search or turn an idea into something you are willing to examine.</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Card className="hidden overflow-hidden rounded-xl border-border/60 bg-card shadow-sm md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Position</TableHead>
+              <TableHead>Kind</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Confidence</TableHead>
+              <TableHead>Sources</TableHead>
+              <TableHead>Updated</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {entries.map((entry) => (
+              <TableRow key={entry.id} className="cursor-pointer" onClick={() => onOpen(entry.id)}>
+                <TableCell>
+                  <div className="font-headline text-base font-semibold italic">{entry.title}</div>
+                  <div className="line-clamp-1 text-xs text-muted-foreground">{entry.statement || entry.description}</div>
+                </TableCell>
+                <TableCell className="font-code text-[10px] uppercase tracking-widest">{TYPE_LABELS[entry.type]}</TableCell>
+                <TableCell><Badge variant="outline" className="rounded-full bg-card font-code text-[8px] uppercase tracking-widest">{entry.status}</Badge></TableCell>
+                <TableCell>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <div key={n} className={cn('size-2 rounded-full shadow-sm', n <= entry.confidence ? 'bg-accent' : 'bg-muted')} />
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell className="font-code text-xs">{(entry.sourceIds || []).length}</TableCell>
+                <TableCell className="font-code text-[10px] uppercase tracking-widest text-muted-foreground">{new Date(entry.dateUpdated || entry.dateCreated).toLocaleDateString()}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <div className="grid gap-3 md:hidden">
+        {entries.map((entry) => (
+          <button key={entry.id} onClick={() => onOpen(entry.id)} className="rounded-xl border border-border/60 bg-card p-4 text-left shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="font-code text-[8px] uppercase tracking-widest text-muted-foreground">{TYPE_LABELS[entry.type]}</div>
+                <h3 className="mt-1 font-headline text-xl font-bold italic">{entry.title}</h3>
+              </div>
+              <Badge variant="outline" className="rounded-full bg-card font-code text-[8px] uppercase tracking-widest">{entry.status}</Badge>
+            </div>
+            <p className="mt-2 line-clamp-2 text-sm italic text-muted-foreground">{entry.statement || entry.description}</p>
+            <div className="mt-4 flex justify-between font-code text-[9px] uppercase tracking-widest text-muted-foreground">
+              <span>{entry.confidence}/5 confidence</span>
+              <span>{(entry.sourceIds || []).length} sources</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 

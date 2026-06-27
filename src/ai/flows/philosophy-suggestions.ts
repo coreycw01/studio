@@ -3,7 +3,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const LinkTypeSchema = z.enum(['supports', 'challenges', 'defines', 'refines', 'contradicts', 'exemplifies', 'inspired_by', 'tested_by', 'expressed_in', 'changed_by']);
+const LinkTypeSchema = z.enum(['supports', 'challenges', 'coheres', 'defines', 'refines', 'contradicts', 'exemplifies', 'inspired_by', 'tested_by', 'expressed_in', 'changed_by']);
 
 const SuggestAnnotationConsequencesInputSchema = z.object({
   annotationText: z.string(),
@@ -124,7 +124,7 @@ From: {{fromType}} - {{{fromLabel}}}
 To: {{toType}} - {{{toLabel}}}
 Context: {{{context}}}
 
-Be humble. Prefer supports, challenges, defines, refines, exemplifies, tested_by, expressed_in, or inspired_by unless contradiction is explicit.`,
+Be humble. Prefer coheres, supports, challenges, defines, refines, exemplifies, tested_by, expressed_in, or inspired_by unless contradiction is explicit.`,
 });
 
 const suggestTypedLinksFlow = ai.defineFlow({

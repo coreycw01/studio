@@ -50,6 +50,8 @@ interface AtelierProps {
 }
 
 const statuses: DraftStatus[] = ['seed', 'drafting', 'revised', 'final'];
+const articulationTypes: DraftType[] = ['essay', 'script', 'field_note', 'voice_note', 'talk_to_text', 'drawing', 'recording'];
+const workFilters: ('all' | DraftType | DraftStatus)[] = ['all', ...articulationTypes, 'drafting', 'final'];
 
 const providerLabels: Record<ExternalDocProvider, string> = {
   google_docs: 'Google Docs',
@@ -310,7 +312,7 @@ export function Atelier({ drafts, concepts, writingDefaults, onAddDraft, onUpdat
                 onClick={() => setActiveId(null)}
                 className="font-code text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2 transition-colors"
               >
-                <ChevronLeft className="size-4" /> BACK TO MANUSCRIPTS
+                <ChevronLeft className="size-4" /> BACK TO WORKS
               </button>
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-3">
@@ -360,7 +362,7 @@ export function Atelier({ drafts, concepts, writingDefaults, onAddDraft, onUpdat
                   className="bg-transparent border-none text-4xl font-headline font-bold focus-visible:ring-0 italic p-0 h-auto rounded-none shadow-none text-primary placeholder:text-muted-foreground/20 flex-1"
                   value={active.title}
                   onChange={(event) => updateActive({ title: event.target.value })}
-                  placeholder="Enter Manuscript Title..."
+                  placeholder="Enter Work Title..."
                 />
                 <div className="flex items-center gap-3 bg-muted/10 px-4 py-2 rounded-full border border-border/30">
                   <div className={cn('size-2 rounded-full', saveStatus === 'saved' ? 'bg-emerald-500' : saveStatus === 'saving' ? 'bg-amber-500 animate-pulse' : 'bg-red-400')} />
@@ -465,15 +467,28 @@ export function Atelier({ drafts, concepts, writingDefaults, onAddDraft, onUpdat
               className="w-72 pl-9 h-9 rounded-full"
             />
           </div>
-          <Button variant="outline" onClick={() => openNewDraft('field_note')} size="sm" className="h-9 px-5 font-code text-[10px] tracking-widest rounded-full uppercase font-bold border-border/60 bg-white">Notes</Button>
-          <Button variant="outline" onClick={() => openNewDraft('script')} size="sm" className="h-9 px-5 font-code text-[10px] tracking-widest rounded-full uppercase font-bold border-border/60 bg-white">+ SCRIPT</Button>
-          <Button onClick={() => openNewDraft('essay')} size="sm" className="bg-accent hover:bg-accent/90 h-9 px-7 font-code text-[10px] tracking-widest shadow-lg shadow-accent/20 text-white border-accent rounded-full uppercase font-bold">+ ESSAY</Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {articulationTypes.map((type) => (
+              <Button
+                key={type}
+                variant={type === 'essay' ? 'default' : 'outline'}
+                onClick={() => openNewDraft(type)}
+                size="sm"
+                className={cn(
+                  'h-9 px-4 font-code text-[10px] tracking-widest rounded-full uppercase font-bold shadow-sm',
+                  type === 'essay' ? 'shadow-accent/20' : 'border-border/60 bg-card'
+                )}
+              >
+                + {DRAFT_LABELS[type]}
+              </Button>
+            ))}
+          </div>
         </div>
       </header>
 
       <div className="mb-12">
         <div className="flex flex-wrap gap-2.5">
-          {(['all', 'essay', 'script', 'field_note', 'drafting', 'final'] as const).map((val) => (
+          {workFilters.map((val) => (
             <button
               key={val}
               onClick={() => setFilter(val)}
@@ -484,7 +499,7 @@ export function Atelier({ drafts, concepts, writingDefaults, onAddDraft, onUpdat
                   : 'bg-white text-muted-foreground border border-border/60 hover:text-foreground hover:bg-muted/5'
               )}
             >
-              {val === 'field_note' ? 'FIELD NOTES' : val === 'essay' ? 'ESSAYS' : val === 'script' ? 'SCRIPTS' : val.toUpperCase()}
+              {val === 'all' ? 'ALL' : DRAFT_LABELS[val as DraftType] || val.toUpperCase()}
             </button>
           ))}
         </div>

@@ -12,6 +12,8 @@ export interface PhilosophicalAction {
   description?: string;
   tone?: 'default' | 'support' | 'challenge' | 'ai';
   disabled?: boolean;
+  icon?: React.ReactNode;
+  hideArrow?: boolean;
   onClick: () => void;
 }
 
@@ -31,14 +33,14 @@ export function NextPhilosophicalActionPanel({
   compact = false,
 }: NextPhilosophicalActionPanelProps) {
   return (
-    <Card className={cn('border-accent/20 bg-accent/[0.03] shadow-sm rounded-xl', compact ? 'p-4' : 'p-5')}>
-      <div className="mb-4 flex items-start justify-between gap-4">
+    <Card className={cn('border-accent/20 bg-accent/[0.03] shadow-sm rounded-xl', compact ? 'p-3' : 'p-5')}>
+      <div className={cn('flex items-start justify-between gap-4', compact ? 'mb-2.5' : 'mb-4')}>
         <div>
           <div className="mb-1 flex items-center gap-2">
             <Sparkles className="size-3.5 text-accent" />
             <h3 className="font-code text-[10px] font-bold uppercase tracking-[0.2em] text-accent">{title}</h3>
           </div>
-          <p className="text-sm italic leading-5 text-muted-foreground font-body">{description}</p>
+          <p className={cn('italic text-muted-foreground font-body', compact ? 'text-xs leading-4' : 'text-sm leading-5')}>{description}</p>
         </div>
         {status && (
           <Badge variant="outline" className="shrink-0 rounded-full bg-white font-code text-[8px] uppercase tracking-widest">
@@ -57,13 +59,15 @@ export function NextPhilosophicalActionPanel({
             onClick={action.onClick}
             title={action.description}
             className={cn(
-              'h-8 rounded-full font-code text-[9px] font-bold uppercase tracking-widest',
+              'rounded-full font-code text-[9px] font-bold uppercase tracking-widest',
+              compact ? 'h-7 px-2.5' : 'h-8',
               action.tone === 'challenge' && 'border-destructive/25 text-destructive hover:bg-destructive/10 hover:text-destructive',
               action.tone === 'ai' && 'bg-accent shadow-sm shadow-accent/20'
             )}
           >
+            {action.icon}
             {action.label}
-            <ArrowRight className="ml-1.5 size-3" />
+            {!action.hideArrow && <ArrowRight className="ml-1.5 size-3" />}
           </Button>
         ))}
       </div>

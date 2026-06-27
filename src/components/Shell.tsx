@@ -17,7 +17,8 @@ import {
   Edit2,
   ChevronRight,
   Table as TableIcon,
-  Highlighter
+  Highlighter,
+  Target
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -63,6 +64,7 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
     { id: 'library', label: 'Library', icon: Library, section: 'Inputs', count: counts.media },
     { id: 'source-index', label: 'Source Index', icon: TableIcon, section: 'Inputs', count: counts.media },
     { id: 'annotations', label: 'Annotations', icon: Highlighter, section: 'Inputs', count: counts.annotations },
+    { id: 'goals', label: 'Goals', icon: Target, section: 'Inputs' },
     { id: 'vault', label: 'Positions', icon: ShieldCheck, section: 'Outputs', count: counts.vault },
     { id: 'writing', label: 'Works', icon: PenTool, section: 'Outputs', count: counts.drafts },
     { id: 'practices', label: 'Practices', icon: Repeat, section: 'Outputs', count: counts.practices },
@@ -100,11 +102,11 @@ export function Shell({ children, activeView, onViewChange, counts, goal, goalPr
           <p className="font-code text-[9px] uppercase tracking-[0.14em] text-sidebar-foreground/30 font-medium">Turn thought into understanding.</p>
 
           <div 
-            onClick={onOpenSettings}
+            onClick={() => onViewChange('goals')}
             className="mt-6 w-full rounded border border-white/10 bg-white/[0.05] p-3 transition-all hover:border-white/20 hover:bg-white/[0.075] group/goals relative cursor-pointer"
           >
             <div className="flex justify-between items-center mb-3">
-              <span className="font-code text-[9px] uppercase tracking-wider text-sidebar-foreground/60 font-bold">Source Goals</span>
+              <span className="font-code text-[9px] uppercase tracking-wider text-sidebar-foreground/60 font-bold">Goals</span>
               <Edit2 className="size-3 text-sidebar-foreground/40 opacity-0 group-hover/goals:opacity-100 transition-opacity" />
             </div>
             

@@ -95,7 +95,7 @@
         "toType": { "type": "string" },
         "toId": { "type": "string" },
         "toLabel": { "type": "string" },
-        "type": { "type": "string", "enum": ["supports", "challenges", "defines", "refines", "contradicts", "exemplifies", "inspired_by", "tested_by", "expressed_in", "changed_by"] },
+        "type": { "type": "string", "enum": ["supports", "challenges", "coheres", "defines", "refines", "contradicts", "exemplifies", "inspired_by", "tested_by", "expressed_in", "changed_by"] },
         "note": { "type": "string" },
         "createdFrom": { "type": "string", "enum": ["manual", "suggestion", "system"] },
         "dateCreated": { "type": "string", "format": "date-time" },
@@ -115,6 +115,46 @@
         "payload": { "type": "object" },
         "status": { "type": "string", "enum": ["pending", "accepted", "rejected", "ignored"] },
         "createdFrom": { "type": "string", "enum": ["ai"] },
+        "dateCreated": { "type": "string", "format": "date-time" },
+        "dateUpdated": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Draft": {
+      "title": "Work",
+      "description": "An articulated output such as an essay, script, field note, voice note, talk-to-text capture, drawing, or recording.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "type": { "type": "string", "enum": ["essay", "script", "field_note", "voice_note", "talk_to_text", "drawing", "recording"] },
+        "status": { "type": "string", "enum": ["seed", "drafting", "revised", "final"] },
+        "writingStyle": { "type": "string" },
+        "externalDoc": { "type": "object" },
+        "conceptTags": { "type": "array", "items": { "type": "string" } },
+        "sourceIds": { "type": "array", "items": { "type": "string" } },
+        "questionIds": { "type": "array", "items": { "type": "string" } },
+        "beliefIds": { "type": "array", "items": { "type": "string" } },
+        "dateCreated": { "type": "string", "format": "date-time" },
+        "dateUpdated": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Practice": {
+      "title": "Practice",
+      "description": "A behavior-facing output that tests a position through habits, experiments, disciplines, commitments, observations, rules, or challenges.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["habit", "experiment", "discipline", "reflection_prompt", "commitment", "observation", "rule", "challenge"] },
+        "status": { "type": "string", "enum": ["proposed", "planned", "active", "completed", "failed", "integrated", "paused", "abandoned"] },
+        "durationDays": { "type": "number" },
+        "logDates": { "type": "array", "items": { "type": "string" } },
+        "conceptTags": { "type": "array", "items": { "type": "string" } },
+        "sourceIds": { "type": "array", "items": { "type": "string" } },
+        "questionIds": { "type": "array", "items": { "type": "string" } },
+        "positionIds": { "type": "array", "items": { "type": "string" } },
+        "draftIds": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" },
         "dateCreated": { "type": "string", "format": "date-time" },
         "dateUpdated": { "type": "string", "format": "date-time" }
       }
@@ -145,8 +185,12 @@
       "description": "Log of cognitive evolution."
     },
     "/users/{userId}/drafts/{draftId}": {
-      "schema": "object",
-      "description": "Writing manuscripts."
+      "schema": "Draft",
+      "description": "Works and articulation outputs."
+    },
+    "/users/{userId}/practices/{practiceId}": {
+      "schema": "Practice",
+      "description": "Behavior-facing tests and consistency logs."
     },
     "/users/{userId}/links/{linkId}": {
       "schema": "PhilosophicalLink",
