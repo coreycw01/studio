@@ -15,9 +15,7 @@ import { SourceLinker } from '@/components/SourceLinker';
 import type { Concept, Draft, Insight, Media, Practice, Question, TimelineEvent, VaultEntry } from '@/lib/types';
 import { allAnnotations, conceptKey, conceptRelated, conceptTerms, UNSORTED_CONCEPT } from '@/lib/readex';
 import { cn } from '@/lib/utils';
-import { suggestConceptDescription } from '@/ai/flows/suggest-concept-description';
-import { generateClarityCheck, suggestPositionDrafts } from '@/ai/flows/philosophy-suggestions';
-import type { ClarityCheckQuestion } from '@/ai/flows/philosophy-suggestions';
+import { aiClient, type ClarityCheckQuestion } from '@/lib/ai-client';
 import { computeConceptDiagnosis, CLARITY_BG } from '@/lib/clarity';
 import type { ClarityLevel } from '@/lib/clarity';
 import { useToast } from '@/hooks/use-toast';
@@ -90,7 +88,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
     setIsSuggesting(true);
     try {
       const related = conceptRelated(draftConcept.name, { media, insights, vault, drafts, practices, questions, timeline });
-      const { suggestedDescription } = await suggestConceptDescription({
+      const { suggestedDescription } = await aiClient.suggestConceptDescription({
         conceptName: draftConcept.name,
         currentDescription: draftConcept.description,
         linkedSources: related.sources.map(s => ({ title: s.title, creator: s.creator, description: s.description })),
@@ -98,9 +96,9 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         linkedBeliefs: related.beliefs.map(b => ({ title: b.title, statement: b.statement, description: b.description }))
       });
       setDraftConcept(prev => ({ ...prev, description: suggestedDescription }));
-      toast({ title: "Description Suggested", description: "AI has crafted a summary based on your linked research." });
+      toast({ title: "AI description ready.", description: "Noesis drafted a concept definition from your linked evidence." });
     } catch (error) {
-      toast({ variant: "destructive", title: "Suggestion Failed", description: "AI could not generate a description at this time." });
+      toast({ variant: "destructive", title: "Suggestion Failed", description: error instanceof Error ? error.message : "AI could not generate a description at this time." });
     } finally {
       setIsSuggesting(false);
     }
@@ -149,7 +147,7 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
     setIsLoadingCheck(true);
     try {
       const diagnosis = computeConceptDiagnosis(selectedName, selectedRelated, concept?.description);
-      const result = await generateClarityCheck({
+      const result = await aiClient.generateClarityCheck({
         conceptName: selectedName,
         conceptDefinition: concept?.description,
         positionStatements: selectedRelated.beliefs.slice(0, 4).map(b => b.statement || b.title),
@@ -157,8 +155,9 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
         relatedConcepts: diagnosis.areasToReview,
       });
       setClarityCheckQuestions(result.questions);
-    } catch {
-      toast({ variant: 'destructive', title: 'Check Failed', description: 'Could not generate questions right now.' });
+      toast({ title: 'Clarity questions generated.', description: 'AI prepared a concept check based on your notes.' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Check Failed', description: error instanceof Error ? error.message : 'Could not generate questions right now.' });
       setClarityCheckOpen(false);
     } finally {
       setIsLoadingCheck(false);
@@ -184,15 +183,15 @@ export function ConceptEncyclopedia(props: ConceptEncyclopediaProps) {
     }
     setIsDraftingPositions(true);
     try {
-      const result = await suggestPositionDrafts({
+      const result = await aiClient.suggestPositionDrafts({
         conceptName: selectedName,
         annotations: annotationTexts.slice(0, 16),
         sourceTitles: selectedRelated.sources.map((source) => source.title).slice(0, 8),
       });
       setPositionDrafts(result.drafts);
-      toast({ title: 'Position Drafts Ready', description: 'Review the drafts and save only the claims you want to own.' });
+      toast({ title: 'Position drafts ready.', description: 'Review the AI drafts and save only the claims you want to own.' });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Builder Failed', description: 'Noesis could not draft positions from this concept right now.' });
+      toast({ variant: 'destructive', title: 'Builder Failed', description: error instanceof Error ? error.message : 'Noesis could not draft positions from this concept right now.' });
     } finally {
       setIsDraftingPositions(false);
     }

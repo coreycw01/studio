@@ -19,7 +19,7 @@ import { normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 import { ConceptDetailDialog } from '@/components/Library/MediaLibrary';
 import { NextPhilosophicalActionPanel } from '@/components/Philosophy/NextPhilosophicalActionPanel';
-import { generateIdeaQuestions, formPositionFromIdea } from '@/ai/flows/philosophy-suggestions';
+import { aiClient } from '@/lib/ai-client';
 import { useToast } from '@/hooks/use-toast';
 import { GenerativeAiIcon } from '@/components/GenerativeAiIcon';
 
@@ -111,11 +111,12 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
     if (!ideaDraft.title.trim()) return;
     setIsGenerating(true);
     try {
-      const result = await generateIdeaQuestions({ ideaTitle: ideaDraft.title, ideaBody: ideaDraft.body });
+      const result = await aiClient.generateIdeaQuestions({ ideaTitle: ideaDraft.title, ideaBody: ideaDraft.body });
       setIdeaQA(result.questions.map((q) => ({ ...q, answer: '' })));
       setIdeaStep(2);
-    } catch {
-      toast({ variant: 'destructive', title: 'AI Unavailable', description: 'Could not generate questions. Try again.' });
+      toast({ title: 'Inquiries generated.', description: 'AI produced three clarifying questions for this idea.' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'AI Unavailable', description: error instanceof Error ? error.message : 'Could not generate questions. Try again.' });
     } finally {
       setIsGenerating(false);
     }
@@ -128,15 +129,16 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
     }
     setIsGenerating(true);
     try {
-      const result = await formPositionFromIdea({
+      const result = await aiClient.formPositionFromIdea({
         ideaTitle: ideaDraft.title,
         ideaBody: ideaDraft.body,
         qa: ideaQA.map((q) => ({ question: q.question, answer: q.answer })),
       });
       setIdeaPosition(result);
       setIdeaStep(3);
-    } catch {
-      toast({ variant: 'destructive', title: 'AI Unavailable', description: 'Could not form position. Try again.' });
+      toast({ title: 'Position draft ready.', description: 'AI formed a draft position from your idea and answers.' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'AI Unavailable', description: error instanceof Error ? error.message : 'Could not form position. Try again.' });
     } finally {
       setIsGenerating(false);
     }

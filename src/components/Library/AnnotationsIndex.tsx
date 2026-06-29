@@ -18,7 +18,7 @@ import type { AiSuggestion, Annotation, AnnotationType, Concept, Media, Philosop
 import { allAnnotations, conceptKey, MEDIA_LABELS, normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { suggestAnnotationConsequences } from '@/ai/flows/philosophy-suggestions';
+import { aiClient } from '@/lib/ai-client';
 
 interface AnnotationsIndexProps {
   media: Media[];
@@ -203,7 +203,7 @@ export function AnnotationsIndex({
   const suggestConsequences = async (annotation: FlatAnnotation) => {
     setSuggestingId(annotation.id);
     try {
-      const suggestion = await suggestAnnotationConsequences({
+      const suggestion = await aiClient.suggestAnnotationConsequences({
         annotationText: annotation.text,
         annotationType: annotation.type,
         sourceTitle: annotation.source.title,
@@ -226,7 +226,11 @@ export function AnnotationsIndex({
       });
       toast({ title: 'Suggestion Saved', description: 'Noesis saved a possible next step for you to accept or ignore later.' });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Suggestion Failed', description: 'The assistant could not read this annotation right now.' });
+      toast({
+        variant: 'destructive',
+        title: 'Suggestion Failed',
+        description: error instanceof Error ? error.message : 'The assistant could not read this annotation right now.',
+      });
     } finally {
       setSuggestingId(null);
     }

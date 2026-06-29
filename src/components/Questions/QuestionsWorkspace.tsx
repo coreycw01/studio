@@ -13,10 +13,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { SourceLinker } from '@/components/SourceLinker';
 import { NextPhilosophicalActionPanel } from '@/components/Philosophy/NextPhilosophicalActionPanel';
 import { GenerativeAiIcon } from '@/components/GenerativeAiIcon';
-import { socratesReflect } from '@/ai/flows/philosophy-suggestions';
+import { aiClient } from '@/lib/ai-client';
 import type { Concept, Draft, Media, Question, VaultEntry } from '@/lib/types';
 import { allQuestions, conceptKey, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface QuestionsWorkspaceProps {
   questions: Question[];
@@ -41,6 +42,7 @@ export function QuestionsWorkspace({ questions, media, vault, drafts, concepts, 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newQuestion, setNewQuestion] = useState({ text: '', sourceIds: [] as string[] });
+  const { toast } = useToast();
 
   const all = useMemo(() => allQuestions(media, questions), [media, questions]);
   React.useEffect(() => {
@@ -80,15 +82,16 @@ export function QuestionsWorkspace({ questions, media, vault, drafts, concepts, 
     const relatedBeliefs = vault.filter((entry) => (entry.tags || []).some((tag) => conceptNames.map(conceptKey).includes(conceptKey(tag))) || (entry.sourceIds || []).some((id) => sourceIds.includes(id)));
     const relatedDrafts = drafts.filter((draft) => (draft.questionIds || []).includes(selected.id) || (draft.conceptTags || []).some((tag) => conceptNames.map(conceptKey).includes(conceptKey(tag))));
     return (
-      <QuestionDetail
-        question={selected}
-        sources={relatedSources}
-        concepts={conceptNames}
-        beliefs={relatedBeliefs}
-        drafts={relatedDrafts}
-        onBack={() => setSelectedId(null)}
-        onFormPositionFromInquiry={onFormPositionFromInquiry}
-      />
+        <QuestionDetail
+          question={selected}
+          sources={relatedSources}
+          concepts={conceptNames}
+          beliefs={relatedBeliefs}
+          drafts={relatedDrafts}
+          onBack={() => setSelectedId(null)}
+          onFormPositionFromInquiry={onFormPositionFromInquiry}
+          onAiFeedback={(title, description, variant) => toast({ title, description, ...(variant ? { variant } : {}) })}
+        />
     );
   }
 
@@ -242,7 +245,7 @@ export function QuestionsWorkspace({ questions, media, vault, drafts, concepts, 
 
 type DialogPhase = 'write' | 'probing' | 'ready';
 
-function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, onFormPositionFromInquiry }: {
+function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, onFormPositionFromInquiry, onAiFeedback }: {
   question: Question;
   sources: Media[];
   concepts: string[];
@@ -250,6 +253,7 @@ function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, 
   drafts: Draft[];
   onBack: () => void;
   onFormPositionFromInquiry: (question: Question, position: { title: string; statement: string; description: string; confidence: number }, finalAnswer: string) => void;
+  onAiFeedback: (title: string, description: string, variant?: 'default' | 'destructive') => void;
 }) {
   const [phase, setPhase] = useState<DialogPhase>('write');
   const [initialAnswer, setInitialAnswer] = useState(question.answer || '');
@@ -266,7 +270,7 @@ function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, 
     setIsLoading(true);
     setError(null);
     try {
-      const result = await socratesReflect({ question: question.text, initialAnswer, exchanges: undefined });
+      const result = await aiClient.socratesReflect({ question: question.text, initialAnswer, exchanges: undefined });
       if (result.ready) {
         setPositionDraft({
           title: result.positionTitle || question.text.slice(0, 60),
@@ -275,13 +279,15 @@ function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, 
           confidence: result.confidence || 3,
         });
         setPhase('ready');
+        onAiFeedback('Position crystallized.', 'AI synthesized a first position draft from your answer.');
       } else {
         setCurrentProbe(result.probe || '');
         setCurrentFocus(result.focus || '');
         setPhase('probing');
+        onAiFeedback('AI reflection complete.', 'A Socratic probe is ready for your next response.');
       }
-    } catch {
-      setError('AI reflection failed. Please try again.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'AI reflection failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -293,7 +299,7 @@ function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, 
     setError(null);
     try {
       const newExchanges = [...exchanges, { probe: currentProbe, response: probeResponse }];
-      const result = await socratesReflect({ question: question.text, initialAnswer, exchanges: newExchanges });
+      const result = await aiClient.socratesReflect({ question: question.text, initialAnswer, exchanges: newExchanges });
       setExchanges(newExchanges);
       setProbeResponse('');
       if (result.ready) {
@@ -304,12 +310,14 @@ function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, 
           confidence: result.confidence || 3,
         });
         setPhase('ready');
+        onAiFeedback('Position draft ready.', 'AI has enough to form a position from this inquiry.');
       } else {
         setCurrentProbe(result.probe || '');
         setCurrentFocus(result.focus || '');
+        onAiFeedback('Another probe generated.', 'AI found one more tension to explore before forming a position.');
       }
-    } catch {
-      setError('AI reflection failed. Please try again.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'AI reflection failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

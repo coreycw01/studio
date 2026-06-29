@@ -20,8 +20,7 @@ import { MEDIA_LABELS, MEDIA_TYPES, MEDIA_ICONS_COMP, normalizeConceptTags, toda
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { sourceResultToMediaPatch, type NormalizedSourceResult } from '@/lib/source-intake';
-import { distillInsightsFromMedia } from '@/ai/flows/distill-insights-from-media';
-import { generateReflectiveQuestions } from '@/ai/flows/generate-reflective-questions-flow';
+import { aiClient } from '@/lib/ai-client';
 import { GenerativeAiIcon } from '@/components/GenerativeAiIcon';
 
 interface MediaLibraryProps {
@@ -267,7 +266,7 @@ export function MediaLibrary({
     if (!selected) return;
     setIsDistilling(true);
     try {
-      const { coreClaim } = await distillInsightsFromMedia({
+      const { coreClaim } = await aiClient.distillInsightsFromMedia({
         mediaTitle: selected.title,
         mediaCreator: selected.creator,
         capturedNotes: selected.capture,
@@ -277,9 +276,13 @@ export function MediaLibrary({
       const nextCapture = { ...capture, after: { ...capture.after, coreArgument: coreClaim }, sessions: capture.sessions || [] };
       setCaptureDraft(nextCapture);
       updateSelected({ capture: nextCapture });
-      toast({ title: "Insight Distilled", description: "AI has suggested a core claim based on your notes." });
+      toast({ title: "AI analysis complete.", description: "Noesis distilled a core position from this source." });
     } catch (error) {
-      toast({ variant: "destructive", title: "Distillation Failed", description: "The AI was unable to synthesize a claim at this time." });
+      toast({
+        variant: "destructive",
+        title: "Distillation Failed",
+        description: error instanceof Error ? error.message : "The AI was unable to synthesize a claim at this time.",
+      });
     } finally {
       setIsDistilling(false);
     }
@@ -289,7 +292,7 @@ export function MediaLibrary({
     if (!selected) return;
     setIsGeneratingQuestions(true);
     try {
-      const questionsRes = await generateReflectiveQuestions({
+      const questionsRes = await aiClient.generateReflectiveQuestions({
         mediaTitle: selected.title,
         beforePriorBeliefs: selected.capture?.before?.priorBeliefs,
         beforeExpectation: selected.capture?.before?.expectation,
@@ -309,9 +312,13 @@ export function MediaLibrary({
       }));
 
       updateSelected({ annotations: [...newAnnotations, ...(selected.annotations || [])] });
-      toast({ title: "Questions Generated", description: "New reflective inquiries added to annotations." });
+      toast({ title: "Inquiries generated.", description: "New reflective questions were added to this source." });
     } catch (error) {
-      toast({ variant: "destructive", title: "Generation Failed", description: "AI reflective questions could not be created." });
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "AI reflective questions could not be created.",
+      });
     } finally {
       setIsGeneratingQuestions(false);
     }
