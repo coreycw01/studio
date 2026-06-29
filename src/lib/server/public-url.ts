@@ -1,4 +1,6 @@
 
+import 'server-only';
+
 import { Buffer } from 'node:buffer';
 import { lookup } from 'node:dns/promises';
 import net from 'node:net';

@@ -1,3 +1,5 @@
+import 'server-only';
+
 import type { MediaType } from '@/lib/types';
 import type { NormalizedSourceResult } from '@/lib/source-intake';
 import { fetchPublicUrl, readLimitedText } from './public-url';
