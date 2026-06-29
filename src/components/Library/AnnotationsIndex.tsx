@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { BookOpen, BrainCircuit, Edit, ExternalLink, Highlighter, Loader2, Quote, Search, Trash2 } from 'lucide-react';
+import { BookOpen, Edit, ExternalLink, Highlighter, Loader2, Quote, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ConceptTagPicker } from '@/components/ConceptTagPicker';
 import { NextPhilosophicalActionPanel } from '@/components/Philosophy/NextPhilosophicalActionPanel';
+import { GenerativeAiIcon } from '@/components/GenerativeAiIcon';
 import type { AiSuggestion, Annotation, AnnotationType, Concept, Media, PhilosophicalLink, Question, VaultEntry } from '@/lib/types';
 import { allAnnotations, conceptKey, MEDIA_LABELS, normalizeConceptTags, today } from '@/lib/readex';
 import { cn } from '@/lib/utils';
@@ -267,7 +268,7 @@ export function AnnotationsIndex({
               </Badge>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button variant="ghost" size="icon" className="size-8 rounded-full text-accent hover:text-accent" onClick={() => suggestConsequences(annotation)} disabled={suggestingId === annotation.id} title="Ask Noesis AI">
-                  {suggestingId === annotation.id ? <Loader2 className="size-3.5 animate-spin" /> : <BrainCircuit className="size-3.5" />}
+                  {suggestingId === annotation.id ? <Loader2 className="size-3.5 animate-spin" /> : <GenerativeAiIcon className="size-4" />}
                 </Button>
                 <Button variant="ghost" size="icon" className="size-8 rounded-full" onClick={() => setEditing(annotation)} title="Edit annotation">
                   <Edit className="size-3.5" />
@@ -334,7 +335,7 @@ export function AnnotationsIndex({
               </button>
               <div className="flex shrink-0 gap-2">
                 <Button variant="outline" size="icon" onClick={() => suggestConsequences(annotation)} disabled={suggestingId === annotation.id} className="size-8 rounded-full bg-card border-border/60" title="Ask Noesis AI">
-                  {suggestingId === annotation.id ? <Loader2 className="size-3.5 animate-spin" /> : <BrainCircuit className="size-3.5" />}
+                  {suggestingId === annotation.id ? <Loader2 className="size-3.5 animate-spin" /> : <GenerativeAiIcon className="size-4" />}
                 </Button>
               </div>
             </div>

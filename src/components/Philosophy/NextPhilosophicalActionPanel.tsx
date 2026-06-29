@@ -1,10 +1,11 @@
 "use client";
 
 import React from 'react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { GenerativeAiIcon } from '@/components/GenerativeAiIcon';
 import { cn } from '@/lib/utils';
 
 export interface PhilosophicalAction {
@@ -37,7 +38,7 @@ export function NextPhilosophicalActionPanel({
       <div className={cn('flex items-start justify-between gap-4', compact ? 'mb-2.5' : 'mb-4')}>
         <div>
           <div className="mb-1 flex items-center gap-2">
-            <Sparkles className="size-3.5 text-accent" />
+            <GenerativeAiIcon className="size-4" />
             <h3 className="font-code text-[10px] font-bold uppercase tracking-[0.2em] text-accent">{title}</h3>
           </div>
           <p className={cn('italic text-muted-foreground font-body', compact ? 'text-xs leading-4' : 'text-sm leading-5')}>{description}</p>

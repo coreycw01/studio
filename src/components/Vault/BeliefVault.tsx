@@ -21,6 +21,7 @@ import { ConceptDetailDialog } from '@/components/Library/MediaLibrary';
 import { NextPhilosophicalActionPanel } from '@/components/Philosophy/NextPhilosophicalActionPanel';
 import { generateIdeaQuestions, formPositionFromIdea } from '@/ai/flows/philosophy-suggestions';
 import { useToast } from '@/hooks/use-toast';
+import { GenerativeAiIcon } from '@/components/GenerativeAiIcon';
 
 interface BeliefVaultProps {
   entries: VaultEntry[];
@@ -398,22 +399,26 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
       </header>
 
       {tensions.length > 0 && (
-        <div className="mb-8 rounded-xl border border-amber-200/60 bg-amber-50/60 p-5">
+        <div className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="size-4 text-amber-600" />
-            <h3 className="font-code text-[10px] uppercase tracking-[0.2em] text-amber-700 font-bold">Possible Tensions Detected</h3>
+            <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
+            <h3 className="font-code text-[10px] uppercase tracking-[0.2em] text-foreground font-bold">Possible Tensions Detected</h3>
           </div>
           <div className="space-y-3">
             {tensions.map(({ a, b, sharedTags }) => (
-              <div key={`${a.id}-${b.id}`} className="rounded-lg bg-white/70 border border-amber-100 p-4">
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-1 text-sm font-body">
-                  <button onClick={() => setSelectedId(a.id)} className="font-bold italic text-primary hover:text-accent transition-colors">{a.title}</button>
-                  <span className="text-amber-600/60 font-code text-[9px] uppercase tracking-widest self-center">shares concept</span>
-                  <span className="font-code text-[9px] bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 self-center">{sharedTags[0]}</span>
-                  <span className="text-amber-600/60 font-code text-[9px] uppercase tracking-widest self-center">with</span>
-                  <button onClick={() => setSelectedId(b.id)} className="font-bold italic text-primary hover:text-accent transition-colors">{b.title}</button>
+              <div key={`${a.id}-${b.id}`} className="rounded-lg border border-border bg-background p-4 shadow-sm">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm font-body">
+                  <button onClick={() => setSelectedId(a.id)} className="font-headline text-base font-bold italic text-foreground hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring rounded-sm">
+                    {a.title}
+                  </button>
+                  <span className="font-code text-[9px] uppercase tracking-widest text-muted-foreground self-center">shares concept</span>
+                  <span className="font-code text-[9px] bg-accent/10 text-accent rounded-full px-2.5 py-1 self-center border border-accent/20 font-bold">{sharedTags[0]}</span>
+                  <span className="font-code text-[9px] uppercase tracking-widest text-muted-foreground self-center">with</span>
+                  <button onClick={() => setSelectedId(b.id)} className="font-headline text-base font-bold italic text-foreground hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring rounded-sm">
+                    {b.title}
+                  </button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 font-body italic">Examine whether these positions contradict, refine, or complement each other.</p>
+                <p className="mt-3 text-sm text-foreground/80 font-body italic leading-6">Examine whether these positions contradict, refine, or complement each other.</p>
               </div>
             ))}
           </div>
@@ -591,7 +596,7 @@ export function BeliefVault({ entries, media, drafts, practices, questions, time
                   disabled={!ideaDraft.title.trim() || isGenerating}
                   className="bg-accent shadow-md shadow-accent/20 rounded-full px-8 w-full"
                 >
-                  {isGenerating ? <Loader2 className="size-4 mr-2 animate-spin" /> : <ChevronRight className="size-4 mr-2" />}
+                  {isGenerating ? <Loader2 className="size-4 mr-2 animate-spin" /> : <GenerativeAiIcon className="mr-2 size-4" />}
                   {isGenerating ? 'Generating questions…' : 'Ask AI'}
                 </Button>
               </DialogFooter>

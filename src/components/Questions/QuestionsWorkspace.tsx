@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle, Loader2, MessageCircle, Plus, Search, Sparkles } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, MessageCircle, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { SourceLinker } from '@/components/SourceLinker';
 import { NextPhilosophicalActionPanel } from '@/components/Philosophy/NextPhilosophicalActionPanel';
+import { GenerativeAiIcon } from '@/components/GenerativeAiIcon';
 import { socratesReflect } from '@/ai/flows/philosophy-suggestions';
 import type { Concept, Draft, Media, Question, VaultEntry } from '@/lib/types';
 import { allQuestions, conceptKey, today } from '@/lib/readex';
@@ -393,7 +394,7 @@ function QuestionDetail({ question, sources, concepts, beliefs, drafts, onBack, 
                 disabled={!probeResponse.trim() || isLoading}
                 className="h-12 px-10 rounded-full font-bold shadow-lg shadow-accent/20"
               >
-                {isLoading ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Sparkles className="size-4 mr-2" />}
+                {isLoading ? <Loader2 className="size-4 mr-2 animate-spin" /> : <GenerativeAiIcon className="mr-2 size-4" />}
                 CONTINUE
               </Button>
             </Card>
